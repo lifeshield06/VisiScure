@@ -1,9 +1,45 @@
 from flask import request, jsonify, session
 from . import wallet_bp
 from .models import HotelWallet
+from database.db import get_db_connection
 
 # Initialize tables on import
 HotelWallet.create_tables()
+
+
+def log_wallet_activity(activity_type, message, hotel_id=None, role='manager'):
+    """Log wallet-related activity with role and hotel_id"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Ensure role column exists
+        try:
+            cursor.execute("SHOW COLUMNS FROM recent_activities LIKE 'role'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE recent_activities ADD COLUMN role VARCHAR(20) DEFAULT 'manager'")
+                conn.commit()
+                print("[WALLET] Added 'role' column to recent_activities")
+        except Exception as col_err:
+            print(f"[WALLET] Column check error: {col_err}")
+        
+        cursor.execute(
+            "INSERT INTO recent_activities (activity_type, message, hotel_id, role) VALUES (%s, %s, %s, %s)",
+            (activity_type, message, hotel_id, role)
+        )
+        conn.commit()
+        
+        # Debug: Verify the insert
+        cursor.execute("SELECT id, activity_type, message, hotel_id, role FROM recent_activities ORDER BY id DESC LIMIT 1")
+        inserted = cursor.fetchone()
+        print(f"[WALLET ACTIVITY LOGGED] id={inserted[0]}, type={inserted[1]}, hotel_id={inserted[3]}, role={inserted[4]}")
+        
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"[WALLET ACTIVITY ERROR] Failed to log activity: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 @wallet_bp.route('/api/balance/<int:hotel_id>', methods=['GET'])
@@ -25,18 +61,21 @@ def get_balance(hotel_id):
 
 @wallet_bp.route('/api/add-balance', methods=['POST'])
 def add_balance():
-    """Add balance to hotel wallet (Admin or Manager)"""
+    """Add balance to hotel wallet (Admin or Manager) - requires UTR number"""
     try:
         data = request.json
         hotel_id = int(data.get('hotel_id', 0))
         amount = float(data.get('amount', 0))
-        description = data.get('description', 'Balance added')
+        utr_number = data.get('utr_number', '').strip()
         
         if not hotel_id:
             return jsonify({'success': False, 'message': 'Hotel ID is required'})
         
         if amount <= 0:
             return jsonify({'success': False, 'message': 'Amount must be greater than 0'})
+        
+        if not utr_number:
+            return jsonify({'success': False, 'message': 'UTR Number is required'})
         
         # Determine who is adding balance
         admin_id = session.get('admin_id')
@@ -52,7 +91,20 @@ def add_balance():
         else:
             return jsonify({'success': False, 'message': 'Unauthorized'}), 401
         
-        result = HotelWallet.add_balance(hotel_id, amount, description, created_by_type, created_by_id)
+        result = HotelWallet.add_balance(hotel_id, amount, utr_number, created_by_type, created_by_id)
+        
+        # Log activity on success
+        if result.get('success'):
+            if admin_id:
+                # Admin action - log without hotel_id for admin dashboard
+                log_wallet_activity('wallet', f"Balance ₹{amount:.0f} added to hotel wallet (UTR: {utr_number})", None, role='admin')
+            else:
+                # Manager action - log with hotel_id for manager dashboard
+                # Ensure hotel_id is an integer for proper DB storage
+                log_hotel_id = int(manager_hotel_id) if manager_hotel_id else hotel_id
+                print(f"[WALLET DEBUG] Logging manager activity - hotel_id={log_hotel_id}, role=manager")
+                log_wallet_activity('wallet', f"Wallet balance increased by ₹{amount:.0f} (UTR: {utr_number})", log_hotel_id, role='manager')
+        
         return jsonify(result)
     except Exception as e:
         print(f"Error in add_balance route: {e}")
@@ -100,6 +152,11 @@ def update_charges():
             return jsonify({'success': False, 'message': 'Hotel ID is required'})
         
         result = HotelWallet.update_charges(hotel_id, per_verification_charge, per_order_charge)
+        
+        # Log admin activity on success
+        if result.get('success'):
+            log_wallet_activity('wallet', f"Hotel charges updated (₹{per_verification_charge}/verify, ₹{per_order_charge}/order)", None)
+        
         return jsonify(result)
     except Exception as e:
         print(f"Error in update_charges route: {e}")

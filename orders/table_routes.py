@@ -9,19 +9,20 @@ from database.db import get_db_connection
 Table.create_tables()
 
 def log_order_activity(activity_type, message, hotel_id=None):
-    """Log order-related activity"""
+    """Log order-related activity with role='manager'"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO recent_activities (activity_type, message, hotel_id) VALUES (%s, %s, %s)",
-            (activity_type, message, hotel_id)
+            "INSERT INTO recent_activities (activity_type, message, hotel_id, role) VALUES (%s, %s, %s, %s)",
+            (activity_type, message, hotel_id, 'manager')
         )
         conn.commit()
+        print(f"[ORDER ACTIVITY LOGGED] type={activity_type}, hotel_id={hotel_id}, role=manager")
         cursor.close()
         conn.close()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[ORDER ACTIVITY ERROR] {e}")
 
 def check_food_module():
     """Check if food module is enabled for this manager's hotel"""
@@ -200,7 +201,7 @@ def complete_order():
 
 @orders_bp.route('/api/update-order-status', methods=['POST'])
 def update_order_status():
-    """Update order status (ACTIVE/PREPARING/COMPLETED)"""
+    """Update order status (ACTIVE/PREPARING/COMPLETED) - DEPRECATED, use update-item-status for kitchen"""
     try:
         data = request.get_json()
         order_id = data.get('order_id')
@@ -214,11 +215,82 @@ def update_order_status():
     except Exception as e:
         return jsonify({"success": False, "message": "Server error"})
 
+
+@orders_bp.route('/api/update-item-status', methods=['POST'])
+def update_item_status():
+    """Update individual order item status (for kitchen dashboard)"""
+    try:
+        data = request.get_json()
+        item_id = data.get('item_id')
+        status = data.get('status')
+
+        if not item_id or not status:
+            return jsonify({"success": False, "message": "Item ID and status required"})
+        
+        if status not in ['ACTIVE', 'PREPARING', 'READY', 'COMPLETED']:
+            return jsonify({"success": False, "message": "Invalid status"})
+        
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        
+        # Update item status
+        cursor.execute("""
+            UPDATE order_items
+            SET item_status = %s
+            WHERE id = %s
+        """, (status, item_id))
+        
+        connection.commit()
+        
+        # Check if all items in the order are COMPLETED
+        cursor.execute("""
+            SELECT order_id FROM order_items WHERE id = %s
+        """, (item_id,))
+        
+        result = cursor.fetchone()
+        if result:
+            order_id = result[0]
+            
+            # Check if all items are COMPLETED
+            cursor.execute("""
+                SELECT COUNT(*) as total,
+                       SUM(CASE WHEN item_status = 'COMPLETED' THEN 1 ELSE 0 END) as completed
+                FROM order_items
+                WHERE order_id = %s
+            """, (order_id,))
+            
+            counts = cursor.fetchone()
+            if counts and counts[0] == counts[1]:
+                # All items completed, mark order as COMPLETED
+                cursor.execute("""
+                    UPDATE table_orders
+                    SET order_status = 'COMPLETED'
+                    WHERE id = %s
+                """, (order_id,))
+                connection.commit()
+        
+        cursor.close()
+        connection.close()
+        
+        print(f"[ITEM_STATUS] Item {item_id} → {status}")
+        return jsonify({"success": True, "message": "Item status updated"})
+        
+    except Exception as e:
+        print(f"[ITEM_STATUS ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Server error"})
+
 @orders_bp.route('/api/tables/<table_number>', methods=['DELETE'])
 def delete_table(table_number):
     """Delete table by table number"""
     try:
+        hotel_id = session.get('hotel_id')
         result = TableService.delete_table(table_number)
+        
+        if result.get('success'):
+            log_order_activity('table', f"Table '{table_number}' was deleted", hotel_id)
+        
         return jsonify(result)
     except Exception as e:
         return jsonify({"success": False, "message": "Server error"})
@@ -294,15 +366,25 @@ def process_payment():
         table_id = data.get('table_id')
         guest_name = data.get('guest_name')
         payment_method = data.get('payment_method', 'CASH')
+        tip_amount = float(data.get('tip_amount', 0.00))  # Get tip amount from request
+        
+        print(f"[PAYMENT] Processing payment for table_id={table_id}, tip_amount={tip_amount}, method={payment_method}")
         
         if not table_id:
             return jsonify({"success": False, "message": "Table ID is required"})
+        
+        # Validate tip amount
+        if tip_amount < 0:
+            return jsonify({"success": False, "message": "Tip amount cannot be negative"})
         
         # Find OPEN bill for this table
         open_bill = Bill.get_any_open_bill_for_table(table_id)
         
         if not open_bill:
+            print(f"[PAYMENT ERROR] No open bill found for table_id={table_id}")
             return jsonify({"success": False, "message": "No open bill found. Please place an order first."})
+        
+        print(f"[PAYMENT] Found open bill: bill_id={open_bill['id']}, bill_number={open_bill.get('bill_number')}")
         
         # Get table info for logging
         table = Table.get_table_by_id(table_id)
@@ -310,19 +392,28 @@ def process_payment():
         hotel_id = table.get('hotel_id') if table else None
         bill_total = open_bill.get('total_amount', 0)
         
-        # Process payment in atomic transaction
-        payment_success = Bill.process_payment_atomic(table_id, open_bill['id'], payment_method)
+        # Process payment in atomic transaction with tip
+        payment_success = Bill.process_payment_atomic(table_id, open_bill['id'], payment_method, tip_amount)
         
         if payment_success:
+            # Calculate final total with tip for logging
+            final_total = float(bill_total) + tip_amount
+            tip_text = f" (incl. ₹{tip_amount:.0f} tip)" if tip_amount > 0 else ""
+            
             # Log activity
-            log_order_activity('payment', f"Payment received - Table {table_num} paid ₹{bill_total:.0f}", hotel_id)
+            log_order_activity('payment', f"Payment received - Table {table_num} paid ₹{final_total:.0f}{tip_text}", hotel_id)
+            print(f"[PAYMENT SUCCESS] Payment completed for table_id={table_id}, total=₹{final_total:.2f}")
             return jsonify({
                 "success": True, 
                 "message": "Payment successful! Thank you for dining with us."
             })
+        
+        print(f"[PAYMENT ERROR] process_payment_atomic returned False for table_id={table_id}")
         return jsonify({"success": False, "message": "Failed to process payment"})
     except Exception as e:
-        print(f"Error processing payment: {e}")
+        import traceback
+        print(f"[PAYMENT ERROR] Exception in process_payment route: {e}")
+        print(f"[PAYMENT ERROR] Traceback: {traceback.format_exc()}")
         return jsonify({"success": False, "message": "Server error"})
 
 @orders_bp.route('/api/orders-with-bills', methods=['GET'])
@@ -381,20 +472,26 @@ def mark_bill_paid():
         bill_id = data.get('bill_id')
         table_id = data.get('table_id')
         
+        print(f"[MARK_BILL_PAID] Request received - bill_id={bill_id}, table_id={table_id}")
+        
         if not bill_id:
+            print("[MARK_BILL_PAID] Error: Bill ID required")
             return jsonify({"success": False, "message": "Bill ID required"})
         
-        # Complete the bill (mark as PAID and COMPLETED)
+        # Complete the bill (mark as PAID and COMPLETED, and release table)
+        # The complete_bill method handles everything: bill status, payment status, table status, and active_tables
         result = Bill.complete_bill(bill_id)
+        
         if not result:
+            print(f"[MARK_BILL_PAID] Error: complete_bill returned False for bill_id={bill_id}")
             return jsonify({"success": False, "message": "Failed to complete bill"})
         
-        # Release the table (set to AVAILABLE)
-        if table_id:
-            Table.update_status(table_id, 'AVAILABLE')
-        
+        print(f"[MARK_BILL_PAID] Success: Bill {bill_id} marked as paid")
         return jsonify({"success": True, "message": "Bill marked as paid and table released"})
     except Exception as e:
+        print(f"[MARK_BILL_PAID] Exception: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": "Server error"})
 
 @orders_bp.route('/api/bill-details/<int:bill_id>', methods=['GET'])
@@ -439,3 +536,814 @@ def sync_active_tables():
         return jsonify({"success": True, "message": "Active tables synced with bills"})
     except Exception as e:
         return jsonify({"success": False, "message": "Server error"})
+
+# ============== Tip Statistics Routes ==============
+
+@orders_bp.route('/api/tip-statistics/hotel', methods=['GET'])
+def get_hotel_tip_statistics():
+    """Get tip statistics for hotel (Manager Dashboard)"""
+    try:
+        hotel_id = session.get('hotel_id')
+        period = request.args.get('period', 'today')  # today, week, month, all
+        
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"})
+        
+        stats = Bill.get_tip_statistics_for_hotel(hotel_id, period)
+        return jsonify({"success": True, "statistics": stats})
+    except Exception as e:
+        print(f"Error getting hotel tip statistics: {e}")
+        return jsonify({"success": False, "message": "Server error"})
+
+@orders_bp.route('/api/tip-statistics/waiter/<int:waiter_id>', methods=['GET'])
+def get_waiter_tip_statistics(waiter_id):
+    """Get tip statistics for waiter (Waiter Dashboard)"""
+    try:
+        period = request.args.get('period', 'today')  # today, week, month, all
+        
+        stats = Bill.get_tip_statistics_for_waiter(waiter_id, period)
+        return jsonify({"success": True, "statistics": stats})
+    except Exception as e:
+        print(f"Error getting waiter tip statistics: {e}")
+        return jsonify({"success": False, "message": "Server error"})
+
+@orders_bp.route('/api/tip-details/waiter/<int:waiter_id>', methods=['GET'])
+def get_waiter_tip_details(waiter_id):
+    """Get recent tip details for waiter"""
+    try:
+        limit = int(request.args.get('limit', 10))
+        
+        tips = Bill.get_waiter_tip_details(waiter_id, limit)
+        return jsonify({"success": True, "tips": tips})
+    except Exception as e:
+        print(f"Error getting waiter tip details: {e}")
+        return jsonify({"success": False, "message": "Server error"})
+
+@orders_bp.route('/api/waiter-wise-tips', methods=['GET'])
+def get_waiter_wise_tips():
+    """Get waiter-wise tip breakdown for manager dashboard"""
+    try:
+        hotel_id = session.get('hotel_id')
+        period = request.args.get('period', 'all')  # today, week, month, all
+        
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"})
+        
+        waiters = Bill.get_waiter_wise_tips(hotel_id, period)
+        return jsonify({"success": True, "waiters": waiters})
+    except Exception as e:
+        print(f"Error getting waiter-wise tips: {e}")
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/clear-completed-orders', methods=['POST'])
+def clear_completed_orders():
+    """Clear all completed and paid orders safely"""
+    try:
+        hotel_id = session.get('hotel_id')
+        
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"})
+        
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        # Safety check: Only delete orders that are:
+        # 1. order_status = 'COMPLETED'
+        # 2. payment_status = 'PAID'
+        # 3. Related bill (if exists) is also COMPLETED
+        
+        # First, get count of orders to be deleted
+        cursor.execute("""
+            SELECT COUNT(*) as count
+            FROM table_orders o
+            LEFT JOIN bills b ON o.id = b.order_id
+            WHERE (o.hotel_id = %s OR (o.hotel_id IS NULL AND EXISTS (
+                SELECT 1 FROM tables t WHERE t.id = o.table_id AND t.hotel_id = %s
+            )))
+            AND o.order_status = 'COMPLETED'
+            AND o.payment_status = 'PAID'
+            AND (b.id IS NULL OR b.bill_status = 'COMPLETED')
+        """, (hotel_id, hotel_id))
+        
+        count_result = cursor.fetchone()
+        orders_to_delete = count_result['count'] if count_result else 0
+        
+        if orders_to_delete == 0:
+            cursor.close()
+            connection.close()
+            return jsonify({
+                "success": True, 
+                "message": "No completed orders to clear",
+                "deleted_count": 0
+            })
+        
+        # Delete the orders
+        cursor.execute("""
+            DELETE o FROM table_orders o
+            LEFT JOIN bills b ON o.id = b.order_id
+            WHERE (o.hotel_id = %s OR (o.hotel_id IS NULL AND EXISTS (
+                SELECT 1 FROM tables t WHERE t.id = o.table_id AND t.hotel_id = %s
+            )))
+            AND o.order_status = 'COMPLETED'
+            AND o.payment_status = 'PAID'
+            AND (b.id IS NULL OR b.bill_status = 'COMPLETED')
+        """, (hotel_id, hotel_id))
+        
+        deleted_count = cursor.rowcount
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        # Log activity
+        log_order_activity('order', f"Cleared {deleted_count} completed orders", hotel_id)
+        
+        print(f"[CLEAR_ORDERS] Deleted {deleted_count} completed orders for hotel {hotel_id}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Successfully cleared {deleted_count} completed order(s)",
+            "deleted_count": deleted_count
+        })
+        
+    except Exception as e:
+        print(f"[CLEAR_ORDERS ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/mark-payment-done', methods=['POST'])
+def mark_payment_done():
+    """Mark an order as paid (cash payment) and complete the bill"""
+    try:
+        data = request.get_json()
+        order_id = data.get('order_id')
+        table_id = data.get('table_id')
+        
+        if not order_id:
+            return jsonify({"success": False, "message": "Order ID required"})
+        
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        # Get order details including hotel_id and charge_deducted status
+        cursor.execute("""
+            SELECT o.id, o.order_status, o.payment_status, o.table_id, o.hotel_id, o.charge_deducted,
+                   t.hotel_id as table_hotel_id
+            FROM table_orders o
+            LEFT JOIN tables t ON o.table_id = t.id
+            WHERE o.id = %s
+        """, (order_id,))
+        
+        order = cursor.fetchone()
+        
+        if not order:
+            cursor.close()
+            connection.close()
+            return jsonify({"success": False, "message": "Order not found"})
+        
+        # Verify order is COMPLETED and payment is PENDING
+        if order['order_status'] != 'COMPLETED':
+            cursor.close()
+            connection.close()
+            return jsonify({"success": False, "message": "Order must be COMPLETED first"})
+        
+        if order['payment_status'] != 'PENDING':
+            cursor.close()
+            connection.close()
+            return jsonify({"success": False, "message": "Payment already processed"})
+        
+        # Get hotel_id (prefer order.hotel_id, fallback to table.hotel_id)
+        hotel_id = order.get('hotel_id') or order.get('table_hotel_id')
+        
+        if not hotel_id:
+            cursor.close()
+            connection.close()
+            return jsonify({"success": False, "message": "Hotel ID not found"})
+        
+        # Check if charge already deducted (safety check)
+        if order.get('charge_deducted'):
+            print(f"[MARK_PAYMENT_DONE] Charge already deducted for order {order_id}, skipping wallet deduction")
+        else:
+            # Deduct per-order charge from wallet
+            print(f"[MARK_PAYMENT_DONE] Attempting wallet deduction for order {order_id}, hotel {hotel_id}")
+            
+            from wallet.models import HotelWallet
+            deduction_result = HotelWallet.deduct_for_order(hotel_id, order_id)
+            
+            if not deduction_result.get('success'):
+                cursor.close()
+                connection.close()
+                
+                # Check if it's insufficient balance
+                if deduction_result.get('insufficient_balance'):
+                    return jsonify({
+                        "success": False, 
+                        "message": deduction_result.get('message', 'Insufficient wallet balance'),
+                        "insufficient_balance": True
+                    })
+                
+                # Other wallet errors (allow to proceed if charge is 0 or wallet not configured)
+                if 'No charge configured' in deduction_result.get('message', ''):
+                    print(f"[MARK_PAYMENT_DONE] No charge configured, proceeding without deduction")
+                else:
+                    return jsonify({
+                        "success": False, 
+                        "message": f"Wallet error: {deduction_result.get('message')}"
+                    })
+            else:
+                deducted_amount = deduction_result.get('deducted', 0)
+                print(f"[MARK_PAYMENT_DONE] Wallet deduction successful: ₹{deducted_amount}")
+                
+                # Mark charge as deducted
+                cursor.execute("""
+                    UPDATE table_orders
+                    SET charge_deducted = TRUE
+                    WHERE id = %s
+                """, (order_id,))
+                
+                print(f"[MARK_PAYMENT_DONE] Marked charge_deducted = TRUE for order {order_id}")
+        
+        # Update order payment status
+        cursor.execute("""
+            UPDATE table_orders
+            SET payment_status = 'PAID'
+            WHERE id = %s
+        """, (order_id,))
+        
+        print(f"[MARK_PAYMENT_DONE] Updated order {order_id} payment_status to PAID")
+        
+        # Find related bill
+        cursor.execute("""
+            SELECT id FROM bills
+            WHERE order_id = %s AND bill_status = 'OPEN'
+        """, (order_id,))
+        
+        bill = cursor.fetchone()
+        
+        if bill:
+            bill_id = bill['id']
+            
+            # Update bill with cash payment
+            import datetime
+            paid_at = datetime.datetime.now()
+            
+            cursor.execute("""
+                UPDATE bills
+                SET bill_status = 'COMPLETED',
+                    payment_status = 'PAID',
+                    payment_method = 'CASH',
+                    paid_at = %s
+                WHERE id = %s
+            """, (paid_at, bill_id))
+            
+            print(f"[MARK_PAYMENT_DONE] Updated bill {bill_id} to COMPLETED/PAID with CASH payment")
+            
+            connection.commit()
+            cursor.close()
+            connection.close()
+            
+            # Complete the bill (free table, clear session)
+            Bill.complete_bill(bill_id)
+            
+            # Log activity
+            log_order_activity('order', f"Marked order {order_id} as paid (CASH)", hotel_id)
+            
+            return jsonify({
+                "success": True,
+                "message": "Payment marked as done. Bill completed and table freed."
+            })
+        else:
+            # No bill found, just update order
+            connection.commit()
+            cursor.close()
+            connection.close()
+            
+            log_order_activity('order', f"Marked order {order_id} as paid (CASH) - no bill", hotel_id)
+            
+            return jsonify({
+                "success": True,
+                "message": "Payment marked as done."
+            })
+        
+    except Exception as e:
+        print(f"[MARK_PAYMENT_DONE ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/kitchen-orders', methods=['GET'])
+def get_kitchen_orders():
+    """Get orders grouped by category for kitchen dashboard"""
+    try:
+        hotel_id = session.get('hotel_id')
+        status_filter = request.args.get('status', 'all')
+        
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"})
+        
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        # Build status filter
+        status_condition = ""
+        if status_filter != 'all':
+            status_condition = f"AND o.order_status = '{status_filter}'"
+        
+        # Get orders with category information, excluding COMPLETED orders
+        cursor.execute(f"""
+            SELECT 
+                o.id as order_id,
+                o.table_id,
+                o.order_status,
+                o.created_at,
+                o.guest_name,
+                t.table_number,
+                JSON_EXTRACT(o.items, '$[*].name') as item_names,
+                JSON_EXTRACT(o.items, '$[*].quantity') as item_quantities,
+                JSON_EXTRACT(o.items, '$[*].category_id') as category_ids,
+                o.items
+            FROM table_orders o
+            JOIN tables t ON o.table_id = t.id
+            WHERE (o.hotel_id = %s OR t.hotel_id = %s)
+            AND o.order_status != 'COMPLETED'
+            {status_condition}
+            ORDER BY o.created_at ASC
+        """, (hotel_id, hotel_id))
+        
+        orders = cursor.fetchall()
+        
+        # Get all categories for this hotel
+        cursor.execute("""
+            SELECT id, name FROM menu_categories
+            WHERE hotel_id = %s
+            ORDER BY name
+        """, (hotel_id,))
+        
+        categories = {cat['id']: cat['name'] for cat in cursor.fetchall()}
+        
+        # Get dish details for category mapping
+        cursor.execute("""
+            SELECT id, name, category_id FROM menu_dishes
+            WHERE hotel_id = %s
+        """, (hotel_id,))
+        
+        dishes = {dish['id']: {'name': dish['name'], 'category_id': dish['category_id']} for dish in cursor.fetchall()}
+        
+        cursor.close()
+        connection.close()
+        
+        # Process orders and group by category
+        orders_by_category = {}
+        stats = {'active': 0, 'preparing': 0, 'ready': 0}
+        
+        for order in orders:
+            # Parse items JSON
+            import json
+            items = json.loads(order['items']) if isinstance(order['items'], str) else order['items']
+            
+            # Count stats
+            if order['order_status'] == 'ACTIVE':
+                stats['active'] += 1
+            elif order['order_status'] == 'PREPARING':
+                stats['preparing'] += 1
+            elif order['order_status'] == 'READY':
+                stats['ready'] += 1
+            
+            # Process each item in the order
+            for item in items:
+                dish_id = item.get('id')
+                item_name = item.get('name', 'Unknown Item')
+                quantity = item.get('quantity', 1)
+                
+                # Get category from dish
+                category_id = None
+                category_name = 'Uncategorized'
+                
+                if dish_id and dish_id in dishes:
+                    category_id = dishes[dish_id]['category_id']
+                    if category_id and category_id in categories:
+                        category_name = categories[category_id]
+                
+                # Initialize category if not exists
+                if category_name not in orders_by_category:
+                    orders_by_category[category_name] = []
+                
+                # Add item to category
+                orders_by_category[category_name].append({
+                    'order_id': order['order_id'],
+                    'table_id': order['table_id'],
+                    'table_number': order['table_number'],
+                    'guest_name': order.get('guest_name'),
+                    'item_name': item_name,
+                    'quantity': quantity,
+                    'order_status': order['order_status'],
+                    'created_at': order['created_at'].strftime('%Y-%m-%d %H:%M:%S') if order['created_at'] else None
+                })
+        
+        return jsonify({
+            "success": True,
+            "orders_by_category": orders_by_category,
+            "stats": stats
+        })
+        
+    except Exception as e:
+        print(f"[KITCHEN_ORDERS ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Server error"})
+
+
+# ============== Kitchen Section Management Routes ==============
+
+@orders_bp.route('/api/kitchen-sections', methods=['GET'])
+def get_kitchen_sections():
+    """Get all kitchen sections with their assigned categories"""
+    try:
+        hotel_id = session.get('hotel_id')
+        
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"})
+        
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        # Get all kitchen sections for this hotel
+        cursor.execute("""
+            SELECT id, section_name, created_at
+            FROM kitchen_sections
+            WHERE hotel_id = %s
+            ORDER BY section_name
+        """, (hotel_id,))
+        
+        sections = cursor.fetchall()
+        
+        # Get all categories for this hotel
+        cursor.execute("""
+            SELECT id, name
+            FROM menu_categories
+            WHERE hotel_id = %s
+            ORDER BY name
+        """, (hotel_id,))
+        
+        all_categories = cursor.fetchall()
+        
+        # For each section, get assigned categories
+        for section in sections:
+            cursor.execute("""
+                SELECT c.id, c.name
+                FROM menu_categories c
+                JOIN kitchen_category_mapping kcm ON c.id = kcm.category_id
+                WHERE kcm.kitchen_section_id = %s
+                ORDER BY c.name
+            """, (section['id'],))
+            
+            section['categories'] = cursor.fetchall()
+        
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            "success": True,
+            "sections": sections,
+            "categories": all_categories
+        })
+        
+    except Exception as e:
+        print(f"[KITCHEN_SECTIONS ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/kitchen-sections', methods=['POST'])
+def create_kitchen_section():
+    """Create a new kitchen section"""
+    try:
+        hotel_id = session.get('hotel_id')
+        data = request.get_json()
+        section_name = data.get('section_name', '').strip()
+        
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"})
+        
+        if not section_name:
+            return jsonify({"success": False, "message": "Section name required"})
+        
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        
+        cursor.execute("""
+            INSERT INTO kitchen_sections (hotel_id, section_name)
+            VALUES (%s, %s)
+        """, (hotel_id, section_name))
+        
+        section_id = cursor.lastrowid
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        print(f"[KITCHEN_SECTION] Created section '{section_name}' for hotel {hotel_id}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Kitchen section created successfully",
+            "section_id": section_id
+        })
+        
+    except Exception as e:
+        print(f"[KITCHEN_SECTION ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/kitchen-sections/<int:section_id>', methods=['PUT'])
+def update_kitchen_section(section_id):
+    """Update kitchen section name"""
+    try:
+        hotel_id = session.get('hotel_id')
+        data = request.get_json()
+        section_name = data.get('section_name', '').strip()
+        
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"})
+        
+        if not section_name:
+            return jsonify({"success": False, "message": "Section name required"})
+        
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        
+        cursor.execute("""
+            UPDATE kitchen_sections
+            SET section_name = %s
+            WHERE id = %s AND hotel_id = %s
+        """, (section_name, section_id, hotel_id))
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        print(f"[KITCHEN_SECTION] Updated section {section_id} to '{section_name}'")
+        
+        return jsonify({
+            "success": True,
+            "message": "Kitchen section updated successfully"
+        })
+        
+    except Exception as e:
+        print(f"[KITCHEN_SECTION ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/kitchen-sections/<int:section_id>', methods=['DELETE'])
+def delete_kitchen_section(section_id):
+    """Delete kitchen section and all its mappings"""
+    try:
+        hotel_id = session.get('hotel_id')
+        
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"})
+        
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        
+        # Delete section (mappings will be deleted automatically due to CASCADE)
+        cursor.execute("""
+            DELETE FROM kitchen_sections
+            WHERE id = %s AND hotel_id = %s
+        """, (section_id, hotel_id))
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        print(f"[KITCHEN_SECTION] Deleted section {section_id}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Kitchen section deleted successfully"
+        })
+        
+    except Exception as e:
+        print(f"[KITCHEN_SECTION ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/kitchen-category-mapping', methods=['POST'])
+def assign_category_to_kitchen():
+    """Assign a category to a kitchen section"""
+    try:
+        data = request.get_json()
+        kitchen_section_id = data.get('kitchen_section_id')
+        category_id = data.get('category_id')
+        
+        if not kitchen_section_id or not category_id:
+            return jsonify({"success": False, "message": "Kitchen section ID and category ID required"})
+        
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        
+        cursor.execute("""
+            INSERT INTO kitchen_category_mapping (kitchen_section_id, category_id)
+            VALUES (%s, %s)
+        """, (kitchen_section_id, category_id))
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        print(f"[KITCHEN_MAPPING] Assigned category {category_id} to section {kitchen_section_id}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Category assigned successfully"
+        })
+        
+    except Exception as e:
+        print(f"[KITCHEN_MAPPING ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/kitchen-category-mapping/<int:section_id>/<int:category_id>', methods=['DELETE'])
+def unassign_category_from_kitchen(section_id, category_id):
+    """Remove a category from a kitchen section"""
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        
+        cursor.execute("""
+            DELETE FROM kitchen_category_mapping
+            WHERE kitchen_section_id = %s AND category_id = %s
+        """, (section_id, category_id))
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        print(f"[KITCHEN_MAPPING] Unassigned category {category_id} from section {section_id}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Category unassigned successfully"
+        })
+        
+    except Exception as e:
+        print(f"[KITCHEN_MAPPING ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/kitchen-section-orders/<int:section_id>', methods=['GET'])
+def get_kitchen_section_orders(section_id):
+    """Get orders for a specific kitchen section (filtered by assigned categories) - ITEM LEVEL"""
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        # Get assigned categories for this kitchen section
+        cursor.execute("""
+            SELECT category_id
+            FROM kitchen_category_mapping
+            WHERE kitchen_section_id = %s
+        """, (section_id,))
+        
+        assigned_categories = [row['category_id'] for row in cursor.fetchall()]
+        
+        if not assigned_categories:
+            cursor.close()
+            connection.close()
+            return jsonify({
+                "success": True,
+                "orders_by_category": {},
+                "stats": {"active": 0, "preparing": 0, "ready": 0}
+            })
+        
+        # Get category names
+        placeholders = ','.join(['%s'] * len(assigned_categories))
+        cursor.execute(f"""
+            SELECT id, name FROM menu_categories
+            WHERE id IN ({placeholders})
+        """, assigned_categories)
+        
+        categories = {cat['id']: cat['name'] for cat in cursor.fetchall()}
+        
+        # Get order items for this kitchen section ONLY (not COMPLETED)
+        # CRITICAL: Filter by kitchen_section_id to show ONLY items assigned to THIS kitchen
+        cursor.execute("""
+            SELECT 
+                oi.id as item_id,
+                oi.order_id,
+                oi.dish_name as item_name,
+                oi.quantity,
+                oi.item_status,
+                oi.category_id,
+                oi.created_at,
+                o.table_id,
+                o.guest_name,
+                t.table_number
+            FROM order_items oi
+            JOIN table_orders o ON oi.order_id = o.id
+            JOIN tables t ON o.table_id = t.id
+            WHERE oi.kitchen_section_id = %s
+              AND oi.item_status != 'COMPLETED'
+            ORDER BY oi.created_at ASC
+        """, (section_id,))
+        
+        items = cursor.fetchall()
+        
+        cursor.close()
+        connection.close()
+        
+        # Process items and group by category
+        orders_by_category = {}
+        stats = {'active': 0, 'preparing': 0, 'ready': 0}
+        
+        for item in items:
+            category_id = item['category_id']
+            category_name = categories.get(category_id, 'Uncategorized')
+            
+            # Count stats
+            if item['item_status'] == 'ACTIVE':
+                stats['active'] += 1
+            elif item['item_status'] == 'PREPARING':
+                stats['preparing'] += 1
+            elif item['item_status'] == 'READY':
+                stats['ready'] += 1
+            
+            # Initialize category if not exists
+            if category_name not in orders_by_category:
+                orders_by_category[category_name] = []
+            
+            # Add item to category
+            orders_by_category[category_name].append({
+                'item_id': item['item_id'],
+                'order_id': item['order_id'],
+                'table_id': item['table_id'],
+                'table_number': item['table_number'],
+                'guest_name': item.get('guest_name'),
+                'item_name': item['item_name'],
+                'quantity': item['quantity'],
+                'order_status': item['item_status'],  # Use item_status instead of order_status
+                'created_at': item['created_at'].strftime('%Y-%m-%d %H:%M:%S') if item['created_at'] else None
+            })
+        
+        return jsonify({
+            "success": True,
+            "orders_by_category": orders_by_category,
+            "stats": stats
+        })
+        
+    except Exception as e:
+        print(f"[KITCHEN_SECTION_ORDERS ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Server error"})
+
+
+# Kitchen Dashboard Page Route
+from flask import render_template
+
+@orders_bp.route('/kitchen/<int:section_id>')
+def kitchen_dashboard(section_id):
+    """Render kitchen dashboard for a specific section"""
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        # Get kitchen section details
+        cursor.execute("""
+            SELECT section_name, hotel_id
+            FROM kitchen_sections
+            WHERE id = %s
+        """, (section_id,))
+        
+        section = cursor.fetchone()
+        
+        cursor.close()
+        connection.close()
+        
+        if not section:
+            return "Kitchen section not found", 404
+        
+        return render_template('kitchen_dashboard.html',
+                             section_id=section_id,
+                             section_name=section['section_name'])
+        
+    except Exception as e:
+        print(f"[KITCHEN_DASHBOARD ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return "Error loading kitchen dashboard", 500

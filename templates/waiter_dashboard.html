@@ -294,6 +294,45 @@
         // Global Variables
         let currentSection = 'dashboard';
         let autoRefreshInterval = null;
+        
+        // Consistent date/time formatting utilities
+        function formatDateTime(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            return date.toLocaleString('en-IN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            return date.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+        
+        function formatTime(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            return date.toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+        }
 
         // Section Navigation
         function showSection(sectionId) {
@@ -413,7 +452,7 @@
                             <strong>Total:</strong> ₹${parseFloat(order.total_amount).toFixed(2)}
                         </div>
                         <div class="order-time">
-                            <i class="fas fa-clock"></i> ${new Date(order.created_at).toLocaleTimeString()}
+                            <i class="fas fa-clock"></i> ${formatTime(order.created_at)}
                         </div>
                     </div>
                     ${actionsHtml ? `<div class="order-actions">${actionsHtml}</div>` : ''}
@@ -462,7 +501,7 @@
                                 <div class="bill-meta">
                                     <p><strong>Bill #:</strong> ${bill.bill_number}</p>
                                     <p><strong>Table:</strong> ${bill.table_number}</p>
-                                    <p><strong>Date:</strong> ${new Date(bill.created_at).toLocaleString()}</p>
+                                    <p><strong>Date:</strong> ${formatDateTime(bill.created_at)}</p>
                                 </div>
                             </div>
                             <table class="bill-table">
@@ -568,7 +607,7 @@
                                     <td>${formatOrderItems(items)}</td>
                                     <td>₹${parseFloat(order.total_amount).toFixed(2)}</td>
                                     <td><span class="status-badge ${order.order_status.toLowerCase()}">${order.order_status}</span></td>
-                                    <td>${new Date(order.created_at).toLocaleTimeString()}</td>
+                                    <td>${formatTime(order.created_at)}</td>
                                 </tr>
                             `;
                         }).join('')}

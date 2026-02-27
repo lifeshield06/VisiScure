@@ -1,5 +1,0 @@
-# Additional requirements for Guest Verification feature
-# Add these to your existing requirements.txt
-
-qrcode[pil]==7.4.2
-Pillow==10.0.1

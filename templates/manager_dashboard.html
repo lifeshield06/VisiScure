@@ -11,6 +11,50 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='manager_dashboard.css') }}?v={{ range(1000, 9999) | random }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='menu_dashboard.css') }}?v={{ range(1000, 9999) | random }}">
     <style>
+        /* Kitchen Dashboard Link Styles */
+        .kitchen-dashboard-link:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35) !important;
+        }
+        
+        /* Kitchen Dashboard Styles */
+        .kitchen-category-section {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .kitchen-items-grid {
+            animation: slideUp 0.4s ease-out;
+        }
+        
+        .kitchen-order-card {
+            transition: all 0.3s ease;
+        }
+        
+        .kitchen-order-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12) !important;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         /* Daily Special Menu Styles */
         .daily-special-card {
             max-width: 700px;
@@ -597,6 +641,318 @@
             padding: 2rem;
             color: var(--gray);
         }
+        
+        /* Settings Page Styles */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 1.5rem;
+        }
+        .settings-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .settings-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1.25rem 1.5rem;
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: white;
+        }
+        .settings-card-header i {
+            font-size: 1.25rem;
+        }
+        .settings-card-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .settings-card-body {
+            padding: 1.5rem;
+        }
+        .profile-info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .profile-info-item:last-child {
+            border-bottom: none;
+        }
+        .profile-label {
+            font-weight: 500;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        .profile-value {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 0.95rem;
+        }
+        .settings-alert {
+            padding: 0.875rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .settings-alert.alert-success {
+            background: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #86efac;
+        }
+        .settings-alert.alert-error {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+        .settings-card-body .form-group {
+            margin-bottom: 1.25rem;
+        }
+        .settings-card-body .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+        .password-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .password-input-wrapper input {
+            width: 100%;
+            padding: 0.75rem 2.75rem 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+        .password-input-wrapper input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        }
+        .toggle-password {
+            position: absolute;
+            right: 0.75rem;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toggle-password:hover {
+            color: #64748b;
+        }
+        .settings-card-body .btn-primary {
+            width: 100%;
+            padding: 0.85rem 1.5rem;
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            margin-top: 0.5rem;
+        }
+        .settings-card-body .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35);
+        }
+        .settings-card-body .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        @media (max-width: 480px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* ========================================
+           BILL MODAL STYLES
+           ======================================== */
+        .bill-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            padding: 1rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            overflow-y: auto;
+        }
+        
+        .bill-modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .bill-modal-content {
+            background: #ffffff;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 520px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: translateY(-20px) scale(0.95);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+        
+        .bill-modal-overlay.show .bill-modal-content {
+            transform: translateY(0) scale(1);
+        }
+        
+        .bill-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            position: relative;
+        }
+        
+        .bill-modal-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .bill-modal-close {
+            width: 36px;
+            height: 36px;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .bill-modal-close:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.3) !important;
+        }
+        
+        .bill-modal-body {
+            padding: 1.5rem;
+        }
+        
+        .bill-modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            background: #f8fafc;
+            border-radius: 0 0 16px 16px;
+        }
+        
+        /* Scrollbar for bill modal */
+        .bill-modal-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .bill-modal-content::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        
+        .bill-modal-content::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .bill-modal-content::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Body no-scroll when modal open */
+        body.bill-modal-open {
+            overflow: hidden;
+        }
+        
+        /* Responsive bill modal */
+        @media (max-width: 576px) {
+            .bill-modal-overlay {
+                padding: 0.5rem;
+            }
+            
+            .bill-modal-content {
+                max-width: 100%;
+                max-height: 95vh;
+                border-radius: 12px;
+            }
+            
+            .bill-modal-header {
+                padding: 1rem;
+            }
+            
+            .bill-modal-body {
+                padding: 1rem;
+            }
+            
+            .bill-modal-footer {
+                padding: 0.75rem 1rem;
+                flex-direction: column;
+            }
+            
+            .bill-modal-footer button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        /* Alert Animations */
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -635,12 +991,12 @@
                 
                 <div class="form-group">
                     <label for="edit-waiter-email">Email <span class="required">*</span></label>
-                    <input type="email" id="edit-waiter-email" required placeholder="Enter email">
+                    <input type="email" id="edit-waiter-email" required placeholder="Enter email" style="text-transform: lowercase;" oninput="this.value = this.value.toLowerCase()">
                 </div>
                 
                 <div class="form-group">
                     <label for="edit-waiter-phone">Phone <span class="required">*</span></label>
-                    <input type="tel" id="edit-waiter-phone" required placeholder="Enter phone number">
+                    <input type="tel" id="edit-waiter-phone" required placeholder="Enter 10-digit phone number" maxlength="10" pattern="\d{10}" inputmode="numeric" title="Phone number must be exactly 10 digits">
                 </div>
                 
                 <div class="form-group">
@@ -659,19 +1015,6 @@
                     <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Changes</button>
                 </div>
             </form>
-        </div>
-    </div>
-
-    <!-- Unified Waiter Feature Modal (QR Code / Table Assignments) -->
-    <div class="modal-overlay" id="waiter-feature-modal" onclick="if(event.target === this) closeWaiterFeatureModal()">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3 id="waiter-feature-modal-title"><i class="fas fa-qrcode"></i> Waiter Login QR Code</h3>
-                <button class="modal-close" onclick="closeWaiterFeatureModal()">&times;</button>
-            </div>
-            <div class="modal-body" id="waiter-feature-modal-body">
-                <!-- Content will be dynamically loaded -->
-            </div>
         </div>
     </div>
 
@@ -694,6 +1037,10 @@
             {% if food_enabled %}
             <div class="menu-divider"></div>
             <div class="menu-label">Food & Orders</div>
+            <a href="#" class="menu-item" onclick="showSection('kitchen-management')">
+                <i class="fas fa-fire-burner"></i>
+                <span>Kitchen Management</span>
+            </a>
             <a href="#" class="menu-item" onclick="showSection('table-orders')">
                 <i class="fas fa-qrcode"></i>
                 <span>Table Orders</span>
@@ -705,10 +1052,6 @@
             <a href="#" class="menu-item" onclick="showSection('daily-special')">
                 <i class="fas fa-star"></i>
                 <span>Today's Special</span>
-            </a>
-            <a href="#" class="menu-item" onclick="showSection('full-menu')">
-                <i class="fas fa-book-open"></i>
-                <span>Full Menu View</span>
             </a>
             {% endif %}
             {% if kyc_enabled %}
@@ -742,6 +1085,11 @@
             <h1>Manager Dashboard</h1>
         </div>
         <div class="header-right">
+            <!-- Wallet Balance Display -->
+            <div class="header-wallet-balance" id="header-wallet-balance">
+                <span class="wallet-amount">₹0.00</span>
+            </div>
+            <div class="header-divider"></div>
             <div class="profile-dropdown">
                 <div class="profile-btn" onclick="toggleDropdown()">
                     <div class="profile-avatar">
@@ -755,7 +1103,6 @@
                 </div>
                 <div class="dropdown-menu" id="dropdownMenu">
                     <a href="#" onclick="showSection('settings')"><i class="fas fa-user"></i> Profile Settings</a>
-                    <a href="#" onclick="showSection('settings')"><i class="fas fa-cog"></i> Account Settings</a>
                     <a href="/" class="danger" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
             </div>
@@ -768,28 +1115,12 @@
         <div id="dashboard" class="content-section active">
             <div class="page-header">
                 <h1>👋 Welcome back, {{ manager_name }}!</h1>
-            </div>
-
-            <!-- Wallet Balance Alert -->
-            <div id="wallet-alert" class="wallet-alert" style="display: none;">
-                <div class="wallet-alert-content">
-                    <div class="wallet-alert-icon">
-                        <i class="fas fa-wallet"></i>
-                    </div>
-                    <div class="wallet-alert-text">
-                        <strong>Wallet Balance:</strong> <span id="dashboard-wallet-balance">₹0.00</span>
-                        <span id="wallet-warning" class="wallet-warning" style="display: none;">
-                            <i class="fas fa-exclamation-triangle"></i> Low balance - Add funds to continue operations
-                        </span>
-                    </div>
-                    <a href="#" onclick="showSection('wallet'); return false;" class="wallet-alert-link">
-                        <i class="fas fa-plus-circle"></i> Add Balance
-                    </a>
-                </div>
+                <p>Here's what's happening with your hotel today.</p>
             </div>
 
             <!-- Stats Cards -->
             <div class="stats-grid">
+                {% if kyc_enabled %}
                 <a href="#" onclick="showSection('verification'); return false;" class="stat-card">
                     <div class="stat-header">
                         <div class="stat-icon green">
@@ -799,7 +1130,9 @@
                     <div class="stat-value">{{ stats.verifications.today if stats else 0 }}</div>
                     <div class="stat-label">Today's Verifications</div>
                 </a>
+                {% endif %}
 
+                {% if food_enabled %}
                 <a href="#" onclick="showSection('table-orders'); setTimeout(() => showTableSubSection('view-orders'), 100); return false;" class="stat-card">
                     <div class="stat-header">
                         <div class="stat-icon purple">
@@ -809,6 +1142,7 @@
                     <div class="stat-value">{{ stats.orders.today if stats else 0 }}</div>
                     <div class="stat-label">Today's Orders</div>
                 </a>
+                {% endif %}
 
                 <a href="#" onclick="showSection('waiters'); return false;" class="stat-card">
                     <div class="stat-header">
@@ -818,16 +1152,6 @@
                     </div>
                     <div class="stat-value">{{ waiters_count if waiters_count else 0 }}</div>
                     <div class="stat-label">Active Waiters</div>
-                </a>
-
-                <a href="#" onclick="showSection('full-menu'); return false;" class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-icon orange">
-                            <i class="fas fa-hamburger"></i>
-                        </div>
-                    </div>
-                    <div class="stat-value">{{ stats.menu.total_items if stats else 0 }}</div>
-                    <div class="stat-label">Menu Items</div>
                 </a>
 
                 <a href="#" onclick="showSection('reports'); return false;" class="stat-card">
@@ -840,6 +1164,7 @@
                     <div class="stat-label">Today's Revenue</div>
                 </a>
 
+                {% if food_enabled %}
                 <a href="#" onclick="showSection('table-orders'); setTimeout(() => showTableSubSection('manage-tables'), 100); return false;" class="stat-card">
                     <div class="stat-header">
                         <div class="stat-icon cyan">
@@ -849,27 +1174,55 @@
                     <div class="stat-value">{{ stats.tables.total if stats else 0 }}</div>
                     <div class="stat-label">Total Tables</div>
                 </a>
+                
+                <div class="stat-card" id="tips-stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                            <i class="fas fa-hand-holding-heart"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="today-tips-value">₹0.00</div>
+                    <div class="stat-label">Today's Tips</div>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Recent Activity -->
             <div class="card">
                 <div class="card-header">
                     <h3><i class="fas fa-clock"></i> Recent Activity</h3>
-                    <button onclick="loadRecentActivities()" class="btn-refresh-activities" title="Refresh">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
+                    <div class="card-header-actions">
+                        <button onclick="fetchManagerActivities()" class="btn-refresh-activities" title="Refresh">
+                            <i class="fas fa-sync-alt" id="activityRefreshIcon"></i>
+                        </button>
+                        <button onclick="openActivityModal()" class="btn-view-all">View All</button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <ul class="activity-list" id="recent-activities-list">
+                    <ul class="activity-list" id="managerActivityList">
                         <li class="activity-item loading-state">
-                            <div class="activity-icon">
+                            <div class="activity-icon" style="background: rgba(79, 70, 229, 0.1); color: var(--primary);">
                                 <i class="fas fa-spinner fa-spin"></i>
                             </div>
                             <div class="activity-content">
                                 <p>Loading activities...</p>
+                                <span class="activity-time">Please wait</span>
                             </div>
                         </li>
                     </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- View All Activities Modal -->
+        <div id="activityModal" class="modal-overlay" style="display: none;">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h3><i class="fas fa-history"></i> All Recent Activities</h3>
+                    <button class="modal-close" onclick="closeActivityModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <ul class="activity-list" id="allManagerActivityList"></ul>
                 </div>
             </div>
         </div>
@@ -891,10 +1244,10 @@
                 <div class="card-header-row">
                     <h3><i class="fas fa-list"></i> Waiters List</h3>
                     <div class="header-actions">
-                        <button class="btn-secondary btn-sm" onclick="openQRCodeModal()">
+                        <button class="btn-secondary btn-sm" onclick="toggleQRSection()">
                             <i class="fas fa-qrcode"></i> QR Code
                         </button>
-                        <button class="btn-secondary btn-sm" onclick="openTableAssignmentsModal()">
+                        <button class="btn-secondary btn-sm" onclick="toggleTableAssignments()">
                             <i class="fas fa-chair"></i> Manage Table Assignments
                         </button>
                     </div>
@@ -903,6 +1256,64 @@
                     <div class="empty-state">
                         <i class="fas fa-spinner fa-spin"></i>
                         <p>Loading waiters...</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- QR Code Modal -->
+        <div class="modal-overlay" id="qr-modal" onclick="if(event.target === this) closeQRModal()">
+            <div class="modal-content" style="max-width: 380px;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-qrcode"></i> Waiter Login (QR Based)</h3>
+                    <button class="modal-close" onclick="closeQRModal()">&times;</button>
+                </div>
+                <div class="modal-body" style="padding: 1.25rem;">
+                    <p class="section-desc" style="margin-bottom: 0.75rem; color: #64748b; font-size: 0.85rem; text-align: center;">Waiters scan this QR code to login with their ID and Name.</p>
+                    
+                    <div class="qr-container">
+                        <div class="qr-display" id="qr-display" style="text-align: center; padding: 1rem; background: #f8fafc; border-radius: 10px; margin-bottom: 0.75rem; max-width: 220px; margin-left: auto; margin-right: auto;">
+                            <div class="qr-placeholder">
+                                <i class="fas fa-spinner fa-spin" style="font-size: 2.5rem; color: #cbd5e1;"></i>
+                                <p style="margin-top: 0.5rem; color: #94a3b8; font-size: 0.85rem;">Generating QR code...</p>
+                            </div>
+                        </div>
+                        
+                        <div class="qr-actions" style="display: flex; gap: 0.75rem; justify-content: center;">
+                            <button type="button" class="btn-secondary" id="download-qr-btn" onclick="downloadWaiterQR()" disabled>
+                                <i class="fas fa-download"></i> Download QR
+                            </button>
+                        </div>
+                        
+                        <div class="qr-url" id="qr-url-display" style="display: none; margin-top: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.85rem;">Login URL:</label>
+                            <div class="url-box" style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="text" id="login-url" readonly style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.8rem; background: #f8fafc;">
+                                <button type="button" onclick="copyLoginUrl()" title="Copy URL" class="copy-url-btn" style="padding: 0.5rem 0.75rem; border: none; border-radius: 6px; cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Assignments Modal -->
+        <div class="modal-overlay" id="table-assignments-modal" onclick="if(event.target === this) closeTableAssignmentsModal()">
+            <div class="modal-content" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-chair"></i> Manage Table Assignments</h3>
+                    <button class="modal-close" onclick="closeTableAssignmentsModal()">&times;</button>
+                </div>
+                <div class="modal-body" style="padding: 1.5rem; max-height: 70vh; overflow-y: auto;">
+                    <p class="section-desc" style="margin-bottom: 1rem; color: #64748b; font-size: 0.9rem;">Assign or reassign tables to waiters. Multiple waiters can be assigned to the same table.</p>
+                    <div id="table-assignments-container">
+                        <div class="empty-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading table assignments...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -915,10 +1326,6 @@
                     <h3><i class="fas fa-user-plus"></i> Add New Waiter</h3>
                     <button class="modal-close" onclick="closeAddWaiterModal()">&times;</button>
                 </div>
-                <div class="info-banner">
-                    <i class="fas fa-info-circle"></i>
-                    <span>Waiters login using the QR code. They enter their <strong>Waiter ID</strong> (assigned after creation) and <strong>Name</strong> to access their dashboard.</span>
-                </div>
                 <div id="message" class="message"></div>
                 <form onsubmit="handleAddWaiter(event)" class="modal-form" id="add-waiter-form">
                     <div class="form-group">
@@ -927,11 +1334,11 @@
                     </div>
                     <div class="form-group">
                         <label for="waiter-email">Email <span class="required">*</span></label>
-                        <input type="email" id="waiter-email" required placeholder="Enter email address">
+                        <input type="email" id="waiter-email" required placeholder="Enter email address" style="text-transform: lowercase;" oninput="this.value = this.value.toLowerCase()">
                     </div>
                     <div class="form-group">
                         <label for="waiter-phone">Phone Number <span class="required">*</span></label>
-                        <input type="tel" id="waiter-phone" required placeholder="Enter phone number">
+                        <input type="tel" id="waiter-phone" required placeholder="Enter 10-digit phone number" maxlength="10" pattern="\d{10}" inputmode="numeric" title="Phone number must be exactly 10 digits">
                     </div>
                     
                     <!-- Table Assignment Checkboxes -->
@@ -955,6 +1362,58 @@
         </div>
 
             {% if food_enabled %}
+            <!-- Kitchen Management Section -->
+            <div id="kitchen-management" class="content-section">
+                <div class="page-header">
+                    <h1><i class="fas fa-fire-burner"></i> Kitchen Management</h1>
+                    <p>Create and manage kitchen accounts with login credentials and category assignments</p>
+                </div>
+
+                <!-- Add Kitchen Form -->
+                <div class="form-card" style="margin-bottom: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3><i class="fas fa-plus-circle"></i> Add New Kitchen</h3>
+                        <a href="/kitchen/login" target="_blank" class="btn-secondary btn-sm">
+                            <i class="fas fa-sign-in-alt"></i> Kitchen Login
+                        </a>
+                    </div>
+                    <div id="kitchen-form-message" class="message"></div>
+                    <form id="add-kitchen-form" onsubmit="handleAddKitchen(event)" class="table-form">
+                        <div class="form-group">
+                            <label for="kitchen-name">Kitchen Name <span style="color: red;">*</span></label>
+                            <input type="text" id="kitchen-name" required placeholder="e.g., Veg Kitchen, Bar Section">
+                        </div>
+                        <div class="form-group">
+                            <label for="kitchen-categories">Select Categories <span style="color: red;">*</span></label>
+                            <div id="kitchen-categories-checkboxes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                <div style="color: #64748b; text-align: center; padding: 1rem;">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading categories...
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-plus"></i> Create Kitchen
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Kitchens List -->
+                <div class="table-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3><i class="fas fa-list"></i> All Kitchens</h3>
+                        <button onclick="loadKitchens()" class="btn-secondary btn-sm">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    <div id="kitchens-list">
+                        <div class="empty-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading kitchens...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="table-orders" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-qrcode"></i> Table Orders & Bills</h1>
@@ -972,6 +1431,9 @@
                     <button class="sub-nav-btn" onclick="showTableSubSection('manage-tables')">
                         <i class="fas fa-table-cells"></i> Manage Tables
                     </button>
+                    <button class="sub-nav-btn" onclick="showTableSubSection('waiter-tips')">
+                        <i class="fas fa-hand-holding-heart"></i> Waiter Tips
+                    </button>
                 </div>
                 
                 <!-- View Orders Sub-section -->
@@ -979,9 +1441,14 @@
                     <div class="table-card">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                             <h3><i class="fas fa-receipt"></i> Table Orders</h3>
-                            <button onclick="loadOrdersData()" class="btn-secondary btn-sm">
-                                <i class="fas fa-sync-alt"></i> Refresh
-                            </button>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button onclick="loadOrdersData()" class="btn-secondary btn-sm">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                                <button onclick="clearCompletedOrders()" class="btn-danger btn-sm">
+                                    <i class="fas fa-trash-alt"></i> Clear Completed
+                                </button>
+                            </div>
                         </div>
                         <div id="orders-list">
                             <div class="empty-state">
@@ -1034,6 +1501,35 @@
                             <div class="empty-state">
                                 <i class="fas fa-spinner fa-spin"></i>
                                 <p>Loading tables...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Waiter Tips Sub-section -->
+                <div id="waiter-tips" class="sub-section">
+                    <div class="table-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3><i class="fas fa-hand-holding-heart"></i> Waiter-Wise Tip Summary</h3>
+                            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                <select id="tip-period-filter" onchange="loadWaiterTips()" style="padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; cursor: pointer;">
+                                    <option value="all">All Time</option>
+                                    <option value="today">Today</option>
+                                    <option value="week">This Week</option>
+                                    <option value="month">This Month</option>
+                                </select>
+                                <button onclick="loadWaiterTips()" class="btn-secondary btn-sm">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">
+                            <i class="fas fa-info-circle"></i> View tip breakdown by waiter. Only paid bills with tips are included.
+                        </p>
+                        <div id="waiter-tips-list">
+                            <div class="empty-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Loading waiter tips...</p>
                             </div>
                         </div>
                     </div>
@@ -1093,8 +1589,6 @@
                                 <p>No dishes in this category yet</p>
                                 <button class="btn-primary" onclick="showAddDishModal()">Add First Dish</button>
                             </div>
-                            <div id="full-menu-view" class="full-menu-view" style="display: none;">
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -1121,8 +1615,8 @@
                             </div>
                             
                             <div class="form-group">
-                                <label for="dish-quantity">Quantity *</label>
-                                <input type="text" id="dish-quantity" name="quantity" required placeholder="e.g., 100ml, 250gm, 1 plate, 2 pcs">
+                                <label for="dish-quantity">Quantity</label>
+                                <input type="text" id="dish-quantity" name="quantity" placeholder="e.g., 100ml, 250gm, 1 plate, 2 pcs">
                                 <small>You can enter text like "100ml", "250gm", "1 plate", "2 pcs", etc.</small>
                             </div>
                             
@@ -1132,7 +1626,8 @@
                             </div>
                             
                             <div class="form-group">
-                                <label for="dish-images">Upload Images (Max 3) *</label>
+                                <label for="dish-images">Upload Images (Optional – Max 3)</label>
+                                <div id="existing-images-info" class="existing-images-info" style="display: none;"></div>
                                 <input type="file" id="dish-images" name="images" multiple accept="image/*">
                                 <div id="image-selection-info" class="image-info"></div>
                                 <small>Hold Ctrl and click to select multiple images. Supported formats: PNG, JPG, JPEG, GIF</small>
@@ -1406,7 +1901,7 @@
                             <a href="#" target="_blank" style="color: var(--primary); text-decoration: none;" id="public-url-link"></a>
                         </div>
                         
-                        <button id="download-qr-btn" class="btn-primary" style="display: none;">
+                        <button id="download-verification-qr-btn" class="btn-primary" style="display: none; width: 100%; margin-top: 1rem;">
                             <i class="fas fa-download"></i> Download QR Code
                         </button>
                     </div>
@@ -1445,6 +1940,7 @@
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Available Balance</div>
                     </div>
 
+                    {% if kyc_enabled %}
                     <div class="stat-card">
                         <div class="stat-header">
                             <div class="stat-icon purple">
@@ -1454,7 +1950,9 @@
                         <div class="stat-value" id="verification-charge-display">₹0.00</div>
                         <div class="stat-label">Per Verification Charge</div>
                     </div>
+                    {% endif %}
 
+                    {% if food_enabled %}
                     <div class="stat-card">
                         <div class="stat-header">
                             <div class="stat-icon orange">
@@ -1464,6 +1962,7 @@
                         <div class="stat-value" id="order-charge-display">₹0.00</div>
                         <div class="stat-label">Per Order Charge</div>
                     </div>
+                    {% endif %}
                 </div>
 
                 <!-- Add Balance Section -->
@@ -1474,12 +1973,12 @@
                     <div class="card-body">
                         <div class="form-row" style="display: grid; grid-template-columns: 1fr 2fr auto; gap: 1rem; align-items: end;">
                             <div class="form-group" style="margin-bottom: 0;">
-                                <label for="manager-add-amount">Amount (₹)</label>
-                                <input type="number" id="manager-add-amount" min="1" step="0.01" placeholder="Enter amount">
+                                <label for="manager-add-amount">Amount (₹) <span style="color: red;">*</span></label>
+                                <input type="number" id="manager-add-amount" min="1" step="0.01" placeholder="Enter amount" required>
                             </div>
                             <div class="form-group" style="margin-bottom: 0;">
-                                <label for="manager-add-description">Description (Optional)</label>
-                                <input type="text" id="manager-add-description" placeholder="e.g., Monthly recharge">
+                                <label for="manager-add-utr">UTR Number <span style="color: red;">*</span></label>
+                                <input type="text" id="manager-add-utr" placeholder="Enter UTR/Transaction Reference Number" required>
                             </div>
                             <button class="btn btn-success" onclick="managerAddBalance()">
                                 <i class="fas fa-plus"></i> Add Balance
@@ -1511,10 +2010,106 @@
                     <h1><i class="fas fa-sliders-h"></i> Settings</h1>
                     <p>Manage your account and preferences</p>
                 </div>
-                <div class="coming-soon">
-                    <i class="fas fa-cog"></i>
-                    <h3>Account Settings</h3>
-                    <p>Configure your preferences and account settings...</p>
+                
+                <div class="settings-grid">
+                    <!-- Profile Settings Card -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <i class="fas fa-user-circle"></i>
+                            <h3>Profile Information</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            <div class="profile-info-item">
+                                <span class="profile-label">Name</span>
+                                <span class="profile-value">{{ manager_name }}</span>
+                            </div>
+                            <div class="profile-info-item">
+                                <span class="profile-label">Hotel</span>
+                                <span class="profile-value">{{ hotel_name or 'Not assigned' }}</span>
+                            </div>
+                            <div class="profile-info-item">
+                                <span class="profile-label">Role</span>
+                                <span class="profile-value">Hotel Manager</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Change Password Card -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <i class="fas fa-lock"></i>
+                            <h3>Change Password</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            <div id="password-alert" class="settings-alert" style="display: none;"></div>
+                            <form id="change-password-form" onsubmit="changePassword(event)">
+                                <div class="form-group">
+                                    <label for="current-password">Current Password</label>
+                                    <div class="password-input-wrapper">
+                                        <input type="password" id="current-password" name="current_password" required placeholder="Enter current password">
+                                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('current-password')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="new-password">New Password</label>
+                                    <div class="password-input-wrapper">
+                                        <input type="password" id="new-password" name="new_password" required placeholder="Enter new password (min. 6 characters)">
+                                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('new-password')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirm-password">Confirm New Password</label>
+                                    <div class="password-input-wrapper">
+                                        <input type="password" id="confirm-password" name="confirm_password" required placeholder="Confirm new password">
+                                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirm-password')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-primary" id="change-password-btn">
+                                    <i class="fas fa-key"></i> Update Password
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- GST Settings Card -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <i class="fas fa-percent"></i>
+                            <h3>Tax Settings</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            <div id="gst-alert" class="settings-alert" style="display: none;"></div>
+                            <form id="gst-settings-form" onsubmit="updateGSTSettings(event)">
+                                <div class="form-group">
+                                    <label for="gst-percentage">GST Percentage (%)</label>
+                                    <input type="number" id="gst-percentage" name="gst_percentage" required 
+                                           placeholder="Enter GST percentage" 
+                                           min="0" max="28" step="0.01"
+                                           style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.95rem;">
+                                    <small style="color: #6b7280; font-size: 0.85rem; margin-top: 0.5rem; display: block;">
+                                        <i class="fas fa-info-circle"></i> Enter GST percentage (0-28%). This will apply to all new bills.
+                                    </small>
+                                </div>
+                                <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 0.875rem; margin-bottom: 1rem;">
+                                    <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                                        <i class="fas fa-exclamation-triangle" style="color: #f59e0b; margin-top: 0.2rem;"></i>
+                                        <div style="font-size: 0.85rem; color: #92400e;">
+                                            <strong>Important:</strong> Changing GST will only affect new bills. Existing bills will retain their original GST percentage.
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-primary" id="gst-settings-btn">
+                                    <i class="fas fa-save"></i> Save GST Settings
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1662,25 +2257,6 @@
                     <p>This section is coming soon...</p>
                 </div>
             </div>
-
-            {% if food_enabled %}
-            <div id="full-menu" class="content-section">
-                <div class="page-header">
-                    <h1><i class="fas fa-book-open"></i> Full Menu</h1>
-                    <p>Complete menu with all categories and dishes</p>
-                </div>
-                
-                <div class="menu-container">
-                    <div class="alert" id="full-menu-alert" style="display: none;"></div>
-                    <div id="full-menu-content" class="full-menu-view">
-                        <div class="empty-state">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <p>Loading full menu...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
         </main>
 
     <!-- Sidebar Overlay for Mobile -->
@@ -1701,11 +2277,20 @@
             });
             
             // Show selected section
-            document.getElementById(sectionId).classList.add('active');
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+            } else {
+                console.error(`Section with id '${sectionId}' not found`);
+                return;
+            }
             
             // Add active class to clicked menu item
             if (event && event.target) {
-                event.target.closest('.menu-item').classList.add('active');
+                const menuItem = event.target.closest('.menu-item');
+                if (menuItem) {
+                    menuItem.classList.add('active');
+                }
             }
             
             // Close sidebar on mobile after selection
@@ -1720,119 +2305,18 @@
             } else if (sectionId === 'menu') {
                 loadMenuCategories();
                 loadMenuDishes(1); // Load starters by default
-            } else if (sectionId === 'full-menu') {
-                loadFullMenuSection();
             } else if (sectionId === 'table-orders') {
                 loadOrdersData(); // Load View Orders by default (first tab)
             } else if (sectionId === 'waiters') {
                 loadWaitersList();
                 // Table assignments and checkboxes loaded on-demand when user clicks buttons
-            } else if (sectionId === 'dashboard') {
-                loadRecentActivities();
+            } else if (sectionId === 'settings') {
+                loadGSTSettings(); // Load GST settings when settings page is shown
+            } else if (sectionId === 'kitchen-management') {
+                loadCategories();
+                loadKitchens();
             }
         }
-        
-        // =========================
-        // RECENT ACTIVITIES
-        // =========================
-        
-        function loadRecentActivities() {
-            const container = document.getElementById('recent-activities-list');
-            if (!container) return;
-            
-            container.innerHTML = `
-                <li class="activity-item loading-state">
-                    <div class="activity-icon">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>Loading activities...</p>
-                    </div>
-                </li>
-            `;
-            
-            fetch('/hotel-manager/api/recent-activities')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.activities && data.activities.length > 0) {
-                        container.innerHTML = data.activities.map(activity => {
-                            const { icon, bgColor, textColor, title } = getActivityStyle(activity.type);
-                            const timeAgo = formatTimeAgo(activity.created_at);
-                            return `
-                                <li class="activity-item">
-                                    <div class="activity-icon" style="background: ${bgColor}; color: ${textColor};">
-                                        <i class="fas ${icon}"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p><strong>${title}</strong> - ${activity.message}</p>
-                                        <span class="activity-time">${timeAgo}</span>
-                                    </div>
-                                </li>
-                            `;
-                        }).join('');
-                    } else {
-                        container.innerHTML = `
-                            <li class="activity-item empty-state">
-                                <div class="activity-icon" style="background: rgba(148, 163, 184, 0.1); color: var(--gray);">
-                                    <i class="fas fa-inbox"></i>
-                                </div>
-                                <div class="activity-content">
-                                    <p>No recent activity</p>
-                                    <span class="activity-time">Activities will appear here as they happen</span>
-                                </div>
-                            </li>
-                        `;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading activities:', error);
-                    container.innerHTML = `
-                        <li class="activity-item error-state">
-                            <div class="activity-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
-                            <div class="activity-content">
-                                <p>Failed to load activities</p>
-                                <span class="activity-time">Click refresh to try again</span>
-                            </div>
-                        </li>
-                    `;
-                });
-        }
-        
-        function getActivityStyle(type) {
-            const styles = {
-                'order': { icon: 'fa-bell', bgColor: 'rgba(16, 185, 129, 0.1)', textColor: 'var(--success)', title: 'New order' },
-                'payment': { icon: 'fa-credit-card', bgColor: 'rgba(6, 182, 212, 0.1)', textColor: 'var(--secondary)', title: 'Payment received' },
-                'verification': { icon: 'fa-user-check', bgColor: 'rgba(79, 70, 229, 0.1)', textColor: 'var(--primary)', title: 'Guest verified' },
-                'waiter': { icon: 'fa-user-tie', bgColor: 'rgba(245, 158, 11, 0.1)', textColor: 'var(--warning)', title: 'Waiter update' },
-                'table': { icon: 'fa-utensils', bgColor: 'rgba(139, 92, 246, 0.1)', textColor: '#8b5cf6', title: 'Table update' },
-                'menu': { icon: 'fa-hamburger', bgColor: 'rgba(236, 72, 153, 0.1)', textColor: '#ec4899', title: 'Menu update' }
-            };
-            return styles[type] || { icon: 'fa-info-circle', bgColor: 'rgba(148, 163, 184, 0.1)', textColor: 'var(--gray)', title: 'Activity' };
-        }
-        
-        function formatTimeAgo(dateString) {
-            if (!dateString) return 'Just now';
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffSec = Math.floor(diffMs / 1000);
-            const diffMin = Math.floor(diffSec / 60);
-            const diffHour = Math.floor(diffMin / 60);
-            const diffDay = Math.floor(diffHour / 24);
-            
-            if (diffSec < 60) return 'Just now';
-            if (diffMin < 60) return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
-            if (diffHour < 24) return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
-            if (diffDay < 3) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
-            return date.toLocaleDateString();
-        }
-        
-        // Load activities on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadRecentActivities();
-        });
         
         function toggleDropdown() {
             document.getElementById('dropdownMenu').classList.toggle('show');
@@ -1843,12 +2327,386 @@
             document.getElementById('sidebarOverlay').classList.toggle('show');
         }
         
+        // Change Password Functions
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.nextElementSibling.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+        
+        function showPasswordAlert(message, type) {
+            const alert = document.getElementById('password-alert');
+            alert.className = `settings-alert alert-${type}`;
+            alert.textContent = message;
+            alert.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    alert.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        function changePassword(event) {
+            event.preventDefault();
+            
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const btn = document.getElementById('change-password-btn');
+            
+            // Client-side validation
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showPasswordAlert('All fields are required!', 'error');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                showPasswordAlert('Password must be at least 6 characters!', 'error');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showPasswordAlert('New password and confirm password do not match!', 'error');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            
+            fetch('/hotel-manager/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword,
+                    confirm_password: confirmPassword
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-key"></i> Update Password';
+                
+                if (data.success) {
+                    showPasswordAlert('Password updated successfully.', 'success');
+                    document.getElementById('change-password-form').reset();
+                } else {
+                    showPasswordAlert(data.message || 'Failed to change password', 'error');
+                }
+            })
+            .catch(error => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-key"></i> Update Password';
+                console.error('Error:', error);
+                showPasswordAlert('An error occurred. Please try again.', 'error');
+            });
+        }
+        
+        // =========================
+        // GST SETTINGS FUNCTIONS
+        // =========================
+        
+        function showGSTAlert(message, type) {
+            const alert = document.getElementById('gst-alert');
+            alert.className = `settings-alert alert-${type}`;
+            alert.textContent = message;
+            alert.style.display = 'block';
+            
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    alert.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        function loadGSTSettings() {
+            fetch('/hotel-manager/api/gst-settings')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('gst-percentage').value = data.gst_percentage || 5.0;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading GST settings:', error);
+                });
+        }
+        
+        function updateGSTSettings(event) {
+            event.preventDefault();
+            
+            const gstPercentage = document.getElementById('gst-percentage').value;
+            const btn = document.getElementById('gst-settings-btn');
+            
+            // Client-side validation
+            if (!gstPercentage) {
+                showGSTAlert('GST percentage is required!', 'error');
+                return;
+            }
+            
+            const gstFloat = parseFloat(gstPercentage);
+            if (isNaN(gstFloat) || gstFloat < 0) {
+                showGSTAlert('GST percentage cannot be negative!', 'error');
+                return;
+            }
+            
+            if (gstFloat > 28) {
+                showGSTAlert('GST percentage cannot exceed 28%!', 'error');
+                return;
+            }
+            
+            // Disable button and show loading
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            fetch('/hotel-manager/api/gst-settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    gst_percentage: gstFloat
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Save GST Settings';
+                
+                if (data.success) {
+                    showGSTAlert(data.message || 'GST settings updated successfully.', 'success');
+                } else {
+                    showGSTAlert(data.message || 'Failed to update GST settings', 'error');
+                }
+            })
+            .catch(error => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Save GST Settings';
+                console.error('Error:', error);
+                showGSTAlert('An error occurred. Please try again.', 'error');
+            });
+        }
+        
         // Close dropdown when clicking outside
         window.onclick = function(event) {
             if (!event.target.closest('.profile-dropdown')) {
                 document.getElementById('dropdownMenu').classList.remove('show');
             }
+            // Close activity modal on backdrop click
+            if (event.target.classList.contains('modal-overlay')) {
+                event.target.style.display = 'none';
+            }
         }
+
+        // =========================
+        // ACTIVITY FUNCTIONS
+        // =========================
+        
+        // Activity icon mapping
+        const managerActivityIcons = {
+            'order': { icon: 'fa-shopping-cart', color: 'rgba(16, 185, 129, 0.1)', iconColor: 'var(--success)' },
+            'payment': { icon: 'fa-credit-card', color: 'rgba(6, 182, 212, 0.1)', iconColor: 'var(--secondary)' },
+            'menu': { icon: 'fa-utensils', color: 'rgba(245, 158, 11, 0.1)', iconColor: 'var(--warning)' },
+            'table': { icon: 'fa-chair', color: 'rgba(79, 70, 229, 0.1)', iconColor: 'var(--primary)' },
+            'waiter': { icon: 'fa-user-tie', color: 'rgba(79, 70, 229, 0.1)', iconColor: 'var(--primary)' },
+            'kyc': { icon: 'fa-id-card', color: 'rgba(6, 182, 212, 0.1)', iconColor: 'var(--secondary)' },
+            'verification': { icon: 'fa-user-check', color: 'rgba(16, 185, 129, 0.1)', iconColor: 'var(--success)' },
+            'default': { icon: 'fa-bell', color: 'rgba(156, 163, 175, 0.1)', iconColor: 'var(--gray)' }
+        };
+
+        // Time formatting
+        function activityTimeAgo(dateString) {
+            const now = new Date();
+            const past = new Date(dateString);
+            const seconds = Math.floor((now - past) / 1000);
+
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return Math.floor(seconds / 60) + ' minutes ago';
+            if (seconds < 86400) return Math.floor(seconds / 3600) + ' hours ago';
+            if (seconds < 172800) return 'Yesterday';
+            return Math.floor(seconds / 86400) + ' days ago';
+        }
+        
+        // Consistent date/time formatting utilities
+        function formatDateTime(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            return date.toLocaleString('en-IN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            return date.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+        
+        function formatTime(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            return date.toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+        }
+
+        // Render a single activity item
+        function renderActivityItem(activity) {
+            const iconData = managerActivityIcons[activity.activity_type] || managerActivityIcons['default'];
+            return `
+                <li class="activity-item">
+                    <div class="activity-icon" style="background: ${iconData.color}; color: ${iconData.iconColor};">
+                        <i class="fas ${iconData.icon}"></i>
+                    </div>
+                    <div class="activity-content">
+                        <p>${activity.message}</p>
+                        <span class="activity-time">${activityTimeAgo(activity.created_at)}</span>
+                    </div>
+                </li>
+            `;
+        }
+
+        // Fetch and update activities
+        function fetchManagerActivities() {
+            const refreshIcon = document.getElementById('activityRefreshIcon');
+            if (refreshIcon) refreshIcon.classList.add('fa-spin');
+            
+            fetch('/hotel-manager/api/recent-activities')
+                .then(response => response.json())
+                .then(data => {
+                    if (refreshIcon) setTimeout(() => refreshIcon.classList.remove('fa-spin'), 300);
+                    const activityList = document.getElementById('managerActivityList');
+                    
+                    if (!data || data.length === 0 || data.error) {
+                        activityList.innerHTML = `
+                            <li class="activity-item empty-state">
+                                <div class="activity-icon" style="background: rgba(156, 163, 175, 0.1); color: var(--gray);">
+                                    <i class="fas fa-info-circle"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>No recent activities</p>
+                                    <span class="activity-time">Activities will appear here as they happen</span>
+                                </div>
+                            </li>
+                        `;
+                        return;
+                    }
+
+                    activityList.innerHTML = data.map(renderActivityItem).join('');
+                })
+                .catch(error => {
+                    if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+                    console.error('Error fetching activities:', error);
+                    document.getElementById('managerActivityList').innerHTML = `
+                        <li class="activity-item error-state">
+                            <div class="activity-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="activity-content">
+                                <p>Error loading activities</p>
+                                <span class="activity-time">Click refresh to try again</span>
+                            </div>
+                        </li>
+                    `;
+                });
+        }
+
+        // View All Modal functions
+        function openActivityModal() {
+            const modal = document.getElementById('activityModal');
+            modal.style.display = 'flex';
+            
+            const allList = document.getElementById('allManagerActivityList');
+            allList.innerHTML = `
+                <li class="activity-item loading-state">
+                    <div class="activity-icon" style="background: rgba(79, 70, 229, 0.1); color: var(--primary);">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                    <div class="activity-content">
+                        <p>Loading all activities...</p>
+                        <span class="activity-time">Please wait</span>
+                    </div>
+                </li>
+            `;
+            
+            fetch('/hotel-manager/api/all-activities')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data || data.length === 0 || data.error) {
+                        allList.innerHTML = `
+                            <li class="activity-item empty-state">
+                                <div class="activity-icon" style="background: rgba(156, 163, 175, 0.1); color: var(--gray);">
+                                    <i class="fas fa-info-circle"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>No activities found</p>
+                                    <span class="activity-time">Activities will appear here as they happen</span>
+                                </div>
+                            </li>
+                        `;
+                        return;
+                    }
+
+                    allList.innerHTML = data.map(renderActivityItem).join('');
+                })
+                .catch(error => {
+                    console.error('Error fetching all activities:', error);
+                    allList.innerHTML = `
+                        <li class="activity-item error-state">
+                            <div class="activity-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="activity-content">
+                                <p>Error loading activities</p>
+                                <span class="activity-time">Please close and try again</span>
+                            </div>
+                        </li>
+                    `;
+                });
+        }
+
+        function closeActivityModal() {
+            document.getElementById('activityModal').style.display = 'none';
+        }
+
+        // Initial load of activities
+        fetchManagerActivities();
+
+        // Poll activities every 15 seconds
+        setInterval(fetchManagerActivities, 15000);
         
         function handleAddWaiter(event) {
             event.preventDefault();
@@ -1883,9 +2741,9 @@
                     loadWaitersList();
                     // Show success notification
                     alert(`Waiter "${data.name}" created successfully!\n\nWaiter ID: ${data.waiter_id}\n\nThey can now login using the QR code with their ID and name.`);
-                    // Refresh table assignments modal if visible
-                    if (document.getElementById('waiter-feature-modal').classList.contains('show')) {
-                        loadTableAssignmentsModal();
+                    // Refresh table assignments if section is visible
+                    if (document.getElementById('table-assignments-section').style.display !== 'none') {
+                        loadTableAssignments();
                     }
                 } else {
                     showMessage(data.message, 'error');
@@ -1895,22 +2753,41 @@
         
         // QR Code Functions
         function generateWaiterQR() {
+            // Show loading state
+            const qrDisplay = document.getElementById('qr-display');
+            qrDisplay.innerHTML = `
+                <div class="qr-placeholder">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2.5rem; color: #cbd5e1;"></i>
+                    <p style="margin-top: 0.5rem; color: #94a3b8; font-size: 0.85rem;">Generating QR code...</p>
+                </div>
+            `;
+            document.getElementById('download-qr-btn').disabled = true;
+            
             fetch('/hotel-manager/generate-waiter-qr')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        const qrDisplay = document.getElementById('qr-display');
-                        qrDisplay.innerHTML = `<img src="${data.qr_code}" alt="Waiter Login QR Code">`;
+                        qrDisplay.innerHTML = `<img src="${data.qr_code}" alt="Waiter Login QR Code" style="max-width: 180px; width: 100%; border-radius: 8px; display: block; margin: 0 auto;">`;
                         
                         document.getElementById('login-url').value = data.login_url;
                         document.getElementById('qr-url-display').style.display = 'block';
                         document.getElementById('download-qr-btn').disabled = false;
                     } else {
-                        showMessage(data.message || 'Failed to generate QR code', 'error');
+                        qrDisplay.innerHTML = `
+                            <div class="qr-placeholder">
+                                <i class="fas fa-exclamation-circle" style="font-size: 2.5rem; color: #ef4444;"></i>
+                                <p style="margin-top: 0.5rem; color: #ef4444; font-size: 0.85rem;">${data.message || 'Failed to generate QR code'}</p>
+                            </div>
+                        `;
                     }
                 })
                 .catch(error => {
-                    showMessage('Error generating QR code', 'error');
+                    qrDisplay.innerHTML = `
+                        <div class="qr-placeholder">
+                            <i class="fas fa-exclamation-circle" style="font-size: 2.5rem; color: #ef4444;"></i>
+                            <p style="margin-top: 0.5rem; color: #ef4444; font-size: 0.85rem;">Error generating QR code</p>
+                        </div>
+                    `;
                 });
         }
         
@@ -1923,12 +2800,14 @@
             urlInput.select();
             document.execCommand('copy');
             
-            // Show feedback
+            // Show feedback - use white check icon (button is blue)
             const btn = urlInput.nextElementSibling;
             const originalIcon = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check"></i>';
+            btn.innerHTML = '<i class="fas fa-check" style="color: white;"></i>';
+            btn.style.background = '#22c55e'; // Green success color
             setTimeout(() => {
                 btn.innerHTML = originalIcon;
+                btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
             }, 2000);
         }
         
@@ -2022,186 +2901,41 @@
             document.getElementById('message').className = 'message';
         }
         
-        // Waiter Feature Modal Functions (QR Code / Table Assignments)
-        function openWaiterFeatureModal(type) {
-            const modal = document.getElementById('waiter-feature-modal');
-            const titleEl = document.getElementById('waiter-feature-modal-title');
-            const bodyEl = document.getElementById('waiter-feature-modal-body');
-            
-            if (type === 'qr') {
-                titleEl.innerHTML = '<i class="fas fa-qrcode"></i> Waiter Login QR Code';
-                bodyEl.innerHTML = `
-                    <p class="modal-desc">Generate a QR code for waiters to scan and login. Waiters will enter their ID and name to access their dashboard.</p>
-                    <div class="qr-modal-container">
-                        <div class="qr-display" id="modal-qr-display">
-                            <div class="qr-placeholder">
-                                <i class="fas fa-spinner fa-spin"></i>
-                                <p>Generating QR code...</p>
-                            </div>
-                        </div>
-                        <div class="qr-actions">
-                            <button type="button" class="btn-secondary" id="modal-download-qr-btn" onclick="downloadWaiterQR()" disabled>
-                                <i class="fas fa-download"></i> Download QR
-                            </button>
-                        </div>
-                        <div class="qr-url" id="modal-qr-url-display" style="display: none;">
-                            <label>Login URL:</label>
-                            <div class="url-box">
-                                <input type="text" id="modal-login-url" readonly>
-                                <button type="button" onclick="copyLoginUrlModal()" title="Copy URL">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                // Auto-generate QR code when modal opens
-                generateWaiterQRModal();
-            } else if (type === 'assignments') {
-                titleEl.innerHTML = '<i class="fas fa-chair"></i> Manage Table Assignments';
-                bodyEl.innerHTML = `
-                    <p class="modal-desc">Assign or reassign tables to waiters. Multiple waiters can be assigned to the same table.</p>
-                    <div id="modal-table-assignments-container">
-                        <div class="empty-state">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <p>Loading table assignments...</p>
-                        </div>
-                    </div>
-                    <div class="modal-actions">
-                        <button type="button" class="btn-secondary" onclick="closeWaiterFeatureModal()">Close</button>
-                    </div>
-                `;
-                loadTableAssignmentsModal();
-            }
-            
-            modal.classList.add('show');
+        // QR Code Modal Functions
+        let qrGenerated = false;
+        
+        function toggleQRSection() {
+            openQRModal();
+        }
+        
+        function openQRModal() {
+            document.getElementById('qr-modal').classList.add('show');
             document.body.style.overflow = 'hidden';
+            
+            // Auto-generate QR code when modal opens (regenerate each time for freshness)
+            generateWaiterQR();
         }
         
-        function openQRCodeModal() {
-            openWaiterFeatureModal('qr');
-        }
-        
-        function openTableAssignmentsModal() {
-            openWaiterFeatureModal('assignments');
-        }
-        
-        function closeWaiterFeatureModal() {
-            const modal = document.getElementById('waiter-feature-modal');
-            modal.classList.remove('show');
+        function closeQRModal() {
+            document.getElementById('qr-modal').classList.remove('show');
             document.body.style.overflow = '';
         }
         
-        function generateWaiterQRModal() {
-            fetch('/hotel-manager/generate-waiter-qr')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const qrDisplay = document.getElementById('modal-qr-display');
-                        qrDisplay.innerHTML = `<img src="${data.qr_code}" alt="Waiter Login QR Code">`;
-                        
-                        document.getElementById('modal-login-url').value = data.login_url;
-                        document.getElementById('modal-qr-url-display').style.display = 'block';
-                        document.getElementById('modal-download-qr-btn').disabled = false;
-                    } else {
-                        showMessage(data.message || 'Failed to generate QR code', 'error');
-                    }
-                })
-                .catch(error => {
-                    showMessage('Error generating QR code', 'error');
-                });
+        // Table Assignments Modal Functions
+        function toggleTableAssignments() {
+            openTableAssignmentsModal();
         }
         
-        function copyLoginUrlModal() {
-            const urlInput = document.getElementById('modal-login-url');
-            urlInput.select();
-            document.execCommand('copy');
-            
-            const btn = urlInput.nextElementSibling;
-            const originalIcon = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check"></i>';
-            setTimeout(() => {
-                btn.innerHTML = originalIcon;
-            }, 2000);
+        function openTableAssignmentsModal() {
+            document.getElementById('table-assignments-modal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+            loadTableAssignments();
         }
         
-        function loadTableAssignmentsModal() {
-            Promise.all([
-                fetch('/hotel-manager/api/tables-with-assignments').then(r => r.json()),
-                fetch('/hotel-manager/api/waiters').then(r => r.json())
-            ])
-            .then(([tablesData, waitersData]) => {
-                const tables = tablesData.tables || [];
-                const waiters = waitersData.waiters || [];
-                
-                if (tables.length === 0) {
-                    document.getElementById('modal-table-assignments-container').innerHTML = '<p class="no-data">No tables found. Add tables first.</p>';
-                    return;
-                }
-                
-                let html = '<div class="assignments-grid">';
-                tables.forEach(table => {
-                    const assignedWaiterIds = table.waiter_id_list || [];
-                    
-                    html += `
-                        <div class="assignment-card">
-                            <div class="assignment-header">
-                                <i class="fas fa-utensils"></i>
-                                <span>Table ${table.table_number}</span>
-                            </div>
-                            <div class="assignment-body">
-                                <label>Assign Waiters:</label>
-                                <div class="waiter-checkboxes" id="modal-table-${table.id}-waiters">
-                                    ${waiters.length > 0 ? waiters.map(w => `
-                                        <label class="checkbox-item small">
-                                            <input type="checkbox" 
-                                                   value="${w.waiter_id}" 
-                                                   ${assignedWaiterIds.includes(w.waiter_id) ? 'checked' : ''}
-                                                   onchange="updateTableWaitersModal(${table.id})">
-                                            <span>${w.name}</span>
-                                        </label>
-                                    `).join('') : '<p class="no-data small">No waiters available</p>'}
-                                </div>
-                            </div>
-                            ${table.waiter_names ? `<div class="current-assignment"><i class="fas fa-users"></i> ${table.waiter_names}</div>` : '<div class="current-assignment muted"><i class="fas fa-user-slash"></i> No waiters assigned</div>'}
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                document.getElementById('modal-table-assignments-container').innerHTML = html;
-            })
-            .catch(error => {
-                document.getElementById('modal-table-assignments-container').innerHTML = '<p class="error">Error loading assignments</p>';
-            });
+        function closeTableAssignmentsModal() {
+            document.getElementById('table-assignments-modal').classList.remove('show');
+            document.body.style.overflow = '';
         }
-        
-        function updateTableWaitersModal(tableId) {
-            const checkboxes = document.querySelectorAll(`#modal-table-${tableId}-waiters input[type="checkbox"]:checked`);
-            const waiterIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-            
-            fetch('/hotel-manager/update-table-waiters', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({table_id: tableId, waiter_ids: waiterIds})
-            })
-            .then(response => response.json())
-            .then(data => {
-                showMessage(data.message, data.success ? 'success' : 'error');
-                if (data.success) {
-                    loadTableAssignmentsModal();
-                    loadWaitersList();
-                }
-            });
-        }
-        
-        // ESC key to close modals
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                closeWaiterFeatureModal();
-                closeAddWaiterModal();
-                closeEditWaiterModal();
-            }
-        });
         
         // Edit Waiter Modal Functions
         function openEditWaiterModal(waiterId) {
@@ -2310,10 +3044,7 @@
                 if (data.success) {
                     closeEditWaiterModal();
                     loadWaitersList();
-                    // Refresh table assignments modal if open
-                    if (document.getElementById('waiter-feature-modal').classList.contains('show')) {
-                        loadTableAssignmentsModal();
-                    }
+                    loadTableAssignments();
                     loadTableCheckboxes();
                 }
             });
@@ -2334,16 +3065,76 @@
             });
         }
         
-        // Alias for backwards compatibility - delegates to modal version
         function loadTableAssignments() {
-            if (document.getElementById('waiter-feature-modal').classList.contains('show')) {
-                loadTableAssignmentsModal();
-            }
+            Promise.all([
+                fetch('/hotel-manager/api/tables-with-assignments').then(r => r.json()),
+                fetch('/hotel-manager/api/waiters').then(r => r.json())
+            ])
+            .then(([tablesData, waitersData]) => {
+                const tables = tablesData.tables || [];
+                const waiters = waitersData.waiters || [];
+                
+                if (tables.length === 0) {
+                    document.getElementById('table-assignments-container').innerHTML = '<p class="no-data">No tables found. Add tables first.</p>';
+                    return;
+                }
+                
+                let html = '<div class="assignments-grid">';
+                tables.forEach(table => {
+                    // Get list of assigned waiter IDs for this table
+                    const assignedWaiterIds = table.waiter_id_list || [];
+                    
+                    html += `
+                        <div class="assignment-card">
+                            <div class="assignment-header">
+                                <i class="fas fa-utensils"></i>
+                                <span>Table ${table.table_number}</span>
+                            </div>
+                            <div class="assignment-body">
+                                <label>Assign Waiters:</label>
+                                <div class="waiter-checkboxes" id="table-${table.id}-waiters">
+                                    ${waiters.length > 0 ? waiters.map(w => `
+                                        <label class="checkbox-item small">
+                                            <input type="checkbox" 
+                                                   value="${w.waiter_id}" 
+                                                   ${assignedWaiterIds.includes(w.waiter_id) ? 'checked' : ''}
+                                                   onchange="updateTableWaiters(${table.id})">
+                                            <span>${w.name}</span>
+                                        </label>
+                                    `).join('') : '<p class="no-data small">No waiters available</p>'}
+                                </div>
+                            </div>
+                            ${table.waiter_names ? `<div class="current-assignment"><i class="fas fa-users"></i> ${table.waiter_names}</div>` : '<div class="current-assignment muted"><i class="fas fa-user-slash"></i> No waiters assigned</div>'}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                document.getElementById('table-assignments-container').innerHTML = html;
+            })
+            .catch(error => {
+                document.getElementById('table-assignments-container').innerHTML = '<p class="error">Error loading assignments</p>';
+            });
         }
         
-        // Alias for backwards compatibility - delegates to modal version
         function updateTableWaiters(tableId) {
-            updateTableWaitersModal(tableId);
+            // Get all checked waiters for this table
+            const checkboxes = document.querySelectorAll(`#table-${tableId}-waiters input[type="checkbox"]:checked`);
+            const waiterIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            
+            fetch('/hotel-manager/update-table-waiters', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({table_id: tableId, waiter_ids: waiterIds})
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMessage(data.message, data.success ? 'success' : 'error');
+                if (data.success) {
+                    // Reload to show updated waiter names
+                    loadTableAssignments();
+                    loadWaitersList();
+                }
+            });
         }
         
         function assignTableToWaiter(tableId, waiterId) {
@@ -2357,9 +3148,7 @@
                 .then(data => {
                     showMessage(data.message, data.success ? 'success' : 'error');
                     if (data.success) {
-                        if (document.getElementById('waiter-feature-modal').classList.contains('show')) {
-                            loadTableAssignmentsModal();
-                        }
+                        loadTableAssignments();
                     }
                 });
             } else {
@@ -2372,9 +3161,7 @@
                 .then(data => {
                     showMessage(data.message, data.success ? 'success' : 'error');
                     if (data.success) {
-                        if (document.getElementById('waiter-feature-modal').classList.contains('show')) {
-                            loadTableAssignmentsModal();
-                        }
+                        loadTableAssignments();
                     }
                 });
             }
@@ -2413,7 +3200,8 @@
             fetch(`/guest-verification/api/verifications/${managerId}`)
                 .then(response => response.json())
                 .then(data => {
-                    renderVerificationTable(data.verifications);
+                    console.log('Verification data received:', data);
+                    renderVerificationTable(data.verifications || []);
                 })
                 .catch(error => {
                     console.error('Error loading verification data:', error);
@@ -2428,7 +3216,10 @@
         function renderVerificationTable(verifications) {
             const container = document.getElementById('verification-content');
             
-            if (verifications.length === 0) {
+            console.log('Rendering verifications:', verifications);
+            console.log('Total verifications:', verifications.length);
+            
+            if (!verifications || verifications.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 3rem; color: #718096;">
                         <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
@@ -2439,62 +3230,63 @@
                 return;
             }
             
+            // Show all verifications (not just pending)
+            console.log('Total verifications:', verifications.length);
+            
+            if (verifications.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 3rem; color: #718096;">
+                        <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                        <h3>No Verifications Yet</h3>
+                        <p>No guest verification requests received</p>
+                    </div>
+                `;
+                return;
+            }
+            
             let tableHTML = `
                 <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
                     <thead>
                         <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                            <th style="padding: 1rem; text-align: left; font-weight: 600; color: #4a5568; width: 80px;">Sr No</th>
+                            <th style="padding: 1rem; text-align: left; font-weight: 600; color: #4a5568;">Date</th>
                             <th style="padding: 1rem; text-align: left; font-weight: 600; color: #4a5568;">Guest Name</th>
                             <th style="padding: 1rem; text-align: left; font-weight: 600; color: #4a5568;">Phone</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600; color: #4a5568;">Submitted</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600; color: #4a5568;">Status</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600; color: #4a5568;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
             
-            verifications.forEach(verification => {
-                const statusClass = `status-${verification.status}`;
-                const statusColors = {
-                    'pending': 'background: #fef3c7; color: #92400e;',
-                    'approved': 'background: #d1fae5; color: #065f46;',
-                    'rejected': 'background: #fee2e2; color: #991b1b;'
-                };
+            verifications.forEach((verification, index) => {
+                const submittedDate = new Date(verification.submitted_at);
+                const formattedDate = submittedDate.toLocaleDateString('en-IN', { 
+                    day: '2-digit', 
+                    month: 'short', 
+                    year: 'numeric' 
+                });
                 
                 tableHTML += `
-                    <tr style="border-bottom: 1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                    <tr style="border-bottom: 1px solid #f1f5f9; cursor: pointer;" 
+                        onmouseover="this.style.background='#f8fafc'" 
+                        onmouseout="this.style.background='white'"
+                        onclick="showVerificationDetails(${verification.id})">
+                        <td style="padding: 1rem; color: #718096; font-weight: 500;">${index + 1}</td>
+                        <td style="padding: 1rem; color: #2d3748;">${formattedDate}</td>
                         <td style="padding: 1rem;">
-                            <div style="font-weight: 600; color: #2d3748;">${verification.guest_name}</div>
-                            <div style="font-size: 0.8rem; color: #718096;">ID: ${verification.kyc_number}</div>
+                            <div style="font-weight: 600; color: #667eea; text-decoration: underline; cursor: pointer;">
+                                ${verification.guest_name}
+                            </div>
                         </td>
-                        <td style="padding: 1rem;">${verification.phone}</td>
-                        <td style="padding: 1rem;">
-                            <div>${new Date(verification.submitted_at).toLocaleDateString()}</div>
-                            <div style="font-size: 0.8rem; color: #718096;">${new Date(verification.submitted_at).toLocaleTimeString()}</div>
-                        </td>
-                        <td style="padding: 1rem;">
-                            <span style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; ${statusColors[verification.status]}">
-                                ${verification.status}
-                            </span>
-                        </td>
-                        <td style="padding: 1rem;">
-                            ${verification.status === 'pending' ? `
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <button onclick="updateVerificationStatus(${verification.id}, 'approved')" style="background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-                                        <i class="fas fa-check"></i> Approve
-                                    </button>
-                                    <button onclick="updateVerificationStatus(${verification.id}, 'rejected')" style="background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-                                        <i class="fas fa-times"></i> Reject
-                                    </button>
-                                </div>
-                            ` : '<span style="color: #718096; font-size: 0.8rem;">No action needed</span>'}
-                        </td>
+                        <td style="padding: 1rem; color: #2d3748;">${verification.phone}</td>
                     </tr>
                 `;
             });
             
             tableHTML += '</tbody></table>';
             container.innerHTML = tableHTML;
+            
+            // Store verifications data globally for modal access
+            window.verificationsData = verifications;
         }
         
         function loadQRCode() {
@@ -2503,7 +3295,7 @@
                 .then(data => {
                     const qrContainer = document.getElementById('qr-code-container');
                     const urlContainer = document.getElementById('public-url-container');
-                    const downloadBtn = document.getElementById('download-qr-btn');
+                    const downloadBtn = document.getElementById('download-verification-qr-btn');
                     const urlLink = document.getElementById('public-url-link');
                     
                     qrContainer.innerHTML = `<img src="data:image/png;base64,${data.qr_code}" alt="QR Code" style="max-width: 200px; border: 3px solid #e2e8f0; border-radius: 12px;">`;
@@ -2521,29 +3313,209 @@
         }
         
         function updateVerificationStatus(verificationId, status) {
-            if (confirm(`Are you sure you want to ${status} this verification request?`)) {
-                fetch('/guest-verification/update-status', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        verification_id: verificationId,
-                        status: status
-                    })
+            fetch('/guest-verification/update-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    verification_id: verificationId,
+                    status: status
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        loadVerificationData(); // Reload the data
-                    } else {
-                        alert('Error: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    alert('Error updating status. Please try again.');
-                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeVerificationModal();
+                    loadVerificationData(); // Reload the data
+                    showAlert('Verification approved successfully!', 'success');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error updating status. Please try again.');
+            });
+        }
+        
+        function maskIdNumber(idNumber, idType) {
+            if (!idNumber || idNumber.length < 4) {
+                return '****';
             }
+            
+            // Get last 4 characters
+            const last4 = idNumber.slice(-4);
+            const masked = '*'.repeat(Math.max(0, idNumber.length - 4)) + last4;
+            
+            return masked;
+        }
+        
+        function validateIdFormat(idNumber, idType) {
+            if (!idNumber) return { valid: false, message: 'ID number is missing' };
+            
+            // Remove spaces and convert to uppercase for validation
+            const cleanId = idNumber.replace(/\s/g, '').toUpperCase();
+            
+            // Validation rules for different ID types
+            const validationRules = {
+                'PAN Card': {
+                    pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
+                    length: 10,
+                    message: 'PAN Card should be 10 characters (e.g., ABCDE1234F)'
+                },
+                'Driving License': {
+                    pattern: /^[A-Z]{2}[0-9]{13}$/,
+                    length: 15,
+                    message: 'Driving License should be 15 characters (e.g., MH0120190012345)'
+                }
+            };
+            
+            const rule = validationRules[idType];
+            
+            // If no specific rule for this ID type, just check if it has reasonable length
+            if (!rule) {
+                if (cleanId.length < 6 || cleanId.length > 20) {
+                    return { valid: false, message: 'ID number length seems invalid' };
+                }
+                return { valid: true };
+            }
+            
+            // Check length
+            if (cleanId.length !== rule.length) {
+                return { valid: false, message: rule.message };
+            }
+            
+            // Check pattern
+            if (!rule.pattern.test(cleanId)) {
+                return { valid: false, message: rule.message };
+            }
+            
+            return { valid: true };
+        }
+        
+        function showVerificationDetails(verificationId) {
+            const verification = window.verificationsData.find(v => v.id === verificationId);
+            if (!verification) return;
+            
+            const submittedDate = new Date(verification.submitted_at);
+            const formattedDateTime = submittedDate.toLocaleString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+            
+            // Mask the ID number for security
+            const maskedId = maskIdNumber(verification.kyc_number, verification.kyc_type);
+            
+            // Validate ID format
+            const validation = validateIdFormat(verification.kyc_number, verification.kyc_type);
+            const validationWarning = !validation.valid ? `
+                <div style="margin-top: 0.5rem; padding: 0.5rem 0.75rem; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>
+                    <span style="font-size: 0.85rem; color: #92400e;">${validation.message}</span>
+                </div>
+            ` : '';
+            
+            const modalHTML = `
+                <div class="bill-modal-overlay show" id="verification-modal" onclick="if(event.target === this) closeVerificationModal()">
+                    <div class="bill-modal-content" style="max-width: 600px;">
+                        <div class="bill-modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <h2><i class="fas fa-id-card"></i> Guest Verification Details</h2>
+                            <button class="bill-modal-close" onclick="closeVerificationModal()" style="background: rgba(255,255,255,0.2); color: white; border-radius: 50%;">&times;</button>
+                        </div>
+                        <div class="bill-modal-body">
+                            <div style="background: #f8fafc; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                                <div style="display: grid; gap: 1.25rem;">
+                                    <div>
+                                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Full Name</label>
+                                        <div style="font-size: 1.1rem; font-weight: 600; color: #1e293b;">${verification.guest_name}</div>
+                                    </div>
+                                    
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                        <div>
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Phone Number</label>
+                                            <div style="font-size: 1rem; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                                                <i class="fas fa-phone" style="color: #667eea;"></i>
+                                                ${verification.phone}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">ID Type</label>
+                                            <div style="font-size: 1rem; color: #1e293b;">${verification.kyc_type}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">ID Number</label>
+                                        <div style="font-size: 1rem; color: #1e293b; font-family: monospace; background: white; padding: 0.75rem; border-radius: 6px; border: 1px solid #e2e8f0; letter-spacing: 0.1em;">${maskedId}</div>
+                                        ${validationWarning}
+                                    </div>
+                                    
+                                    <div>
+                                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Submission Date & Time</label>
+                                        <div style="font-size: 1rem; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                                            <i class="fas fa-calendar-alt" style="color: #667eea;"></i>
+                                            ${formattedDateTime}
+                                        </div>
+                                    </div>
+                                    
+                                    ${verification.kyc_image ? `
+                                        <div>
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Uploaded ID Image</label>
+                                            <div style="margin-top: 0.75rem;">
+                                                <img src="${verification.kyc_image}" alt="ID Document" 
+                                                     style="max-width: 100%; border-radius: 8px; border: 2px solid #e2e8f0; cursor: pointer;"
+                                                     onclick="window.open('${verification.kyc_image}', '_blank')">
+                                                <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; text-align: center;">
+                                                    <i class="fas fa-search-plus"></i> Click image to view full size
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ` : '<div style="text-align: center; padding: 1rem; background: #fef3c7; border-radius: 8px; color: #92400e;"><i class="fas fa-info-circle"></i> No ID image uploaded</div>'}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bill-modal-footer">
+                            <button onclick="closeVerificationModal()" style="width: 100%; background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                <i class="fas fa-times-circle"></i> Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            document.body.classList.add('bill-modal-open');
+        }
+        
+        function closeVerificationModal() {
+            const modal = document.getElementById('verification-modal');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.remove();
+                    document.body.classList.remove('bill-modal-open');
+                }, 300);
+            }
+        }
+        
+        function showAlert(message, type = 'success') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `flash-message ${type}`;
+            alertDiv.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                ${message}
+            `;
+            alertDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10001; animation: slideInRight 0.3s ease;';
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => alertDiv.remove(), 300);
+            }, 3000);
         }
         
         // Menu Management Functions
@@ -2552,7 +3524,6 @@
         let menuCategories = {1: 'Starters', 2: 'Main Course', 3: 'Desserts'};
         let currentImageIndex = 0;
         let currentImages = [];
-        let isFullMenuView = false;
 
         function showMenuAlert(message, type = 'success') {
             const alert = document.getElementById('menu-alert');
@@ -2612,7 +3583,6 @@
             
             document.getElementById('add-dish-btn').style.display = 'block';
             document.getElementById('dishes-table').style.display = 'table';
-            document.getElementById('full-menu-view').style.display = 'none';
             
             // Show category actions for non-default categories
             const categoryActions = document.getElementById('category-actions');
@@ -2625,100 +3595,18 @@
             loadMenuDishes(categoryId);
         }
 
-        function loadFullMenuSection() {
-            fetch('/api/full-menu')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        renderFullMenuSection(data.menu);
-                    } else {
-                        showFullMenuAlert('Error loading full menu: ' + data.message, 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading full menu:', error);
-                    showFullMenuAlert('Error loading full menu', 'error');
-                });
-        }
-
-        function renderFullMenuSection(menu) {
-            const fullMenuContent = document.getElementById('full-menu-content');
-            
-            let menuHTML = '<div class="menu-book">';
-            
-            menu.forEach(category => {
-                if (category.dishes.length > 0) {
-                    menuHTML += `
-                        <div class="menu-category">
-                            <h2 class="category-header">${escapeMenuHtml(category.category_name)}</h2>
-                            <div class="category-dishes">
-                    `;
-                    
-                    category.dishes.forEach(dish => {
-                        const firstImageUrl = dish.image_urls && dish.image_urls.length > 0 ? dish.image_urls[0] : null;
-                        menuHTML += `
-                            <div class="menu-item">
-                                <div class="menu-item-content">
-                                    ${firstImageUrl ? `
-                                        <div class="menu-item-image" onclick="viewFullMenuDishImages(${dish.id})">
-                                            <img src="${firstImageUrl}" alt="${escapeMenuHtml(dish.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
-                                        </div>
-                                    ` : `
-                                        <div class="menu-item-image" onclick="viewFullMenuDishImages(${dish.id})">
-                                            <div class="image-placeholder">
-                                                <i class="fas fa-image"></i>
-                                                <span>No Image</span>
-                                            </div>
-                                        </div>
-                                    `}
-                                    <div class="menu-item-details">
-                                        <div class="menu-item-header">
-                                            <h4 class="dish-name">${escapeMenuHtml(dish.name)}</h4>
-                                            <span class="dish-price">₹${dish.price.toFixed(2)}</span>
-                                        </div>
-                                        <p class="dish-description">${escapeMenuHtml(dish.description || 'No description available')}</p>
-                                        <div class="dish-meta">
-                                            <span class="dish-quantity">Quantity: ${escapeMenuHtml(dish.quantity)}</span>
-                                            ${dish.images && dish.images.length > 0 ? `<span class="image-count">${dish.images.length} image${dish.images.length > 1 ? 's' : ''}</span>` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    menuHTML += '</div></div>';
-                }
-            });
-            
-            if (menu.every(category => category.dishes.length === 0)) {
-                menuHTML = `
-                    <div style="text-align: center; padding: 4rem; color: #718096;">
-                        <i class="fas fa-utensils" style="font-size: 4rem; margin-bottom: 1rem; color: #cbd5e0;"></i>
-                        <h3>No dishes available</h3>
-                        <p>Add some dishes to your menu categories to see them here</p>
-                    </div>
-                `;
-            } else {
-                menuHTML += '</div>';
-            }
-            
-            fullMenuContent.innerHTML = menuHTML;
-        }
-
-        function showFullMenuAlert(message, type = 'success') {
-            const alert = document.getElementById('full-menu-alert');
-            alert.className = `alert alert-${type}`;
-            alert.textContent = message;
-            alert.style.display = 'block';
-            
-            setTimeout(() => {
-                alert.style.display = 'none';
-            }, 4000);
-        }
-
-        function viewFullMenuDishImages(dishId) {
-            viewMenuDishImages(dishId);
+        
+        function openFullscreenImage(imageUrl) {
+            const overlay = document.createElement('div');
+            overlay.className = 'fullscreen-image-overlay';
+            overlay.innerHTML = `
+                <img src="${imageUrl}" alt="Dish image">
+                <button class="fullscreen-close" onclick="this.parentElement.remove()">&times;</button>
+            `;
+            overlay.onclick = function(e) {
+                if (e.target === overlay) overlay.remove();
+            };
+            document.body.appendChild(overlay);
         }
 
         function loadMenuDishes(categoryId) {
@@ -2795,12 +3683,22 @@
 
         function showAddDishModal() {
             isEditMode = false;
+            existingImagesCount = 0;
+            currentEditDishId = null;
+            currentDishImages = [];
+            currentDishImageUrls = [];
             document.getElementById('modal-title').textContent = 'Add New Dish';
             document.getElementById('submit-btn').textContent = 'Add Dish';
             document.getElementById('dish-form').reset();
             document.getElementById('dish-id').value = '';
             document.getElementById('category-id').value = currentCategoryId;
-            document.getElementById('dish-images').setAttribute('required', 'required');
+            
+            // Reset existing images info and enable file input
+            const existingInfoDiv = document.getElementById('existing-images-info');
+            existingInfoDiv.innerHTML = '';
+            existingInfoDiv.style.display = 'none';
+            document.getElementById('dish-images').disabled = false;
+            
             updateImageSelectionInfo([]);
             document.getElementById('dish-modal').style.display = 'flex';
         }
@@ -2864,8 +3762,15 @@
             }
         }
 
+        // Track existing images count for edit mode
+        let existingImagesCount = 0;
+        let currentEditDishId = null;
+        let currentDishImages = [];
+        let currentDishImageUrls = [];
+
         function editMenuDish(dishId) {
             isEditMode = true;
+            currentEditDishId = dishId;
             document.getElementById('modal-title').textContent = 'Edit Dish';
             document.getElementById('submit-btn').textContent = 'Update Dish';
             
@@ -2880,6 +3785,27 @@
                         document.getElementById('dish-quantity').value = dish.quantity;
                         document.getElementById('dish-description').value = dish.description || '';
                         document.getElementById('dish-images').removeAttribute('required');
+                        
+                        // Filter valid images (exclude empty strings, null, undefined) and DEDUPLICATE
+                        let validImages = (dish.images || []).filter(img => img && typeof img === 'string' && img.trim() !== '');
+                        validImages = [...new Set(validImages)];  // Remove duplicates
+                        
+                        let validImageUrls = (dish.image_urls || []).filter(url => url && typeof url === 'string' && url.trim() !== '' && !url.endsWith('/uploads/') && !url.endsWith('/uploads'));
+                        validImageUrls = [...new Set(validImageUrls)];  // Remove duplicates
+                        
+                        // Ensure arrays have same length
+                        const minLen = Math.min(validImages.length, validImageUrls.length);
+                        validImages = validImages.slice(0, minLen);
+                        validImageUrls = validImageUrls.slice(0, minLen);
+                        
+                        // Store filtered and deduplicated images
+                        currentDishImages = validImages;
+                        currentDishImageUrls = validImageUrls;
+                        existingImagesCount = validImages.length;
+                        
+                        // Handle existing images info display with filtered data
+                        updateExistingImagesDisplay(dish.id, validImages, validImageUrls);
+                        
                         updateImageSelectionInfo([]);
                         document.getElementById('dish-modal').style.display = 'flex';
                     } else {
@@ -2892,6 +3818,166 @@
                 });
         }
 
+        function updateExistingImagesDisplay(dishId, images, imageUrls) {
+            const existingInfoDiv = document.getElementById('existing-images-info');
+            const fileInput = document.getElementById('dish-images');
+            
+            // Filter out empty/null/undefined image filenames and DEDUPLICATE
+            let validImages = (images || []).filter(img => img && typeof img === 'string' && img.trim() !== '');
+            validImages = [...new Set(validImages)];  // Remove duplicates
+            
+            let validImageUrls = (imageUrls || []).filter(url => url && typeof url === 'string' && url.trim() !== '' && !url.endsWith('/uploads/'));
+            validImageUrls = [...new Set(validImageUrls)];  // Remove duplicates
+            
+            // Ensure images and URLs arrays have the same length (use minimum)
+            const minLength = Math.min(validImages.length, validImageUrls.length);
+            validImages = validImages.slice(0, minLength);
+            validImageUrls = validImageUrls.slice(0, minLength);
+            
+            // Update global state with deduplicated values
+            currentDishImages = validImages;
+            currentDishImageUrls = validImageUrls;
+            existingImagesCount = validImages.length;
+            const remainingSlots = 3 - existingImagesCount;
+            
+            // Only render if there are valid images
+            if (existingImagesCount > 0 && validImages.length > 0) {
+                let infoHTML = `<div class="existing-images-section">`;
+                infoHTML += `<div class="existing-images-header">`;
+                infoHTML += `<span class="image-count-badge"><i class="fas fa-images"></i> Existing Images: ${existingImagesCount} image(s)</span>`;
+                if (remainingSlots > 0) {
+                    infoHTML += `<span class="image-remaining-info">You can upload ${remainingSlots} more image(s). (Max 3)</span>`;
+                } else {
+                    infoHTML += `<span class="image-limit-reached"><i class="fas fa-info-circle"></i> Maximum limit reached. Remove images to upload new ones.</span>`;
+                }
+                infoHTML += `</div>`;
+                
+                // Visual thumbnail grid with delete buttons - only for valid images
+                infoHTML += `<div class="existing-images-grid">`;
+                validImages.forEach((imgFilename, index) => {
+                    // Skip empty or invalid filenames
+                    if (!imgFilename || imgFilename.trim() === '') return;
+                    
+                    const imgUrl = validImageUrls[index] || '';
+                    // Skip if URL is empty or just points to uploads directory
+                    if (!imgUrl || imgUrl.endsWith('/uploads/') || imgUrl.endsWith('/uploads')) return;
+                    
+                    infoHTML += `
+                        <div class="image-thumbnail-container" id="image-container-${index}" data-filename="${imgFilename}">
+                            <div class="image-thumbnail-box">
+                                <img src="${imgUrl}" alt="Image ${index + 1}" onerror="this.closest('.image-thumbnail-container').style.display='none';">
+                            </div>
+                            <button type="button" class="btn-delete-thumbnail" onclick="removeDishImage(${dishId}, '${imgFilename}')" title="Remove Image ${index + 1}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            <span class="image-thumbnail-label">Image ${index + 1}</span>
+                        </div>
+                    `;
+                });
+                infoHTML += `</div></div>`;
+                
+                existingInfoDiv.innerHTML = infoHTML;
+                existingInfoDiv.style.display = 'block';
+                fileInput.disabled = remainingSlots <= 0;
+            } else {
+                // No valid images - completely hide the section and reset state
+                existingInfoDiv.innerHTML = '';
+                existingInfoDiv.style.display = 'none';
+                fileInput.disabled = false;
+                existingImagesCount = 0;
+                currentDishImages = [];
+                currentDishImageUrls = [];
+            }
+        }
+
+        function removeDishImage(dishId, imageFilename) {
+            if (!imageFilename || imageFilename.trim() === '') {
+                showMenuAlert('Invalid image reference', 'error');
+                return;
+            }
+            
+            if (!confirm('Are you sure you want to remove this image?')) {
+                return;
+            }
+            
+            // Find and disable the button using data-filename attribute for accuracy
+            const targetContainer = document.querySelector(`.image-thumbnail-container[data-filename="${imageFilename}"]`);
+            let targetBtn = null;
+            
+            if (targetContainer) {
+                targetBtn = targetContainer.querySelector('.btn-delete-thumbnail');
+                if (targetBtn) {
+                    targetBtn.disabled = true;
+                    targetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                }
+            }
+            
+            fetch('/api/delete-dish-image', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    dish_id: dishId,
+                    image_filename: imageFilename
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMenuAlert('Image removed successfully');
+                    
+                    // Update from server response (filtered data)
+                    if (data.dish) {
+                        // Filter valid images from response
+                        const validImages = (data.dish.images || []).filter(img => img && img.trim() !== '');
+                        const validUrls = (data.dish.image_urls || []).filter(url => url && !url.endsWith('/uploads/') && !url.endsWith('/uploads'));
+                        
+                        currentDishImages = validImages;
+                        currentDishImageUrls = validUrls;
+                        existingImagesCount = validImages.length;
+                        
+                        // Re-render the entire image display section
+                        updateExistingImagesDisplay(dishId, validImages, validUrls);
+                    } else {
+                        // Fallback: remove locally and filter
+                        const idx = currentDishImages.indexOf(imageFilename);
+                        if (idx > -1) {
+                            currentDishImages.splice(idx, 1);
+                            currentDishImageUrls.splice(idx, 1);
+                        }
+                        // Filter any remaining invalid entries
+                        currentDishImages = currentDishImages.filter(img => img && img.trim() !== '');
+                        currentDishImageUrls = currentDishImageUrls.filter(url => url && !url.endsWith('/uploads/'));
+                        existingImagesCount = currentDishImages.length;
+                        
+                        updateExistingImagesDisplay(dishId, currentDishImages, currentDishImageUrls);
+                    }
+                    
+                    // Clear any selected files and update info
+                    document.getElementById('dish-images').value = '';
+                    updateImageSelectionInfo([]);
+                    
+                    // Enable file input if slots available
+                    const fileInput = document.getElementById('dish-images');
+                    fileInput.disabled = existingImagesCount >= 3;
+                } else {
+                    showMenuAlert('Error: ' + data.message, 'error');
+                    // Re-enable the button on error
+                    if (targetBtn) {
+                        targetBtn.disabled = false;
+                        targetBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error removing image:', error);
+                showMenuAlert('Error removing image', 'error');
+                if (targetBtn) {
+                    targetBtn.disabled = false;
+                    targetBtn.innerHTML = '<i class="fas fa-times"></i>';
+                }
+            });
+        }
+
         function viewMenuDishImages(dishId) {
             fetch(`/api/dish/${dishId}`)
                 .then(response => response.json())
@@ -2901,11 +3987,15 @@
                         document.getElementById('images-modal-title').textContent = dish.name;
                         
                         document.getElementById('dish-details').innerHTML = `
-                            <div class="dish-info">
-                                <h4>${escapeMenuHtml(dish.name)}</h4>
-                                <p class="price">Price: ₹${dish.price.toFixed(2)}</p>
-                                <p class="quantity">Quantity: ${escapeMenuHtml(dish.quantity)}</p>
-                                <p class="description">${escapeMenuHtml(dish.description || 'No description available')}</p>
+                            <div class="dish-detail-info">
+                                <div class="dish-detail-header">
+                                    <h4 class="dish-detail-name">${escapeMenuHtml(dish.name)}</h4>
+                                    <span class="dish-detail-price">₹${dish.price.toFixed(2)}</span>
+                                </div>
+                                <div class="dish-detail-meta">
+                                    <span class="dish-detail-quantity"><i class="fas fa-utensils"></i> ${escapeMenuHtml(dish.quantity)}</span>
+                                </div>
+                                <p class="dish-detail-description">${escapeMenuHtml(dish.description || 'No description available')}</p>
                             </div>
                         `;
                         
@@ -3032,7 +4122,7 @@
             document.getElementById('images-modal').style.display = 'none';
         }
 
-        function updateImageSelectionInfo(files) {
+        function updateImageSelectionInfo(files, maxAllowed = 3) {
             const infoDiv = document.getElementById('image-selection-info');
             
             if (files.length === 0) {
@@ -3044,7 +4134,7 @@
             for (let i = 0; i < files.length; i++) {
                 infoHTML += `<span class="image-selected"><i class="fas fa-check-circle"></i> ${escapeMenuHtml(files[i].name)}</span>`;
             }
-            infoHTML += `</div><small class="image-count">${files.length}/3 images selected ✓</small>`;
+            infoHTML += `</div><small class="image-count">${files.length}/${maxAllowed} images selected ✓</small>`;
             infoDiv.innerHTML = infoHTML;
         }
 
@@ -3159,8 +4249,15 @@
                 dishImages.addEventListener('change', function(e) {
                     const files = Array.from(e.target.files);
                     
-                    if (files.length > 3) {
-                        showMenuAlert('Maximum 3 images allowed. Please select only 3 images.', 'error');
+                    // Calculate max allowed based on edit mode
+                    const maxAllowed = isEditMode ? (3 - existingImagesCount) : 3;
+                    
+                    if (files.length > maxAllowed) {
+                        if (isEditMode && existingImagesCount > 0) {
+                            showMenuAlert(`You can only upload ${maxAllowed} more image(s). You already have ${existingImagesCount} existing image(s).`, 'error');
+                        } else {
+                            showMenuAlert('Maximum 3 images allowed. Please select only 3 images.', 'error');
+                        }
                         e.target.value = '';
                         updateImageSelectionInfo([]);
                         return;
@@ -3178,7 +4275,7 @@
                         return;
                     }
                     
-                    updateImageSelectionInfo(files);
+                    updateImageSelectionInfo(files, maxAllowed);
                 });
             }
         });
@@ -3213,6 +4310,8 @@
                 loadOrdersData();
             } else if (subSectionId === 'active-bills') {
                 loadActiveBills();
+            } else if (subSectionId === 'waiter-tips') {
+                loadWaiterTips();
             }
         }
         
@@ -3251,13 +4350,12 @@
             
             let billsHTML = `
                 <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; min-width: 900px;">
+                <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
                     <thead>
                         <tr style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white;">
                             <th style="padding: 1rem; text-align: left; font-weight: 600;">Bill #</th>
                             <th style="padding: 1rem; text-align: left; font-weight: 600;">Table</th>
                             <th style="padding: 1rem; text-align: left; font-weight: 600;">Guest</th>
-                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Items</th>
                             <th style="padding: 1rem; text-align: right; font-weight: 600;">Total Amount</th>
                             <th style="padding: 1rem; text-align: center; font-weight: 600;">Bill Status</th>
                             <th style="padding: 1rem; text-align: center; font-weight: 600;">Payment</th>
@@ -3271,7 +4369,6 @@
             bills.forEach((bill, index) => {
                 const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
                 const guestName = bill.guest_name || 'Guest';
-                const itemCount = bill.items ? bill.items.length : 0;
                 const billStatus = bill.bill_status || 'OPEN';
                 const paymentStatus = bill.payment_status || 'PENDING';
                 const isPaid = paymentStatus === 'PAID';
@@ -3288,9 +4385,6 @@
                         <td style="padding: 1rem;">
                             <div style="font-weight: 500; color: #1f2937;"><i class="fas fa-user" style="margin-right: 0.5rem; color: #6b7280;"></i>${guestName}</div>
                         </td>
-                        <td style="padding: 1rem; text-align: center;">
-                            <span style="background: #e0e7ff; color: #4338ca; padding: 0.35rem 0.75rem; border-radius: 20px; font-weight: 600; font-size: 0.85rem;">${itemCount} items</span>
-                        </td>
                         <td style="padding: 1rem; text-align: right;">
                             <span style="font-weight: 700; font-size: 1.1rem; color: #059669;">₹${parseFloat(bill.total_amount).toFixed(2)}</span>
                         </td>
@@ -3305,16 +4399,16 @@
                             </span>
                         </td>
                         <td style="padding: 1rem; color: #6b7280; font-size: 0.85rem;">
-                            <div><i class="fas fa-calendar" style="margin-right: 0.25rem;"></i>${new Date(bill.created_at).toLocaleDateString()}</div>
-                            <div style="margin-top: 0.25rem;"><i class="fas fa-clock" style="margin-right: 0.25rem;"></i>${new Date(bill.created_at).toLocaleTimeString()}</div>
+                            <div><i class="fas fa-calendar" style="margin-right: 0.25rem;"></i>${formatDate(bill.created_at)}</div>
+                            <div style="margin-top: 0.25rem;"><i class="fas fa-clock" style="margin-right: 0.25rem;"></i>${formatTime(bill.created_at)}</div>
                         </td>
                         <td style="padding: 1rem; text-align: center;">
                             <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: center;">
-                                <button onclick="viewBillDetails(${bill.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%;">
+                                <button onclick="viewBillDetails(${bill.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
                                     <i class="fas fa-eye"></i> View Bill
                                 </button>
                                 ${isOpen && !isPaid ? `
-                                    <button onclick="markBillPaid(${bill.id}, ${bill.table_id})" class="btn-sm" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%;">
+                                    <button onclick="markBillPaid(${bill.id}, ${bill.table_id})" class="btn-sm" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
                                         <i class="fas fa-check"></i> Mark Paid
                                     </button>
                                 ` : ''}
@@ -3371,6 +4465,133 @@
             });
         }
         
+        // Load Waiter-Wise Tips
+        function loadWaiterTips() {
+            const period = document.getElementById('tip-period-filter')?.value || 'all';
+            const container = document.getElementById('waiter-tips-list');
+            
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading waiter tips...</p>
+                </div>
+            `;
+            
+            fetch(`/orders/api/waiter-wise-tips?period=${period}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.waiters && data.waiters.length > 0) {
+                        renderWaiterTips(data.waiters);
+                    } else {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-hand-holding-heart" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+                                <p>No tips recorded yet</p>
+                                <small style="color: #94a3b8;">Tips will appear here once guests add them during payment</small>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading waiter tips:', error);
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
+                            <p>Error loading tips</p>
+                        </div>
+                    `;
+                });
+        }
+        
+        function renderWaiterTips(waiters) {
+            const container = document.getElementById('waiter-tips-list');
+            
+            let html = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Sr No</th>
+                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Waiter Name</th>
+                            <th style="padding: 1rem; text-align: right; font-weight: 600;">Today's Tips</th>
+                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Today's Bills</th>
+                            <th style="padding: 1rem; text-align: right; font-weight: 600;">Total Tips</th>
+                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Total Bills</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            let totalTodayTips = 0;
+            let totalAllTips = 0;
+            
+            waiters.forEach((waiter, index) => {
+                const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+                const todayTip = waiter.today_tip || 0;
+                const totalTip = waiter.total_tip || 0;
+                
+                totalTodayTips += todayTip;
+                totalAllTips += totalTip;
+                
+                html += `
+                    <tr style="border-bottom: 1px solid #e2e8f0; background: ${rowBg};" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='${rowBg}'">
+                        <td style="padding: 1rem; font-weight: 500;">${index + 1}</td>
+                        <td style="padding: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem;">
+                                    ${waiter.waiter_name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; color: #1f2937;">${waiter.waiter_name}</div>
+                                    <div style="font-size: 0.8rem; color: #6b7280;">ID: ${waiter.waiter_id}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding: 1rem; text-align: right;">
+                            <span style="font-weight: 700; font-size: 1.1rem; color: ${todayTip > 0 ? '#059669' : '#9ca3af'};">
+                                ₹${todayTip.toFixed(2)}
+                            </span>
+                        </td>
+                        <td style="padding: 1rem; text-align: center;">
+                            <span style="background: #dbeafe; color: #1e40af; padding: 0.35rem 0.75rem; border-radius: 20px; font-weight: 600; font-size: 0.85rem;">
+                                ${waiter.today_bills || 0}
+                            </span>
+                        </td>
+                        <td style="padding: 1rem; text-align: right;">
+                            <span style="font-weight: 700; font-size: 1.1rem; color: #059669;">
+                                ₹${totalTip.toFixed(2)}
+                            </span>
+                        </td>
+                        <td style="padding: 1rem; text-align: center;">
+                            <span style="background: #d1fae5; color: #065f46; padding: 0.35rem 0.75rem; border-radius: 20px; font-weight: 600; font-size: 0.85rem;">
+                                ${waiter.total_bills || 0}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            // Add totals row
+            html += `
+                    <tr style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); font-weight: 700; border-top: 3px solid #f59e0b;">
+                        <td colspan="2" style="padding: 1rem; font-size: 1.1rem; color: #92400e;">
+                            <i class="fas fa-calculator" style="margin-right: 0.5rem;"></i>TOTAL
+                        </td>
+                        <td style="padding: 1rem; text-align: right; font-size: 1.2rem; color: #92400e;">
+                            ₹${totalTodayTips.toFixed(2)}
+                        </td>
+                        <td style="padding: 1rem;"></td>
+                        <td style="padding: 1rem; text-align: right; font-size: 1.2rem; color: #92400e;">
+                            ₹${totalAllTips.toFixed(2)}
+                        </td>
+                        <td style="padding: 1rem;"></td>
+                    </tr>
+                </tbody>
+            </table>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
         function loadTablesData() {
             fetch('/orders/api/tables')
                 .then(response => response.json())
@@ -3409,21 +4630,21 @@
                 const statusClass = table.status === 'BUSY' ? 'busy' : 'available';
                 const statusText = table.status === 'BUSY' ? 'BUSY' : 'AVAILABLE';
                 const qrPreview = table.qr_code_path ? 
-                    `<img src="/${table.qr_code_path}" alt="QR Code" style="width: 80px; height: 80px; border: 2px solid #e2e8f0; border-radius: 8px;">` :
-                    '<div style="width: 80px; height: 80px; background: #f7fafc; border: 2px dashed #cbd5e0; border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-qrcode" style="color: #cbd5e0;"></i></div>';
+                    `<img src="/${table.qr_code_path}" alt="QR Code for Table ${table.table_number}">` :
+                    '<div class="table-qr-placeholder"><i class="fas fa-qrcode"></i></div>';
                 
                 tablesHTML += `
-                    <div class="table-item">
-                        <div class="table-header">
-                            <h4>Table ${table.table_number}</h4>
-                            <span class="status-badge status-${statusClass}">${statusText}</span>
+                    <div class="table-card-item">
+                        <div class="table-card-header">
+                            <h4><i class="fas fa-chair" style="margin-right: 8px; color: var(--primary);"></i>Table ${table.table_number}</h4>
+                            <span class="table-status-badge ${statusClass}">${statusText}</span>
                         </div>
-                        <div class="qr-preview">${qrPreview}</div>
-                        <div class="table-actions">
-                            <button onclick="downloadTableQR(${table.id})" class="btn-secondary btn-sm">
+                        <div class="table-qr-preview">${qrPreview}</div>
+                        <div class="table-card-actions">
+                            <button onclick="downloadTableQR(${table.id})" class="btn-download">
                                 <i class="fas fa-download"></i> Download QR
                             </button>
-                            <button onclick="deleteTable('${table.table_number}')" class="btn-danger btn-sm" style="margin-left: 0.5rem;">
+                            <button onclick="deleteTable('${table.table_number}')" class="btn-delete-table">
                                 <i class="fas fa-trash"></i> Delete
                             </button>
                         </div>
@@ -3518,7 +4739,7 @@
             `;
             
             orders.forEach((order, index) => {
-                const orderTime = new Date(order.created_at).toLocaleString();
+                const orderTime = formatDateTime(order.created_at);
                 const orderStatusClass = order.order_status === 'COMPLETED' ? 'paid' : (order.order_status === 'PREPARING' ? 'busy' : 'pending');
                 const paymentStatus = order.payment_status || 'PENDING';
                 const paymentClass = paymentStatus === 'PAID' ? 'paid' : 'pending';
@@ -3552,8 +4773,8 @@
                             </span>
                         </td>
                         <td style="padding: 1rem; color: #6b7280; font-size: 0.85rem;">
-                            <div><i class="fas fa-calendar" style="margin-right: 0.25rem;"></i>${new Date(order.created_at).toLocaleDateString()}</div>
-                            <div style="margin-top: 0.25rem;"><i class="fas fa-clock" style="margin-right: 0.25rem;"></i>${new Date(order.created_at).toLocaleTimeString()}</div>
+                            <div><i class="fas fa-calendar" style="margin-right: 0.25rem;"></i>${formatDate(order.created_at)}</div>
+                            <div style="margin-top: 0.25rem;"><i class="fas fa-clock" style="margin-right: 0.25rem;"></i>${formatTime(order.created_at)}</div>
                         </td>
                         <td style="padding: 1rem; text-align: center;">
                             <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: center;">
@@ -3564,7 +4785,15 @@
                                     <button onclick="updateOrderStatus(${order.id}, 'COMPLETED')" class="btn-primary btn-sm" style="width: 100%; padding: 0.4rem 0.6rem; font-size: 0.75rem;">
                                         <i class="fas fa-check"></i> Complete
                                     </button>
-                                ` : `<span style="color: #10b981; font-weight: 600; font-size: 0.85rem;"><i class="fas fa-check-circle"></i> Done</span>`}
+                                ` : `
+                                    ${paymentStatus === 'PENDING' ? `
+                                        <button onclick="markPaymentDone(${order.id}, ${order.table_id})" class="btn-sm" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; font-size: 0.75rem;">
+                                            <i class="fas fa-check-circle"></i> Mark Payment Done
+                                        </button>
+                                    ` : `
+                                        <span style="color: #10b981; font-weight: 600; font-size: 0.85rem;"><i class="fas fa-check-circle"></i> Paid</span>
+                                    `}
+                                `}
                             </div>
                         </td>
                         <td style="padding: 1rem; text-align: center;">
@@ -3579,6 +4808,34 @@
             
             ordersHTML += '</tbody></table></div>';
             container.innerHTML = ordersHTML;
+        }
+        
+        function clearCompletedOrders() {
+            // Show confirmation dialog
+            if (!confirm('Are you sure you want to clear all completed & paid orders?\n\nThis will remove:\n• Orders with status: COMPLETED\n• Orders with payment: PAID\n\nActive orders and pending payments will NOT be affected.\n\nThis action cannot be undone.')) {
+                return;
+            }
+            
+            // Show loading state
+            showTableMessage('Clearing completed orders...', 'info');
+            
+            fetch('/orders/api/clear-completed-orders', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showTableMessage(data.message || 'Completed orders cleared successfully!', 'success');
+                    loadOrdersData(); // Reload orders list
+                } else {
+                    showTableMessage('Error: ' + (data.message || 'Failed to clear orders'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error clearing orders:', error);
+                showTableMessage('Error clearing completed orders', 'error');
+            });
         }
         
         // View Order Bill Modal
@@ -3599,6 +4856,12 @@
         }
         
         function showBillModal(bill) {
+            // Remove any existing modal first
+            const existingModal = document.getElementById('billModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
             const modal = document.createElement('div');
             modal.className = 'bill-modal-overlay';
             modal.id = 'billModal';
@@ -3617,12 +4880,12 @@
             `).join('');
             
             modal.innerHTML = `
-                <div class="bill-modal-content" style="max-width: 500px;">
-                    <div class="bill-modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px 12px 0 0;">
+                <div class="bill-modal-content">
+                    <div class="bill-modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 16px 16px 0 0;">
                         <h2 style="color: white;"><i class="fas fa-file-invoice"></i> ${isPaid ? 'Bill Receipt' : 'Order Bill'}</h2>
                         <button class="bill-modal-close" onclick="closeBillModal()" style="color: white; background: rgba(255,255,255,0.2); border-radius: 50%;">&times;</button>
                     </div>
-                    <div class="bill-modal-body" style="padding: 1.5rem;">
+                    <div class="bill-modal-body">
                         <div class="bill-header-info" style="text-align: center; padding-bottom: 1rem; border-bottom: 2px dashed #e2e8f0; margin-bottom: 1rem;">
                             <h3 style="font-size: 1.5rem; color: #1f2937; margin-bottom: 0.25rem;">${bill.hotel_name || 'Restaurant'}</h3>
                             <p style="color: #6b7280; font-size: 0.9rem;">${bill.hotel_address || ''}</p>
@@ -3644,7 +4907,7 @@
                                 </div>
                                 <div>
                                     <span style="color: #9ca3af; font-size: 0.75rem; text-transform: uppercase;">Date & Time</span>
-                                    <p style="font-weight: 500; color: #1f2937; margin: 0.25rem 0 0; font-size: 0.85rem;">${new Date(bill.created_at).toLocaleString()}</p>
+                                    <p style="font-weight: 500; color: #1f2937; margin: 0.25rem 0 0; font-size: 0.85rem;">${formatDateTime(bill.created_at)}</p>
                                 </div>
                             </div>
                         </div>
@@ -3672,6 +4935,12 @@
                                 <span>Tax (${bill.tax_rate || 0}%):</span>
                                 <span>₹${parseFloat(bill.tax_amount || 0).toFixed(2)}</span>
                             </div>
+                            ${bill.tip_amount && parseFloat(bill.tip_amount) > 0 ? `
+                            <div class="bill-total-row" style="display: flex; justify-content: space-between; padding: 0.5rem 0; color: #059669;">
+                                <span><i class="fas fa-hand-holding-heart" style="margin-right: 0.25rem;"></i>Tip:</span>
+                                <span>₹${parseFloat(bill.tip_amount).toFixed(2)}</span>
+                            </div>
+                            ` : ''}
                             <div class="bill-total-row grand-total" style="display: flex; justify-content: space-between; padding: 0.75rem 0; margin-top: 0.5rem; border-top: 2px solid #e2e8f0; font-size: 1.25rem; font-weight: 700;">
                                 <span>Grand Total:</span>
                                 <span style="color: #059669;">₹${parseFloat(bill.total_amount).toFixed(2)}</span>
@@ -3682,22 +4951,51 @@
                             Payment Status: ${paymentStatus}
                         </div>
                     </div>
-                    <div class="bill-modal-footer" style="display: flex; gap: 1rem; padding: 1rem 1.5rem; border-top: 1px solid #e2e8f0; justify-content: flex-end;">
+                    <div class="bill-modal-footer">
                         <button onclick="printBill()" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fas fa-print"></i> Print Bill</button>
                         <button onclick="closeBillModal()" class="btn-primary">Close</button>
                     </div>
                 </div>
             `;
             
+            // Add click handler to close on backdrop click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeBillModal();
+                }
+            });
+            
+            // Add escape key handler
+            const escHandler = function(e) {
+                if (e.key === 'Escape') {
+                    closeBillModal();
+                    document.removeEventListener('keydown', escHandler);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+            
+            // Prevent body scroll
+            document.body.classList.add('bill-modal-open');
+            
+            // Append and show modal with animation
             document.body.appendChild(modal);
-            setTimeout(() => modal.classList.add('show'), 10);
+            // Force reflow before adding show class for animation
+            modal.offsetHeight;
+            modal.classList.add('show');
         }
         
         function closeBillModal() {
             const modal = document.getElementById('billModal');
             if (modal) {
                 modal.classList.remove('show');
-                setTimeout(() => modal.remove(), 300);
+                // Re-enable body scroll
+                document.body.classList.remove('bill-modal-open');
+                // Remove modal after animation completes
+                setTimeout(() => {
+                    if (modal.parentNode) {
+                        modal.remove();
+                    }
+                }, 300);
             }
         }
         
@@ -3763,6 +5061,34 @@
             }, 5000);
         }
         
+        function markPaymentDone(orderId, tableId) {
+            if (!confirm('Mark this order as PAID (Cash Payment)?\n\nThis will:\n- Update payment status to PAID\n- Complete the bill\n- Free the table\n- Clear the session')) {
+                return;
+            }
+            
+            fetch('/orders/api/mark-payment-done', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    order_id: orderId,
+                    table_id: tableId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showTableMessage(data.message, 'success');
+                    loadOrders();
+                } else {
+                    showTableMessage('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error marking payment done:', error);
+                showTableMessage('Error marking payment as done', 'error');
+            });
+        }
+        
         function deleteTable(tableNumber) {
             if (!confirm(`Delete Table ${tableNumber}? This will remove all associated orders and QR code.`)) {
                 return;
@@ -3794,43 +5120,34 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.wallet) {
-                    document.getElementById('wallet-balance-display').textContent = '₹' + data.wallet.balance.toFixed(2);
-                    document.getElementById('verification-charge-display').textContent = '₹' + data.wallet.per_verification_charge.toFixed(2);
-                    document.getElementById('order-charge-display').textContent = '₹' + data.wallet.per_order_charge.toFixed(2);
+                    // Update header wallet balance
+                    const headerWalletBalance = document.getElementById('header-wallet-balance');
+                    if (headerWalletBalance) {
+                        const amountSpan = headerWalletBalance.querySelector('.wallet-amount');
+                        if (amountSpan) {
+                            amountSpan.textContent = `₹${data.wallet.balance.toFixed(2)}`;
+                        }
+                    }
                     
-                    // Update dashboard wallet alert
-                    updateDashboardWalletAlert(data.wallet.balance, data.wallet.per_verification_charge, data.wallet.per_order_charge);
+                    // Update wallet section balance display
+                    const walletBalanceDisplay = document.getElementById('wallet-balance-display');
+                    if (walletBalanceDisplay) {
+                        walletBalanceDisplay.textContent = '₹' + data.wallet.balance.toFixed(2);
+                    }
+                    
+                    // Only update charge displays if they exist (module-dependent)
+                    const verificationChargeEl = document.getElementById('verification-charge-display');
+                    if (verificationChargeEl) {
+                        verificationChargeEl.textContent = '₹' + data.wallet.per_verification_charge.toFixed(2);
+                    }
+                    
+                    const orderChargeEl = document.getElementById('order-charge-display');
+                    if (orderChargeEl) {
+                        orderChargeEl.textContent = '₹' + data.wallet.per_order_charge.toFixed(2);
+                    }
                 }
             })
             .catch(error => console.error('Error loading wallet:', error));
-        }
-        
-        function updateDashboardWalletAlert(balance, verificationCharge, orderCharge) {
-            const alert = document.getElementById('wallet-alert');
-            const balanceSpan = document.getElementById('dashboard-wallet-balance');
-            const warning = document.getElementById('wallet-warning');
-            
-            if (!alert) return;
-            
-            balanceSpan.textContent = '₹' + balance.toFixed(2);
-            alert.style.display = 'block';
-            
-            // Determine minimum required balance
-            const minRequired = Math.max(verificationCharge, orderCharge);
-            
-            // Update alert styling based on balance
-            alert.classList.remove('low-balance', 'zero-balance');
-            if (balance <= 0) {
-                alert.classList.add('zero-balance');
-                warning.style.display = 'inline';
-                warning.innerHTML = '<i class="fas fa-exclamation-triangle"></i> No balance! Add funds to continue operations';
-            } else if (balance < minRequired * 5) {
-                alert.classList.add('low-balance');
-                warning.style.display = 'inline';
-                warning.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Low balance - Add funds soon';
-            } else {
-                warning.style.display = 'none';
-            }
         }
         
         function loadWalletTransactions() {
@@ -3843,17 +5160,19 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.transactions.length > 0) {
-                    let html = '<table class="data-table"><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance After</th><th>Description</th></tr></thead><tbody>';
-                    data.transactions.forEach(t => {
+                    let html = '<table class="data-table"><thead><tr><th>Sr No</th><th>Date</th><th>Type</th><th>Amount</th><th>UTR No</th><th>Balance After</th></tr></thead><tbody>';
+                    data.transactions.forEach((t, index) => {
                         const typeClass = t.transaction_type === 'CREDIT' ? 'text-success' : 'text-danger';
                         const typeIcon = t.transaction_type === 'CREDIT' ? 'fa-arrow-up' : 'fa-arrow-down';
+                        const utrDisplay = t.utr_number || '-';
                         html += `
                             <tr>
-                                <td>${t.created_at}</td>
-                                <td><span class="${typeClass}"><i class="fas ${typeIcon}"></i> ${t.transaction_type}</span></td>
+                                <td>${index + 1}</td>
+                                <td>${formatDateTime(t.created_at)}</td>
+                                <td><span class="${typeClass}"><i class="fas ${typeIcon}"></i> ${t.reference_type}</span></td>
                                 <td class="${typeClass}">₹${t.amount.toFixed(2)}</td>
+                                <td>${utrDisplay}</td>
                                 <td>₹${t.balance_after.toFixed(2)}</td>
-                                <td>${t.description || '-'}</td>
                             </tr>
                         `;
                     });
@@ -3876,10 +5195,15 @@
             }
             
             const amount = parseFloat(document.getElementById('manager-add-amount').value);
-            const description = document.getElementById('manager-add-description').value || 'Balance added by Manager';
+            const utrNumber = document.getElementById('manager-add-utr').value.trim();
             
             if (!amount || amount <= 0) {
                 alert('Please enter a valid amount');
+                return;
+            }
+            
+            if (!utrNumber) {
+                alert('Please enter UTR Number');
                 return;
             }
             
@@ -3889,7 +5213,7 @@
                 body: JSON.stringify({
                     hotel_id: hotelId,
                     amount: amount,
-                    description: description
+                    utr_number: utrNumber
                 })
             })
             .then(response => response.json())
@@ -3897,7 +5221,7 @@
                 if (data.success) {
                     alert(data.message + ' New balance: ₹' + data.new_balance.toFixed(2));
                     document.getElementById('manager-add-amount').value = '';
-                    document.getElementById('manager-add-description').value = '';
+                    document.getElementById('manager-add-utr').value = '';
                     loadWalletData();
                     loadWalletTransactions();
                 } else {
@@ -3926,7 +5250,23 @@
         // Load wallet data on page load for dashboard alert
         document.addEventListener('DOMContentLoaded', function() {
             loadWalletData();
+            loadTipStatistics();
         });
+        
+        // Load tip statistics for dashboard
+        function loadTipStatistics() {
+            fetch('/orders/api/tip-statistics/hotel?period=today')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.statistics) {
+                        const totalTips = data.statistics.total_tips || 0;
+                        document.getElementById('today-tips-value').textContent = `₹${totalTips.toFixed(2)}`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading tip statistics:', error);
+                });
+        }
 
         // ========== DAILY SPECIAL MENU FUNCTIONS ==========
         let currentSpecialData = null;
@@ -4461,6 +5801,347 @@
         document.addEventListener('DOMContentLoaded', function() {
             resetPamphletPreview();
         });
+
+        // ============================================
+        // KITCHEN MANAGEMENT FUNCTIONS
+        // ============================================
+
+        let allCategories = [];
+        let editingKitchenId = null;
+
+        function loadCategories() {
+            fetch('/hotel-manager/api/categories')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        allCategories = data.categories;
+                        displayCategoryCheckboxes();
+                    }
+                })
+                .catch(error => console.error('Error loading categories:', error));
+        }
+
+        function displayCategoryCheckboxes() {
+            const container = document.getElementById('kitchen-categories-checkboxes');
+            
+            if (!allCategories || allCategories.length === 0) {
+                container.innerHTML = '<div style="color: #64748b; text-align: center; padding: 1rem;">No categories available. Please create menu categories first.</div>';
+                return;
+            }
+            
+            let html = '';
+            allCategories.forEach(cat => {
+                html += `
+                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: white; border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                        <input type="checkbox" name="kitchen-category" value="${cat.id}" style="cursor: pointer;">
+                        <span style="font-size: 0.9rem; color: #1e293b;">${cat.name}</span>
+                    </label>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function loadKitchens() {
+            fetch('/hotel-manager/api/kitchens')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayKitchens(data.kitchens);
+                    } else {
+                        document.getElementById('kitchens-list').innerHTML = 
+                            `<div class="no-data-message"><i class="fas fa-exclamation-circle"></i> ${data.message}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading kitchens:', error);
+                    document.getElementById('kitchens-list').innerHTML = 
+                        '<div class="no-data-message"><i class="fas fa-exclamation-circle"></i> Error loading kitchens</div>';
+                });
+        }
+
+        function displayKitchens(kitchens) {
+            const container = document.getElementById('kitchens-list');
+            
+            if (!kitchens || kitchens.length === 0) {
+                container.innerHTML = '<div class="no-data-message"><i class="fas fa-info-circle"></i> No kitchens created yet. Fill the form above to add your first kitchen.</div>';
+                return;
+            }
+            
+            let html = '<div style="display: grid; gap: 1.5rem;">';
+            
+            kitchens.forEach(kitchen => {
+                const statusColor = kitchen.is_active ? '#10b981' : '#ef4444';
+                const statusText = kitchen.is_active ? 'Active' : 'Inactive';
+                const statusIcon = kitchen.is_active ? 'check-circle' : 'times-circle';
+                
+                html += `
+                    <div class="kitchen-card" style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid ${statusColor};">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                            <div style="flex: 1;">
+                                <h4 style="color: #1e293b; margin-bottom: 0.5rem; font-size: 1.2rem;">
+                                    <i class="fas fa-fire-burner" style="color: #f59e0b;"></i> ${kitchen.section_name}
+                                </h4>
+                                <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                                    <span style="color: #64748b; font-size: 0.9rem;">
+                                        <i class="fas fa-id-badge"></i> <strong>Kitchen ID:</strong> <code style="background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace;">${kitchen.kitchen_unique_id}</code>
+                                    </span>
+                                    <span style="background: ${statusColor}20; color: ${statusColor}; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
+                                        <i class="fas fa-${statusIcon}"></i> ${statusText}
+                                    </span>
+                                </div>
+                                <div style="color: #64748b; font-size: 0.85rem;">
+                                    <i class="fas fa-utensils"></i> <strong>Categories:</strong> ${kitchen.categories || 'None assigned'}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+                                <button onclick="editKitchen(${kitchen.id})" class="btn-secondary btn-sm" title="Edit Kitchen">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="toggleKitchenStatus(${kitchen.id})" class="btn-secondary btn-sm" title="Toggle Status">
+                                    <i class="fas fa-power-off"></i>
+                                </button>
+                                <button onclick="deleteKitchen(${kitchen.id})" class="btn-danger btn-sm" title="Delete Kitchen">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div style="padding-top: 1rem; border-top: 1px solid #e2e8f0;">
+                            <a href="/kitchen/login" target="_blank" style="color: #3b82f6; text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-external-link-alt"></i> Open Kitchen Login
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function handleAddKitchen(event) {
+            event.preventDefault();
+            
+            const sectionName = document.getElementById('kitchen-name').value.trim();
+            
+            // Get selected categories
+            const checkboxes = document.querySelectorAll('input[name="kitchen-category"]:checked');
+            const categoryIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            
+            // Validation
+            if (!sectionName) {
+                showKitchenFormMessage('Kitchen name is required!', 'error');
+                return;
+            }
+            
+            if (categoryIds.length === 0) {
+                showKitchenFormMessage('Please select at least one category!', 'error');
+                return;
+            }
+            
+            // Submit
+            fetch('/hotel-manager/api/create-kitchen', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    section_name: sectionName,
+                    category_ids: categoryIds
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success with Kitchen ID
+                    const kitchenId = data.kitchen_unique_id || 'N/A';
+                    showKitchenFormMessage(`Kitchen created successfully! Kitchen ID: ${kitchenId}`, 'success');
+                    document.getElementById('add-kitchen-form').reset();
+                    // Uncheck all checkboxes
+                    document.querySelectorAll('input[name="kitchen-category"]').forEach(cb => cb.checked = false);
+                    loadKitchens();
+                } else {
+                    showKitchenFormMessage('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating kitchen:', error);
+                showKitchenFormMessage('Error creating kitchen', 'error');
+            });
+        }
+
+        function editKitchen(kitchenId) {
+            // Fetch kitchen details
+            fetch(`/hotel-manager/api/kitchen/${kitchenId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const kitchen = data.kitchen;
+                        
+                        // Populate form
+                        document.getElementById('kitchen-name').value = kitchen.section_name;
+                        
+                        // Check assigned categories
+                        document.querySelectorAll('input[name="kitchen-category"]').forEach(cb => {
+                            cb.checked = kitchen.category_ids.includes(parseInt(cb.value));
+                        });
+                        
+                        // Change form to edit mode
+                        editingKitchenId = kitchenId;
+                        const form = document.getElementById('add-kitchen-form');
+                        form.onsubmit = handleUpdateKitchen;
+                        
+                        // Change button text
+                        const submitBtn = form.querySelector('button[type="submit"]');
+                        submitBtn.innerHTML = '<i class="fas fa-save"></i> Update Kitchen';
+                        
+                        // Add cancel button
+                        if (!document.getElementById('cancel-edit-btn')) {
+                            const cancelBtn = document.createElement('button');
+                            cancelBtn.id = 'cancel-edit-btn';
+                            cancelBtn.type = 'button';
+                            cancelBtn.className = 'btn-secondary';
+                            cancelBtn.innerHTML = '<i class="fas fa-times"></i> Cancel';
+                            cancelBtn.onclick = cancelEditKitchen;
+                            submitBtn.parentNode.insertBefore(cancelBtn, submitBtn.nextSibling);
+                        }
+                        
+                        // Scroll to form
+                        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        showKitchenFormMessage('Editing kitchen. Update the fields and click "Update Kitchen".', 'info');
+                    } else {
+                        alert('Error loading kitchen details: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading kitchen:', error);
+                    alert('Error loading kitchen details');
+                });
+        }
+
+        function handleUpdateKitchen(event) {
+            event.preventDefault();
+            
+            const sectionName = document.getElementById('kitchen-name').value.trim();
+            
+            // Get selected categories
+            const checkboxes = document.querySelectorAll('input[name="kitchen-category"]:checked');
+            const categoryIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            
+            // Validation
+            if (!sectionName) {
+                showKitchenFormMessage('Kitchen name is required!', 'error');
+                return;
+            }
+            
+            if (categoryIds.length === 0) {
+                showKitchenFormMessage('Please select at least one category!', 'error');
+                return;
+            }
+            
+            const payload = {
+                section_name: sectionName,
+                category_ids: categoryIds
+            };
+            
+            // Submit
+            fetch(`/hotel-manager/api/kitchen/${editingKitchenId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showKitchenFormMessage('Kitchen updated successfully!', 'success');
+                    cancelEditKitchen();
+                    loadKitchens();
+                } else {
+                    showKitchenFormMessage('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating kitchen:', error);
+                showKitchenFormMessage('Error updating kitchen', 'error');
+            });
+        }
+
+        function cancelEditKitchen() {
+            editingKitchenId = null;
+            const form = document.getElementById('add-kitchen-form');
+            form.reset();
+            form.onsubmit = handleAddKitchen;
+            
+            // Reset button
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-plus"></i> Create Kitchen';
+            
+            // Remove cancel button
+            const cancelBtn = document.getElementById('cancel-edit-btn');
+            if (cancelBtn) cancelBtn.remove();
+            
+            // Clear message
+            showKitchenFormMessage('', 'info');
+        }
+
+        function toggleKitchenStatus(kitchenId) {
+            if (!confirm('Toggle kitchen status (active/inactive)?')) return;
+            
+            fetch(`/hotel-manager/api/kitchen/${kitchenId}/toggle`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showKitchenFormMessage('Kitchen status updated!', 'success');
+                    loadKitchens();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error toggling status:', error);
+                alert('Error toggling kitchen status');
+            });
+        }
+
+        function deleteKitchen(kitchenId) {
+            if (!confirm('Delete this kitchen? This will remove all login credentials and category assignments. This action cannot be undone.')) return;
+            
+            fetch(`/hotel-manager/api/kitchen/${kitchenId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showKitchenFormMessage('Kitchen deleted successfully!', 'success');
+                    loadKitchens();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting kitchen:', error);
+                alert('Error deleting kitchen');
+            });
+        }
+
+        function showKitchenFormMessage(message, type) {
+            const messageEl = document.getElementById('kitchen-form-message');
+            if (!message) {
+                messageEl.style.display = 'none';
+                return;
+            }
+            
+            messageEl.textContent = message;
+            messageEl.className = 'message ' + (type === 'success' ? 'success' : type === 'info' ? 'info' : 'error');
+            messageEl.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    messageEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+
     </script>
 </body>
 </html>

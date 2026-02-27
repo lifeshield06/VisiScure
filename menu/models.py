@@ -135,16 +135,27 @@ class MenuDish:
             
             # Parse JSON images and build image_urls
             for dish in dishes:
-                if dish['images']:
+                if dish['images'] and dish['images'].strip():
                     try:
-                        dish['images'] = json.loads(dish['images'])
-                    except:
+                        parsed = json.loads(dish['images'])
+                        # Filter out empty strings and None values
+                        if isinstance(parsed, list):
+                            filtered = [img.strip() for img in parsed if img and isinstance(img, str) and img.strip()]
+                            # DEDUPLICATE - remove any duplicate image filenames
+                            dish['images'] = list(dict.fromkeys(filtered))
+                        else:
+                            dish['images'] = []
+                    except (json.JSONDecodeError, TypeError, AttributeError):
                         dish['images'] = []
                 else:
                     dish['images'] = []
                 
-                # Build image URLs
-                dish['image_urls'] = [f"/static/uploads/{img}" for img in dish['images']]
+                # Build image URLs only for valid images
+                if dish['images'] and len(dish['images']) > 0:
+                    dish['image_urls'] = [f"/static/uploads/{img}" for img in dish['images'] if img and img.strip()]
+                else:
+                    dish['images'] = []  # Ensure empty list
+                    dish['image_urls'] = []
                 dish['price'] = float(dish['price'])
             
             return dishes
@@ -174,14 +185,26 @@ class MenuDish:
             
             # Parse JSON images
             for dish in dishes:
-                if dish['images']:
+                if dish['images'] and dish['images'].strip():
                     try:
-                        dish['images'] = json.loads(dish['images'])
-                    except:
+                        parsed = json.loads(dish['images'])
+                        # Filter out empty strings and None values
+                        if isinstance(parsed, list):
+                            filtered = [img.strip() for img in parsed if img and isinstance(img, str) and img.strip()]
+                            # DEDUPLICATE - remove any duplicate image filenames
+                            dish['images'] = list(dict.fromkeys(filtered))
+                        else:
+                            dish['images'] = []
+                    except (json.JSONDecodeError, TypeError, AttributeError):
                         dish['images'] = []
                 else:
                     dish['images'] = []
-                dish['image_urls'] = [f"/static/uploads/{img}" for img in dish['images']]
+                # Only build URLs for valid images
+                if dish['images'] and len(dish['images']) > 0:
+                    dish['image_urls'] = [f"/static/uploads/{img}" for img in dish['images'] if img and img.strip()]
+                else:
+                    dish['images'] = []  # Ensure empty list
+                    dish['image_urls'] = []
                 dish['price'] = float(dish['price'])
             
             return dishes
@@ -221,16 +244,19 @@ class MenuDish:
             connection = get_db_connection()
             cursor = connection.cursor()
             
-            images_json = json.dumps(images) if images else None
+            # CRITICAL FIX: Handle empty list properly - empty list should become '[]' not None
+            # images=None means don't update images, images=[] means clear all images
+            should_update_images = images is not None
+            images_json = json.dumps(images) if images is not None else None
             
-            if images_json and hotel_id:
+            if should_update_images and hotel_id:
                 cursor.execute(
                     """UPDATE menu_dishes 
                        SET name = %s, price = %s, quantity = %s, description = %s, images = %s 
                        WHERE id = %s AND hotel_id = %s""",
                     (name, price, quantity, description, images_json, dish_id, hotel_id)
                 )
-            elif images_json:
+            elif should_update_images:
                 cursor.execute(
                     """UPDATE menu_dishes 
                        SET name = %s, price = %s, quantity = %s, description = %s, images = %s 
@@ -311,14 +337,30 @@ class MenuDish:
             connection.close()
             
             if dish:
-                if dish['images']:
+                # CRITICAL FIX: Properly handle images - ensure empty list when no images
+                if dish['images'] and dish['images'].strip():
                     try:
-                        dish['images'] = json.loads(dish['images'])
-                    except:
+                        parsed_images = json.loads(dish['images'])
+                        # Filter out empty strings, None values, and whitespace-only strings
+                        if isinstance(parsed_images, list):
+                            filtered = [img.strip() for img in parsed_images if img and isinstance(img, str) and img.strip()]
+                            # DEDUPLICATE - remove any duplicate image filenames
+                            dish['images'] = list(dict.fromkeys(filtered))
+                        else:
+                            dish['images'] = []
+                    except (json.JSONDecodeError, TypeError, AttributeError):
                         dish['images'] = []
                 else:
                     dish['images'] = []
-                dish['image_urls'] = [f"/static/uploads/{img}" for img in dish['images']]
+                
+                # Only create URLs for valid image filenames - ensure list is truly empty when no images
+                if dish['images'] and len(dish['images']) > 0:
+                    # Create URLs from deduplicated image list
+                    dish['image_urls'] = [f"/static/uploads/{img}" for img in dish['images'] if img and img.strip()]
+                else:
+                    dish['images'] = []  # Ensure it's an empty list, not None or other
+                    dish['image_urls'] = []
+                
                 dish['price'] = float(dish['price'])
             
             return dish

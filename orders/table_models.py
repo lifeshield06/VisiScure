@@ -26,6 +26,20 @@ class Table:
                 except Exception as e:
                     print(f"Error ensuring column {table_name}.{column_name}: {e}")
             
+            # Ensure gst_percentage column exists in hotels table
+            try:
+                conn_hotels = get_db_connection()
+                cursor_hotels = conn_hotels.cursor()
+                cursor_hotels.execute("SHOW COLUMNS FROM hotels LIKE 'gst_percentage'")
+                if not cursor_hotels.fetchone():
+                    cursor_hotels.execute("ALTER TABLE hotels ADD COLUMN gst_percentage DECIMAL(5,2) DEFAULT 5.00")
+                    conn_hotels.commit()
+                    print("[BILL] Added gst_percentage column to hotels table")
+                cursor_hotels.close()
+                conn_hotels.close()
+            except Exception as e:
+                print(f"[BILL] Error ensuring gst_percentage column in hotels: {e}")
+            
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS tables (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -90,6 +104,7 @@ class Table:
                     subtotal DECIMAL(10,2) NOT NULL,
                     tax_rate DECIMAL(5,2) DEFAULT 0.00,
                     tax_amount DECIMAL(10,2) DEFAULT 0.00,
+                    tip_amount DECIMAL(10,2) DEFAULT 0.00,
                     total_amount DECIMAL(10,2) NOT NULL,
                     bill_status ENUM('OPEN', 'COMPLETED') DEFAULT 'OPEN',
                     payment_status ENUM('PENDING', 'PAID') DEFAULT 'PENDING',
@@ -120,9 +135,17 @@ class Table:
             # Ensure new columns exist in bills table
             ensure_column("bills", "guest_name", "guest_name VARCHAR(255)")
             ensure_column("bills", "bill_status", "bill_status ENUM('OPEN', 'COMPLETED') DEFAULT 'OPEN'")
+            ensure_column("bills", "tip_amount", "tip_amount DECIMAL(10,2) DEFAULT 0.00")
+            ensure_column("bills", "waiter_id", "waiter_id INT")
             
             # Ensure payment_status column exists in table_orders
-            ensure_column("table_orders", "payment_status", "payment_status ENUM('PENDING', 'PAID') DEFAULT 'PENDING'")
+            ensure_column("table_orders", "payment_status", "payment_status ENUM('PENDING', 'PAID') DEFAULT 'PENDING')")
+            
+            # Ensure charge_deducted column exists in table_orders (for per-order charge tracking)
+            ensure_column("table_orders", "charge_deducted", "charge_deducted BOOLEAN DEFAULT FALSE")
+            
+            # Ensure waiter_id column exists in table_orders for direct waiter assignment
+            ensure_column("table_orders", "waiter_id", "waiter_id INT")
             
             # Ensure columns exist in active_tables
             ensure_column("active_tables", "hotel_id", "hotel_id INT")
@@ -290,22 +313,54 @@ class Table:
 
 class TableOrder:
     @staticmethod
-    def add_order(table_id, session_id, items, total_amount, hotel_id=None, guest_name=None):
-        """Add new ACTIVE order and set table BUSY"""
+    def add_order(table_id, session_id, items, total_amount, hotel_id=None, guest_name=None, waiter_id=None):
+        """Add new ACTIVE order and set table BUSY with assigned waiter. Also populate order_items table with kitchen routing."""
         try:
             connection = get_db_connection()
-            cursor = connection.cursor()
+            cursor = connection.cursor(dictionary=True)
             
             import json
             items_json = json.dumps(items)
             
-            # Add order as ACTIVE with guest_name
+            # Add order as ACTIVE with guest_name and waiter_id from assigned table waiter
             cursor.execute(
-                "INSERT INTO table_orders (table_id, session_id, guest_name, items, total_amount, order_status, hotel_id) VALUES (%s, %s, %s, %s, %s, 'ACTIVE', %s)",
-                (table_id, session_id, guest_name, items_json, total_amount, hotel_id)
+                "INSERT INTO table_orders (table_id, session_id, guest_name, items, total_amount, order_status, hotel_id, waiter_id) VALUES (%s, %s, %s, %s, %s, 'ACTIVE', %s, %s)",
+                (table_id, session_id, guest_name, items_json, total_amount, hotel_id, waiter_id)
             )
             
             order_id = cursor.lastrowid
+            
+            # Populate order_items table with kitchen section assignment
+            for item in items:
+                dish_id = item.get('id')
+                dish_name = item.get('name', 'Unknown')
+                quantity = item.get('quantity', 1)
+                price = item.get('price', 0)
+                
+                if not dish_id:
+                    continue
+                
+                # Get category_id and kitchen_section_id for this dish
+                cursor.execute("""
+                    SELECT d.category_id, kcm.kitchen_section_id
+                    FROM menu_dishes d
+                    LEFT JOIN kitchen_category_mapping kcm ON d.category_id = kcm.category_id
+                    WHERE d.id = %s
+                    LIMIT 1
+                """, (dish_id,))
+                
+                dish_info = cursor.fetchone()
+                category_id = dish_info['category_id'] if dish_info else None
+                kitchen_section_id = dish_info['kitchen_section_id'] if dish_info else None
+                
+                # Insert into order_items with kitchen routing
+                cursor.execute("""
+                    INSERT INTO order_items 
+                    (order_id, dish_id, dish_name, category_id, kitchen_section_id, quantity, price, item_status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 'ACTIVE')
+                """, (order_id, dish_id, dish_name, category_id, kitchen_section_id, quantity, price))
+                
+                print(f"[ORDER_ROUTING] Item '{dish_name}' → Kitchen Section {kitchen_section_id}")
             
             # Set table BUSY and store guest_name
             cursor.execute(
@@ -319,6 +374,8 @@ class TableOrder:
             return order_id, None
         except Exception as e:
             print(f"Error adding order: {e}")
+            import traceback
+            traceback.print_exc()
             return None, str(e)
     
     @staticmethod
@@ -444,7 +501,30 @@ class TableOrder:
 
 
 class Bill:
-    TAX_RATE = 5.0  # 5% tax rate (configurable)
+    TAX_RATE = 5.0  # 5% tax rate (DEPRECATED - use hotel's gst_percentage instead)
+    
+    @staticmethod
+    def get_hotel_gst_percentage(hotel_id):
+        """Get GST percentage for a specific hotel (dynamic per hotel)"""
+        try:
+            if not hotel_id:
+                return 5.0  # Default fallback
+            
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            
+            cursor.execute("SELECT gst_percentage FROM hotels WHERE id = %s", (hotel_id,))
+            result = cursor.fetchone()
+            
+            cursor.close()
+            connection.close()
+            
+            if result and result.get('gst_percentage') is not None:
+                return float(result['gst_percentage'])
+            return 5.0  # Default fallback if not set
+        except Exception as e:
+            print(f"Error getting hotel GST percentage: {e}")
+            return 5.0  # Default fallback on error
     
     @staticmethod
     def generate_bill_number():
@@ -537,9 +617,16 @@ class Bill:
                 if not found:
                     existing_items.append(new_item)
             
-            # Recalculate totals
+            # Recalculate totals using hotel's GST percentage
             subtotal = sum(item['price'] * item['quantity'] for item in existing_items)
-            tax_rate = Bill.TAX_RATE
+            
+            # Get hotel_id from bill to fetch correct GST
+            cursor.execute("SELECT hotel_id, tax_rate FROM bills WHERE id = %s", (bill_id,))
+            bill_info = cursor.fetchone()
+            hotel_id = bill_info.get('hotel_id') if bill_info else None
+            
+            # Use stored tax_rate from bill (preserves historical GST)
+            tax_rate = float(bill_info.get('tax_rate', 5.0)) if bill_info and bill_info.get('tax_rate') else Bill.get_hotel_gst_percentage(hotel_id)
             tax_amount = round(subtotal * (tax_rate / 100), 2)
             total_amount = round(subtotal + tax_amount, 2)
             
@@ -585,6 +672,7 @@ class Bill:
             hotel_name = ""
             hotel_address = ""
             table_number = ""
+            waiter_id = None
             
             if hotel_id:
                 cursor.execute("SELECT hotel_name, address, city FROM hotels WHERE id = %s", (hotel_id,))
@@ -595,14 +683,22 @@ class Bill:
                     city = hotel.get('city', '')
                     hotel_address = f"{address}, {city}" if address else city
             
-            # Get table number
-            cursor.execute("SELECT table_number FROM tables WHERE id = %s", (table_id,))
+            # Get table number and waiter_id
+            cursor.execute("SELECT table_number, waiter_id FROM tables WHERE id = %s", (table_id,))
             table = cursor.fetchone()
             if table:
                 table_number = table.get('table_number', '')
+                waiter_id = table.get('waiter_id')
             
-            # Calculate tax and total
-            tax_rate = Bill.TAX_RATE
+            # If waiter_id not in table, try to get from order
+            if not waiter_id and order_id:
+                cursor.execute("SELECT waiter_id FROM table_orders WHERE id = %s", (order_id,))
+                order = cursor.fetchone()
+                if order:
+                    waiter_id = order.get('waiter_id')
+            
+            # Calculate tax and total using hotel's dynamic GST percentage
+            tax_rate = Bill.get_hotel_gst_percentage(hotel_id)
             tax_amount = round(subtotal * (tax_rate / 100), 2)
             total_amount = round(subtotal + tax_amount, 2)
             
@@ -615,10 +711,10 @@ class Bill:
             cursor.execute("""
                 INSERT INTO bills 
                 (bill_number, order_id, hotel_id, table_id, session_id, guest_name, hotel_name, hotel_address, 
-                 table_number, items, subtotal, tax_rate, tax_amount, total_amount, bill_status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'OPEN')
+                 table_number, items, subtotal, tax_rate, tax_amount, total_amount, bill_status, waiter_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'OPEN', %s)
             """, (bill_number, order_id, hotel_id, table_id, session_id, guest_name, hotel_name, hotel_address,
-                  table_number, items_json, subtotal, tax_rate, tax_amount, total_amount))
+                  table_number, items_json, subtotal, tax_rate, tax_amount, total_amount, waiter_id))
             
             bill_id = cursor.lastrowid
             
@@ -732,8 +828,8 @@ class Bill:
             table_number = first_order.get('table_number', '')
             guest_name = first_order.get('guest_name', '')
             
-            # Calculate tax
-            tax_rate = Bill.TAX_RATE
+            # Calculate tax using hotel's dynamic GST percentage
+            tax_rate = Bill.get_hotel_gst_percentage(first_order.get('hotel_id'))
             tax_amount = round(subtotal * (tax_rate / 100), 2)
             total_amount = round(subtotal + tax_amount, 2)
             
@@ -818,18 +914,23 @@ class Bill:
             return False
 
     @staticmethod
-    def process_payment_atomic(table_id, bill_id, payment_method='CASH'):
-        """Process payment atomically - ALWAYS succeeds if bill exists and is OPEN"""
+    def process_payment_atomic(table_id, bill_id, payment_method='CASH', tip_amount=0.00):
+        """Process payment atomically - ALWAYS succeeds if bill exists and is OPEN
+        tip_amount: Optional tip for waiter (does NOT affect hotel wallet)
+        """
         connection = None
+        cursor = None
         try:
             import datetime
             connection = get_db_connection()
             connection.start_transaction()
             cursor = connection.cursor(dictionary=True)
             
+            print(f"[PAYMENT ATOMIC] Starting payment for table_id={table_id}, bill_id={bill_id}, tip={tip_amount}")
+            
             # Lock and verify bill is OPEN
             cursor.execute("""
-                SELECT id, bill_status, table_id, session_id, guest_name 
+                SELECT id, bill_status, table_id, session_id, guest_name, subtotal, tax_amount
                 FROM bills 
                 WHERE id = %s AND bill_status = 'OPEN'
                 FOR UPDATE
@@ -837,22 +938,44 @@ class Bill:
             
             bill = cursor.fetchone()
             if not bill:
+                print(f"[PAYMENT ATOMIC ERROR] Bill not found or not OPEN: bill_id={bill_id}")
                 connection.rollback()
-                cursor.close()
-                connection.close()
+                if cursor:
+                    cursor.close()
+                if connection:
+                    connection.close()
                 return False
+            
+            print(f"[PAYMENT ATOMIC] Bill found: {bill}")
             
             paid_at = datetime.datetime.now()
             
-            # Mark bill as PAID and COMPLETED
+            # Calculate new total with tip
+            subtotal = float(bill.get('subtotal', 0))
+            tax_amount = float(bill.get('tax_amount', 0))
+            tip = float(tip_amount) if tip_amount else 0.00
+            
+            # Validate tip (must be non-negative)
+            if tip < 0:
+                tip = 0.00
+            
+            new_total = round(subtotal + tax_amount + tip, 2)
+            
+            print(f"[PAYMENT ATOMIC] Calculated totals: subtotal={subtotal}, tax={tax_amount}, tip={tip}, new_total={new_total}")
+            
+            # Mark bill as PAID and COMPLETED with tip
             cursor.execute("""
                 UPDATE bills 
                 SET payment_status = 'PAID', 
                     payment_method = %s, 
                     paid_at = %s, 
-                    bill_status = 'COMPLETED'
+                    bill_status = 'COMPLETED',
+                    tip_amount = %s,
+                    total_amount = %s
                 WHERE id = %s
-            """, (payment_method, paid_at, bill_id))
+            """, (payment_method, paid_at, tip, new_total, bill_id))
+            
+            print(f"[PAYMENT ATOMIC] Bill updated, rows affected: {cursor.rowcount}")
             
             # Update associated orders to PAID
             bill_session_id = bill.get('session_id')
@@ -864,12 +987,14 @@ class Bill:
                     SET payment_status = 'PAID'
                     WHERE table_id = %s AND session_id = %s
                 """, (table_id, bill_session_id))
+                print(f"[PAYMENT ATOMIC] Orders updated by session_id, rows affected: {cursor.rowcount}")
             elif bill_guest_name:
                 cursor.execute("""
                     UPDATE table_orders 
                     SET payment_status = 'PAID'
                     WHERE table_id = %s AND guest_name = %s
                 """, (table_id, bill_guest_name))
+                print(f"[PAYMENT ATOMIC] Orders updated by guest_name, rows affected: {cursor.rowcount}")
             
             # Check if any other OPEN bills exist for this table
             cursor.execute("""
@@ -879,6 +1004,8 @@ class Bill:
             
             result = cursor.fetchone()
             other_open_bills = result['count'] if result else 0
+            
+            print(f"[PAYMENT ATOMIC] Other open bills for table: {other_open_bills}")
             
             # Release table ONLY if no other open bills
             if other_open_bills == 0:
@@ -890,24 +1017,45 @@ class Bill:
                     WHERE id = %s
                 """, (table_id,))
                 
-                # Close active table entry
+                print(f"[PAYMENT ATOMIC] Table released, rows affected: {cursor.rowcount}")
+                
+                # Close active table entry - DELETE instead of UPDATE to avoid unique constraint issues
                 cursor.execute("""
-                    UPDATE active_tables 
-                    SET status = 'CLOSED', closed_at = %s
+                    DELETE FROM active_tables 
                     WHERE table_id = %s AND status = 'ACTIVE'
-                """, (paid_at, table_id))
+                """, (table_id,))
+                
+                print(f"[PAYMENT ATOMIC] Active table entry deleted, rows affected: {cursor.rowcount}")
             
             connection.commit()
-            cursor.close()
-            connection.close()
+            print(f"[PAYMENT ATOMIC SUCCESS] Transaction committed for bill_id={bill_id}")
+            
+            if cursor:
+                cursor.close()
+            if connection:
+                connection.close()
             return True
             
         except Exception as e:
-            print(f"Error in atomic payment processing: {e}")
+            import traceback
+            print(f"[PAYMENT ATOMIC ERROR] Exception: {e}")
+            print(f"[PAYMENT ATOMIC ERROR] Traceback: {traceback.format_exc()}")
             if connection:
-                connection.rollback()
-                cursor.close()
-                connection.close()
+                try:
+                    connection.rollback()
+                    print(f"[PAYMENT ATOMIC] Transaction rolled back")
+                except Exception as rollback_error:
+                    print(f"[PAYMENT ATOMIC ERROR] Rollback failed: {rollback_error}")
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if connection:
+                try:
+                    connection.close()
+                except:
+                    pass
             return False
 
     @staticmethod
@@ -978,14 +1126,24 @@ class Bill:
             if not bill:
                 cursor.close()
                 connection.close()
+                print(f"[COMPLETE_BILL] Bill not found: {bill_id}")
                 return False
             
             table_id = bill['table_id']
             
-            # Mark bill as COMPLETED and PAID
+            # Mark bill as COMPLETED and PAID with timestamp
+            import datetime
+            paid_at = datetime.datetime.now()
+            
             cursor.execute("""
-                UPDATE bills SET bill_status = 'COMPLETED', payment_status = 'PAID' WHERE id = %s
-            """, (bill_id,))
+                UPDATE bills 
+                SET bill_status = 'COMPLETED', 
+                    payment_status = 'PAID',
+                    paid_at = %s
+                WHERE id = %s
+            """, (paid_at, bill_id))
+            
+            print(f"[COMPLETE_BILL] Updated bill {bill_id} to COMPLETED/PAID")
             
             # Check if there are any remaining OPEN bills for this table
             cursor.execute(
@@ -995,9 +1153,10 @@ class Bill:
             result = cursor.fetchone()
             open_bills_count = result['count'] if result else 0
             
+            print(f"[COMPLETE_BILL] Remaining open bills for table {table_id}: {open_bills_count}")
+            
             # Free table and close active entry only if no more open bills
             if open_bills_count == 0:
-                import datetime
                 closed_at = datetime.datetime.now()
                 
                 cursor.execute("""
@@ -1006,20 +1165,27 @@ class Bill:
                     WHERE id = %s
                 """, (table_id,))
                 
-                # Close the active table entry (CRITICAL: bill closed = active table closed)
+                print(f"[COMPLETE_BILL] Released table {table_id}")
+                
+                # Delete the active table entry instead of updating to avoid unique constraint issues
+                # (table_id, status) has a unique constraint, so we delete ACTIVE entries
                 cursor.execute("""
-                    UPDATE active_tables 
-                    SET status = 'CLOSED', closed_at = %s
+                    DELETE FROM active_tables 
                     WHERE table_id = %s AND status = 'ACTIVE'
-                """, (closed_at, table_id))
+                """, (table_id,))
+                
+                print(f"[COMPLETE_BILL] Deleted active_tables entry for table {table_id}")
             
             connection.commit()
             cursor.close()
             connection.close()
             
+            print(f"[COMPLETE_BILL] Successfully completed bill {bill_id}")
             return True
         except Exception as e:
-            print(f"Error completing bill: {e}")
+            print(f"[COMPLETE_BILL ERROR] Error completing bill {bill_id}: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     @staticmethod
@@ -1150,6 +1316,191 @@ class Bill:
             return bills
         except Exception as e:
             print(f"Error getting all bills: {e}")
+            return []
+    
+    @staticmethod
+    def get_tip_statistics_for_hotel(hotel_id, period='today'):
+        """Get tip statistics for hotel (Manager Dashboard)
+        period: 'today', 'week', 'month', 'all'
+        """
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            
+            date_filter = ""
+            if period == 'today':
+                date_filter = "AND DATE(paid_at) = CURDATE()"
+            elif period == 'week':
+                date_filter = "AND paid_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+            elif period == 'month':
+                date_filter = "AND paid_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+            
+            cursor.execute(f"""
+                SELECT 
+                    COUNT(*) as bills_with_tips,
+                    SUM(tip_amount) as total_tips,
+                    AVG(tip_amount) as avg_tip,
+                    MAX(tip_amount) as max_tip
+                FROM bills 
+                WHERE hotel_id = %s 
+                AND payment_status = 'PAID' 
+                AND tip_amount > 0
+                {date_filter}
+            """, (hotel_id,))
+            
+            stats = cursor.fetchone()
+            
+            cursor.close()
+            connection.close()
+            
+            return {
+                'bills_with_tips': stats['bills_with_tips'] or 0,
+                'total_tips': float(stats['total_tips'] or 0),
+                'avg_tip': float(stats['avg_tip'] or 0),
+                'max_tip': float(stats['max_tip'] or 0)
+            }
+        except Exception as e:
+            print(f"Error getting tip statistics: {e}")
+            return {
+                'bills_with_tips': 0,
+                'total_tips': 0.0,
+                'avg_tip': 0.0,
+                'max_tip': 0.0
+            }
+    
+    @staticmethod
+    def get_tip_statistics_for_waiter(waiter_id, period='today'):
+        """Get tip statistics for waiter (Waiter Dashboard)
+        period: 'today', 'week', 'month', 'all'
+        """
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            
+            date_filter = ""
+            if period == 'today':
+                date_filter = "AND DATE(paid_at) = CURDATE()"
+            elif period == 'week':
+                date_filter = "AND paid_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+            elif period == 'month':
+                date_filter = "AND paid_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+            
+            cursor.execute(f"""
+                SELECT 
+                    COUNT(*) as bills_with_tips,
+                    SUM(tip_amount) as total_tips,
+                    AVG(tip_amount) as avg_tip,
+                    MAX(tip_amount) as max_tip
+                FROM bills 
+                WHERE waiter_id = %s 
+                AND payment_status = 'PAID' 
+                AND tip_amount > 0
+                {date_filter}
+            """, (waiter_id,))
+            
+            stats = cursor.fetchone()
+            
+            cursor.close()
+            connection.close()
+            
+            return {
+                'bills_with_tips': stats['bills_with_tips'] or 0,
+                'total_tips': float(stats['total_tips'] or 0),
+                'avg_tip': float(stats['avg_tip'] or 0),
+                'max_tip': float(stats['max_tip'] or 0)
+            }
+        except Exception as e:
+            print(f"Error getting waiter tip statistics: {e}")
+            return {
+                'bills_with_tips': 0,
+                'total_tips': 0.0,
+                'avg_tip': 0.0,
+                'max_tip': 0.0
+            }
+    
+    @staticmethod
+    def get_waiter_tip_details(waiter_id, limit=10):
+        """Get recent tip details for waiter"""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            
+            cursor.execute("""
+                SELECT 
+                    bill_number,
+                    table_number,
+                    guest_name,
+                    tip_amount,
+                    total_amount,
+                    paid_at
+                FROM bills 
+                WHERE waiter_id = %s 
+                AND payment_status = 'PAID' 
+                AND tip_amount > 0
+                ORDER BY paid_at DESC
+                LIMIT %s
+            """, (waiter_id, limit))
+            
+            tips = cursor.fetchall()
+            
+            cursor.close()
+            connection.close()
+            return tips
+        except Exception as e:
+            print(f"Error getting waiter tip details: {e}")
+            return []
+    
+    @staticmethod
+    def get_waiter_wise_tips(hotel_id, period='today'):
+        """Get tip breakdown by waiter for manager dashboard
+        period: 'today', 'week', 'month', 'all'
+        """
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            
+            date_filter = ""
+            if period == 'today':
+                date_filter = "AND DATE(b.paid_at) = CURDATE()"
+            elif period == 'week':
+                date_filter = "AND b.paid_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+            elif period == 'month':
+                date_filter = "AND b.paid_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+            
+            # Get today's tips per waiter
+            cursor.execute(f"""
+                SELECT 
+                    w.id as waiter_id,
+                    w.name as waiter_name,
+                    SUM(CASE WHEN DATE(b.paid_at) = CURDATE() THEN b.tip_amount ELSE 0 END) as today_tip,
+                    SUM(b.tip_amount) as total_tip,
+                    COUNT(CASE WHEN DATE(b.paid_at) = CURDATE() THEN 1 END) as today_bills,
+                    COUNT(*) as total_bills
+                FROM bills b
+                JOIN waiters w ON b.waiter_id = w.id
+                WHERE b.hotel_id = %s 
+                AND b.payment_status = 'PAID' 
+                AND b.tip_amount > 0
+                {date_filter}
+                GROUP BY b.waiter_id, w.name
+                ORDER BY today_tip DESC, total_tip DESC
+            """, (hotel_id,))
+            
+            waiters = cursor.fetchall()
+            
+            # Convert Decimal to float for JSON serialization
+            for waiter in waiters:
+                waiter['today_tip'] = float(waiter['today_tip'] or 0)
+                waiter['total_tip'] = float(waiter['total_tip'] or 0)
+            
+            cursor.close()
+            connection.close()
+            
+            return waiters
+        except Exception as e:
+            print(f"Error getting waiter-wise tips: {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
 

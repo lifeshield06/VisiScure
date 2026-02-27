@@ -149,16 +149,105 @@ class HotelManager:
         except Error as exc:
             return {'success': False, 'message': f'Database error: {str(exc)}'}
 
+    @staticmethod
+    def change_password(manager_id, current_password, new_password):
+        """Change manager password"""
+        connection = None
+        cursor = None
+        try:
+            if not manager_id:
+                return {'success': False, 'message': 'Manager ID is required!'}
+            
+            if not current_password or not new_password:
+                return {'success': False, 'message': 'Password fields cannot be empty!'}
+            
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            
+            # Verify manager exists and get current password
+            cursor.execute("SELECT password FROM managers WHERE id = %s", (manager_id,))
+            manager = cursor.fetchone()
+            
+            if not manager:
+                return {'success': False, 'message': 'Manager not found!'}
+            
+            stored_password = manager.get('password')
+            if not stored_password:
+                return {'success': False, 'message': 'No password set for this account!'}
+            
+            # Verify current password using hash comparison
+            hashed_current = hash_password(current_password)
+            if stored_password != hashed_current:
+                return {'success': False, 'message': 'Current password is incorrect.'}
+            
+            # Hash and update new password
+            hashed_new = hash_password(new_password)
+            if not hashed_new:
+                return {'success': False, 'message': 'Failed to hash new password!'}
+            
+            cursor.execute(
+                "UPDATE managers SET password = %s WHERE id = %s",
+                (hashed_new, manager_id)
+            )
+            
+            connection.commit()
+            
+            return {'success': True, 'message': 'Password updated successfully.'}
+        except Error as db_error:
+            print(f"[MANAGER CHANGE PASSWORD] Database error: {db_error}")
+            return {'success': False, 'message': f'Database error: {str(db_error)}'}
+        except Exception as e:
+            print(f"[MANAGER CHANGE PASSWORD] Unexpected error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'success': False, 'message': f'An unexpected error occurred: {str(e)}'}
+        finally:
+            if cursor:
+                cursor.close()
+            if connection:
+                connection.close()
+
 class Waiter:
+    @staticmethod
+    def validate_email(email):
+        """Validate and normalize email: lowercase, trimmed, basic format check"""
+        if not email:
+            return None, 'Email is required!'
+        email = email.strip().lower()
+        if '@' not in email or '.' not in email.split('@')[-1]:
+            return None, 'Invalid email format!'
+        return email, None
+    
+    @staticmethod
+    def validate_phone(phone):
+        """Validate phone: exactly 10 digits, numbers only"""
+        if not phone:
+            return None, 'Phone number is required!'
+        phone = phone.strip()
+        if not phone.isdigit():
+            return None, 'Phone number must contain only digits!'
+        if len(phone) != 10:
+            return None, 'Phone number must be exactly 10 digits!'
+        return phone, None
+    
     @staticmethod
     def create_waiter_qr(manager_id, name, email, phone, hotel_id=None, table_ids=None):
         """Create a waiter for QR-based login (no password required)"""
         try:
+            # Validate and normalize inputs
+            email, email_error = Waiter.validate_email(email)
+            if email_error:
+                return {'success': False, 'message': email_error}
+            
+            phone, phone_error = Waiter.validate_phone(phone)
+            if phone_error:
+                return {'success': False, 'message': phone_error}
+            
             connection = get_db_connection()
             cursor = connection.cursor()
             
-            # Check if email already exists
-            cursor.execute("SELECT * FROM waiters WHERE email = %s", (email,))
+            # Check if email already exists (case-insensitive - email is already lowercase)
+            cursor.execute("SELECT * FROM waiters WHERE LOWER(email) = %s", (email,))
             if cursor.fetchone():
                 cursor.close()
                 connection.close()
@@ -203,11 +292,20 @@ class Waiter:
     @staticmethod
     def create_waiter(manager_id, name, email, phone, username, password, hotel_id=None, table_ids=None):
         try:
+            # Validate and normalize inputs
+            email, email_error = Waiter.validate_email(email)
+            if email_error:
+                return {'success': False, 'message': email_error}
+            
+            phone, phone_error = Waiter.validate_phone(phone)
+            if phone_error:
+                return {'success': False, 'message': phone_error}
+            
             connection = get_db_connection()
             cursor = connection.cursor()
             
-            # Check if email already exists
-            cursor.execute("SELECT * FROM waiters WHERE email = %s", (email,))
+            # Check if email already exists (case-insensitive)
+            cursor.execute("SELECT * FROM waiters WHERE LOWER(email) = %s", (email,))
             if cursor.fetchone():
                 cursor.close()
                 connection.close()
@@ -403,6 +501,15 @@ class Waiter:
     def update_waiter(waiter_id, name, email, phone, table_ids, hotel_id=None):
         """Update waiter details and table assignments"""
         try:
+            # Validate and normalize inputs
+            email, email_error = Waiter.validate_email(email)
+            if email_error:
+                return {'success': False, 'message': email_error}
+            
+            phone, phone_error = Waiter.validate_phone(phone)
+            if phone_error:
+                return {'success': False, 'message': phone_error}
+            
             connection = get_db_connection()
             cursor = connection.cursor()
             
@@ -417,8 +524,8 @@ class Waiter:
                 connection.close()
                 return {'success': False, 'message': 'Waiter not found!'}
             
-            # Check if email is taken by another waiter
-            cursor.execute("SELECT id FROM waiters WHERE email = %s AND id != %s", (email, waiter_id))
+            # Check if email is taken by another waiter (case-insensitive)
+            cursor.execute("SELECT id FROM waiters WHERE LOWER(email) = %s AND id != %s", (email, waiter_id))
             if cursor.fetchone():
                 cursor.close()
                 connection.close()
@@ -756,11 +863,10 @@ class DashboardStats:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
-            # Get total menu items (not deleted) for this hotel
+            # Get total menu dishes (not deleted) for this hotel
             cursor.execute("""
-                SELECT COUNT(*) as total FROM menu_items mi
-                JOIN menu_categories mc ON mi.category_id = mc.id
-                WHERE mc.hotel_id = %s AND (mi.is_deleted = 0 OR mi.is_deleted IS NULL)
+                SELECT COUNT(*) as total FROM menu_dishes
+                WHERE hotel_id = %s AND (is_deleted = 0 OR is_deleted IS NULL)
             """, (hotel_id,))
             total_items = cursor.fetchone()['total']
             
@@ -789,16 +895,16 @@ class DashboardStats:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
-            # Get today's verifications
+            # Get today's verifications from guest_verifications table
             cursor.execute("""
-                SELECT COUNT(*) as today FROM kyc_verifications 
-                WHERE hotel_id = %s AND DATE(created_at) = CURDATE()
+                SELECT COUNT(*) as today FROM guest_verifications 
+                WHERE hotel_id = %s AND DATE(submitted_at) = CURDATE()
             """, (hotel_id,))
             today_verifications = cursor.fetchone()['today']
             
-            # Get total verifications
+            # Get total verifications from guest_verifications table
             cursor.execute("""
-                SELECT COUNT(*) as total FROM kyc_verifications 
+                SELECT COUNT(*) as total FROM guest_verifications 
                 WHERE hotel_id = %s
             """, (hotel_id,))
             total_verifications = cursor.fetchone()['total']

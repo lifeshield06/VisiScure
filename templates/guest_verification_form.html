@@ -53,6 +53,9 @@
             {% endif %}
             
             <form action="{{ url_for('guest_verification.submit_verification', manager_id=manager_id) }}" method="POST" enctype="multipart/form-data" id="verificationForm">
+                <!-- Hidden field for hotel_id -->
+                <input type="hidden" name="hotel_id" value="{{ hotel_id }}">
+                
                 <!-- Full Name -->
                 <div class="form-group">
                     <label for="guest_name">
@@ -82,6 +85,7 @@
                         name="phone" 
                         required 
                         placeholder="Enter 10-digit mobile number"
+                        maxlength="10"
                         pattern="[0-9]{10}" 
                         inputmode="numeric"
                         title="Enter a valid 10-digit phone number"
@@ -109,47 +113,206 @@
                     ></textarea>
                 </div>
                 
-                <!-- Government ID Number -->
-                <div class="form-group">
-                    <label for="kyc_number">
-                        <i class="fas fa-id-card"></i>
-                        Government ID Number <span class="required">*</span>
-                    </label>
-                    <input 
-                        type="text" 
-                        id="kyc_number"
-                        name="kyc_number" 
-                        required 
-                        placeholder="Aadhaar, Passport, or Driver's License Number"
-                    >
-                    <div class="input-hint">
-                        <i class="fas fa-info-circle"></i>
-                        Any valid government issued ID
+                <!-- KYC Verification Section -->
+                <div class="kyc-section">
+                    <!-- Step 1: ID Type Selection -->
+                    <div id="id-type-selection-step" class="kyc-step">
+                        <div class="section-header">
+                            <i class="fas fa-id-card-alt"></i>
+                            <h3>Select ID for Verification</h3>
+                            <p>Choose one ID type</p>
+                        </div>
+                        
+                        <!-- ID Type Selection (Radio Buttons styled as Checkboxes) -->
+                        <div class="id-type-selection">
+                            <label class="id-type-option">
+                                <input type="radio" name="kyc_type" value="PAN Card" id="pan_radio" required>
+                                <div class="option-card">
+                                    <div class="checkbox-indicator"></div>
+                                    <i class="fas fa-credit-card"></i>
+                                    <span>PAN Card</span>
+                                </div>
+                            </label>
+                            
+                            <label class="id-type-option">
+                                <input type="radio" name="kyc_type" value="Driving License" id="license_radio" required>
+                                <div class="option-card">
+                                    <div class="checkbox-indicator"></div>
+                                    <i class="fas fa-id-card"></i>
+                                    <span>Driving License</span>
+                                </div>
+                            </label>
+                            
+                            <label class="id-type-option">
+                                <input type="radio" name="kyc_type" value="Voter ID" id="voter_radio" required>
+                                <div class="option-card">
+                                    <div class="checkbox-indicator"></div>
+                                    <i class="fas fa-address-card"></i>
+                                    <span>Voter ID</span>
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <button type="button" class="next-step-btn" id="nextToIdFields" disabled>
+                            <span>Next</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
                     </div>
-                </div>
-                
-                <!-- File Upload -->
-                <div class="form-group">
-                    <label>
-                        <i class="fas fa-camera"></i>
-                        Upload Identity Document <span class="required">*</span>
-                    </label>
-                    <div class="file-upload-wrapper">
-                        <div class="file-upload-area" id="fileUploadArea">
-                            <input 
-                                type="file" 
-                                name="identity_file" 
-                                id="identity_file"
-                                accept="image/*,.pdf" 
-                                required
-                                capture="environment"
-                            >
-                            <div class="upload-icon">
-                                <i class="fas fa-cloud-upload-alt" id="uploadIcon"></i>
+                    
+                    <!-- Step 2: ID Details Input -->
+                    <div id="id-details-step" class="kyc-step" style="display: none;">
+                        <div class="section-header">
+                            <button type="button" class="back-btn" id="backToIdSelection">
+                                <i class="fas fa-arrow-left"></i>
+                            </button>
+                            <div>
+                                <h3 id="selected-id-title">PAN Card Details</h3>
+                                <p>Provide your ID information</p>
                             </div>
-                            <div class="upload-text" id="uploadText">Tap to upload or take photo</div>
-                            <div class="upload-hint">Image or PDF up to 10MB</div>
-                            <div class="file-name" id="fileName"></div>
+                        </div>
+                        
+                        <!-- Dynamic ID Fields Container -->
+                        <div id="id-fields-container">
+                            <!-- PAN Card Fields -->
+                            <div id="pan-fields" class="id-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label for="pan_number">
+                                        <i class="fas fa-hashtag"></i>
+                                        PAN Card Number
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        id="pan_number"
+                                        name="kyc_number"
+                                        placeholder="Enter PAN Card Number (e.g., ABCDE1234F)"
+                                        maxlength="10"
+                                        style="text-transform: uppercase;"
+                                    >
+                                    <div class="input-hint">
+                                        <i class="fas fa-info-circle"></i>
+                                        10 character alphanumeric PAN number
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>
+                                        <i class="fas fa-camera"></i>
+                                        Upload PAN Card Image <span class="optional-badge">Optional</span>
+                                    </label>
+                                    <div class="file-upload-wrapper">
+                                        <div class="file-upload-area" id="pan_upload_area">
+                                            <input 
+                                                type="file" 
+                                                name="identity_file" 
+                                                id="pan_file"
+                                                accept="image/*,.pdf"
+                                                capture="environment"
+                                            >
+                                            <div class="upload-icon">
+                                                <i class="fas fa-cloud-upload-alt"></i>
+                                            </div>
+                                            <div class="upload-text">Tap to upload or take photo</div>
+                                            <div class="upload-hint">Image or PDF up to 10MB</div>
+                                            <div class="file-name" id="pan_file_name"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Driving License Fields -->
+                            <div id="license-fields" class="id-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label for="license_number">
+                                        <i class="fas fa-hashtag"></i>
+                                        Driving License Number
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        id="license_number"
+                                        name="kyc_number"
+                                        placeholder="Enter Driving License Number"
+                                        style="text-transform: uppercase;"
+                                    >
+                                    <div class="input-hint">
+                                        <i class="fas fa-info-circle"></i>
+                                        Your driving license number
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>
+                                        <i class="fas fa-camera"></i>
+                                        Upload License Image <span class="optional-badge">Optional</span>
+                                    </label>
+                                    <div class="file-upload-wrapper">
+                                        <div class="file-upload-area" id="license_upload_area">
+                                            <input 
+                                                type="file" 
+                                                name="identity_file" 
+                                                id="license_file"
+                                                accept="image/*,.pdf"
+                                                capture="environment"
+                                            >
+                                            <div class="upload-icon">
+                                                <i class="fas fa-cloud-upload-alt"></i>
+                                            </div>
+                                            <div class="upload-text">Tap to upload or take photo</div>
+                                            <div class="upload-hint">Image or PDF up to 10MB</div>
+                                            <div class="file-name" id="license_file_name"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Voter ID Fields -->
+                            <div id="voter-fields" class="id-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label for="voter_number">
+                                        <i class="fas fa-hashtag"></i>
+                                        Voter ID Number
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        id="voter_number"
+                                        name="kyc_number"
+                                        placeholder="Enter Voter ID Number"
+                                        style="text-transform: uppercase;"
+                                    >
+                                    <div class="input-hint">
+                                        <i class="fas fa-info-circle"></i>
+                                        Your voter ID card number
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>
+                                        <i class="fas fa-camera"></i>
+                                        Upload Voter ID Image <span class="optional-badge">Optional</span>
+                                    </label>
+                                    <div class="file-upload-wrapper">
+                                        <div class="file-upload-area" id="voter_upload_area">
+                                            <input 
+                                                type="file" 
+                                                name="identity_file" 
+                                                id="voter_file"
+                                                accept="image/*,.pdf"
+                                                capture="environment"
+                                            >
+                                            <div class="upload-icon">
+                                                <i class="fas fa-cloud-upload-alt"></i>
+                                            </div>
+                                            <div class="upload-text">Tap to upload or take photo</div>
+                                            <div class="upload-hint">Image or PDF up to 10MB</div>
+                                            <div class="file-name" id="voter_file_name"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="validation-note">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Please provide either ID number or upload ID image (or both)</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -178,47 +341,157 @@
     </div>
     
     <script>
-        // File Upload Handling
-        const fileInput = document.getElementById('identity_file');
-        const fileUploadArea = document.getElementById('fileUploadArea');
-        const uploadIcon = document.getElementById('uploadIcon');
-        const uploadText = document.getElementById('uploadText');
-        const fileName = document.getElementById('fileName');
+        // Two-Step Flow: ID Type Selection → ID Details
+        const idTypeRadios = document.querySelectorAll('input[name="kyc_type"]');
+        const nextToIdFieldsBtn = document.getElementById('nextToIdFields');
+        const backToIdSelectionBtn = document.getElementById('backToIdSelection');
+        const idTypeSelectionStep = document.getElementById('id-type-selection-step');
+        const idDetailsStep = document.getElementById('id-details-step');
+        const selectedIdTitle = document.getElementById('selected-id-title');
         
-        fileInput.addEventListener('change', function(e) {
-            if (e.target.files.length > 0) {
-                const file = e.target.files[0];
-                const fileSize = (file.size / 1024 / 1024).toFixed(2);
-                fileUploadArea.classList.add('has-file');
-                uploadIcon.className = 'fas fa-check';
-                uploadText.textContent = 'File selected';
-                fileName.textContent = `${file.name} (${fileSize} MB)`;
+        const panFields = document.getElementById('pan-fields');
+        const licenseFields = document.getElementById('license-fields');
+        const voterFields = document.getElementById('voter-fields');
+        
+        let selectedIdType = null;
+        
+        // Enable Next button when ID type is selected
+        idTypeRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                selectedIdType = this.value;
+                nextToIdFieldsBtn.disabled = false;
+            });
+        });
+        
+        // Next button: Move to ID details step
+        nextToIdFieldsBtn.addEventListener('click', function() {
+            if (!selectedIdType) return;
+            
+            // Hide step 1, show step 2
+            idTypeSelectionStep.style.display = 'none';
+            idDetailsStep.style.display = 'block';
+            idDetailsStep.style.animation = 'slideIn 0.3s ease';
+            
+            // Update title
+            selectedIdTitle.textContent = `${selectedIdType} Details`;
+            
+            // Hide all ID fields
+            panFields.style.display = 'none';
+            licenseFields.style.display = 'none';
+            voterFields.style.display = 'none';
+            
+            // Disable all ID number inputs and file inputs
+            document.querySelectorAll('.id-fields input[name="kyc_number"]').forEach(input => {
+                input.disabled = true;
+            });
+            document.querySelectorAll('.id-fields input[type="file"]').forEach(input => {
+                input.disabled = true;
+            });
+            
+            // Show selected ID fields and enable inputs
+            if (selectedIdType === 'PAN Card') {
+                panFields.style.display = 'block';
+                document.getElementById('pan_number').disabled = false;
+                document.getElementById('pan_file').disabled = false;
+            } else if (selectedIdType === 'Driving License') {
+                licenseFields.style.display = 'block';
+                document.getElementById('license_number').disabled = false;
+                document.getElementById('license_file').disabled = false;
+            } else if (selectedIdType === 'Voter ID') {
+                voterFields.style.display = 'block';
+                document.getElementById('voter_number').disabled = false;
+                document.getElementById('voter_file').disabled = false;
             }
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
         
-        // Drag and drop support
-        fileUploadArea.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            this.classList.add('dragover');
+        // Back button: Return to ID type selection
+        backToIdSelectionBtn.addEventListener('click', function() {
+            idDetailsStep.style.display = 'none';
+            idTypeSelectionStep.style.display = 'block';
+            idTypeSelectionStep.style.animation = 'slideIn 0.3s ease';
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
         
-        fileUploadArea.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            this.classList.remove('dragover');
-        });
+        // File Upload Handling for each ID type
+        function setupFileUpload(fileInputId, uploadAreaId, fileNameId) {
+            const fileInput = document.getElementById(fileInputId);
+            const uploadArea = document.getElementById(uploadAreaId);
+            const fileName = document.getElementById(fileNameId);
+            
+            if (!fileInput || !uploadArea) return;
+            
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                    uploadArea.classList.add('has-file');
+                    const icon = uploadArea.querySelector('.upload-icon i');
+                    const text = uploadArea.querySelector('.upload-text');
+                    icon.className = 'fas fa-check';
+                    text.textContent = 'File selected';
+                    fileName.textContent = `${file.name} (${fileSize} MB)`;
+                }
+            });
+            
+            // Drag and drop support
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+            });
+        }
         
-        fileUploadArea.addEventListener('drop', function(e) {
-            e.preventDefault();
-            this.classList.remove('dragover');
-        });
+        // Setup file uploads for all ID types
+        setupFileUpload('pan_file', 'pan_upload_area', 'pan_file_name');
+        setupFileUpload('license_file', 'license_upload_area', 'license_file_name');
+        setupFileUpload('voter_file', 'voter_upload_area', 'voter_file_name');
         
-        // Form Submission
+        // Form Submission with Validation
         const form = document.getElementById('verificationForm');
         const submitBtn = document.getElementById('submitBtn');
         const loadingState = document.getElementById('loadingState');
         const btnText = document.getElementById('btnText');
         
-        form.addEventListener('submit', function() {
+        form.addEventListener('submit', function(e) {
+            // Check if ID type is selected
+            const selectedIdType = document.querySelector('input[name="kyc_type"]:checked');
+            if (!selectedIdType) {
+                e.preventDefault();
+                alert('Please select an ID type');
+                return false;
+            }
+            
+            // Get active ID number input and file input
+            const activeIdFields = document.querySelector('.id-fields[style*="display: block"]');
+            if (activeIdFields) {
+                const idNumberInput = activeIdFields.querySelector('input[name="kyc_number"]');
+                const fileInput = activeIdFields.querySelector('input[type="file"]');
+                
+                // Validate: must have either ID number or file
+                const hasIdNumber = idNumberInput && idNumberInput.value.trim();
+                const hasFile = fileInput && fileInput.files.length > 0;
+                
+                if (!hasIdNumber && !hasFile) {
+                    e.preventDefault();
+                    alert('Please provide either ID number or upload ID image');
+                    return false;
+                }
+            }
+            
             submitBtn.disabled = true;
             loadingState.classList.add('show');
         });
@@ -230,18 +503,38 @@
         });
         
         // Update progress steps on input
-        const inputs = document.querySelectorAll('input, textarea');
+        const inputs = document.querySelectorAll('input:not([type="radio"]):not([type="file"]), textarea');
         const steps = document.querySelectorAll('.step');
         
         function updateProgress() {
             let filledCount = 0;
-            inputs.forEach(input => {
-                if (input.value.trim() || (input.type === 'file' && input.files.length > 0)) {
+            let totalFields = 4; // name, phone, address, ID type
+            
+            // Check basic fields
+            if (document.getElementById('guest_name').value.trim()) filledCount++;
+            if (document.getElementById('phone').value.trim()) filledCount++;
+            if (document.getElementById('address').value.trim()) filledCount++;
+            
+            // Check if ID type selected and has data
+            const selectedIdType = document.querySelector('input[name="kyc_type"]:checked');
+            if (selectedIdType) {
+                // Check if we're on step 2 and have ID data
+                if (idDetailsStep.style.display !== 'none') {
+                    const activeIdFields = document.querySelector('.id-fields[style*="display: block"]');
+                    if (activeIdFields) {
+                        const idNumberInput = activeIdFields.querySelector('input[name="kyc_number"]');
+                        const fileInput = activeIdFields.querySelector('input[type="file"]');
+                        if ((idNumberInput && idNumberInput.value.trim()) || (fileInput && fileInput.files.length > 0)) {
+                            filledCount++;
+                        }
+                    }
+                } else {
+                    // Just selected ID type, count it
                     filledCount++;
                 }
-            });
+            }
             
-            const progress = Math.floor((filledCount / inputs.length) * 3);
+            const progress = Math.floor((filledCount / totalFields) * 3);
             steps.forEach((step, index) => {
                 step.classList.toggle('active', index <= progress);
             });
@@ -250,6 +543,10 @@
         inputs.forEach(input => {
             input.addEventListener('input', updateProgress);
             input.addEventListener('change', updateProgress);
+        });
+        
+        idTypeRadios.forEach(radio => {
+            radio.addEventListener('change', updateProgress);
         });
     </script>
 </body>

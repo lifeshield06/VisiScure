@@ -64,6 +64,11 @@ def dashboard():
     preparing_orders = [o for o in all_orders if o['order_status'] == 'PREPARING']
     completed_orders = [o for o in all_orders if o['order_status'] == 'COMPLETED']
     
+    # Debug logging
+    print(f"[WAITER DASHBOARD] waiter_id={waiter_id}, hotel_id={hotel_id}")
+    print(f"[WAITER DASHBOARD] Assigned tables: {[t.get('table_number') for t in assigned_tables]}")
+    print(f"[WAITER DASHBOARD] Active orders: {len(active_orders)}, Preparing: {len(preparing_orders)}, Completed: {len(completed_orders)}")
+    
     # Use mobile template
     return render_template('waiter_dashboard_mobile.html',
                          waiter_id=waiter_id,

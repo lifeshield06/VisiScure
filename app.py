@@ -1,6 +1,9 @@
 import os
 import mysql.connector
+from datetime import datetime, date
+from decimal import Decimal
 from flask import Flask, render_template, request, jsonify
+from flask.json.provider import DefaultJSONProvider
 from mysql.connector import Error
 from hotel_manager import hotel_manager_bp
 from admin import admin_bp
@@ -9,7 +12,24 @@ from menu import menu_bp
 from orders import orders_bp
 from flask import redirect, url_for
 
+
+class CustomJSONProvider(DefaultJSONProvider):
+    """Custom JSON provider to handle datetime and Decimal serialization consistently"""
+    
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            # Return ISO format string for consistent parsing in JavaScript
+            return obj.strftime('%Y-%m-%dT%H:%M:%S')
+        if isinstance(obj, date):
+            return obj.strftime('%Y-%m-%d')
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
+
+
 app = Flask(__name__)
+app.json_provider_class = CustomJSONProvider
+app.json = CustomJSONProvider(app)
 app.secret_key = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 
 # Register blueprints
@@ -23,6 +43,10 @@ app.register_blueprint(orders_bp, url_prefix='/orders')
 from waiter import waiter_bp
 app.register_blueprint(waiter_bp, url_prefix='/waiter')
 
+# Import and register kitchen blueprint
+from kitchen import kitchen_bp
+app.register_blueprint(kitchen_bp, url_prefix='/kitchen')
+
 # Import and register wallet blueprint
 from wallet import wallet_bp
 app.register_blueprint(wallet_bp)
@@ -33,7 +57,7 @@ def get_db_connection():
         host=os.getenv("MYSQL_HOST", "localhost"),
         port=int(os.getenv("MYSQL_PORT", "3306")),
         user=os.getenv("MYSQL_USER", "root"),
-        password=os.getenv("MYSQL_PASSWORD", "mysql123"),
+        password=os.getenv("MYSQL_PASSWORD", "Dattu@1234"),
         database=os.getenv("MYSQL_DATABASE", "test"),
     )
 

@@ -82,8 +82,8 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="dish-quantity">Quantity *</label>
-                    <input type="text" id="dish-quantity" name="quantity" required placeholder="e.g., 100ml, 250gm, 1 plate, 2 pcs">
+                    <label for="dish-quantity">Quantity</label>
+                    <input type="text" id="dish-quantity" name="quantity" placeholder="e.g., 100ml, 250gm, 1 plate, 2 pcs">
                     <small>You can enter text like "100ml", "250gm", "1 plate", "2 pcs", etc.</small>
                 </div>
                 
@@ -93,7 +93,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="dish-images">Upload Images (Max 3) *</label>
+                    <label for="dish-images">Upload Images (Optional – Max 3)</label>
                     <input type="file" id="dish-images" name="images" multiple accept="image/*">
                     <div id="image-selection-info" class="image-info"></div>
                     <small>Hold Ctrl and click to select multiple images. Supported formats: PNG, JPG, JPEG, GIF</small>
@@ -312,7 +312,6 @@
             document.getElementById('dish-form').reset();
             document.getElementById('dish-id').value = '';
             document.getElementById('category-id').value = currentCategoryId;
-            document.getElementById('dish-images').setAttribute('required', 'required');
             updateImageSelectionInfo([]);
             document.getElementById('dish-modal').style.display = 'flex';
         }

@@ -3,10 +3,27 @@ from flask import jsonify, request, render_template, url_for, session
 from werkzeug.utils import secure_filename
 from . import menu_bp
 from .models import MenuCategory, MenuDish
+from database.db import get_db_connection
 
 # Upload configuration
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def log_menu_activity(activity_type, message, hotel_id=None):
+    """Log menu-related activity with role='manager'"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO recent_activities (activity_type, message, hotel_id, role) VALUES (%s, %s, %s, %s)",
+            (activity_type, message, hotel_id, 'manager')
+        )
+        conn.commit()
+        print(f"[MENU ACTIVITY LOGGED] type={activity_type}, hotel_id={hotel_id}, role=manager")
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"[MENU ACTIVITY ERROR] {e}")
 
 def check_food_module():
     """Check if food module is enabled for this manager's hotel"""
@@ -43,8 +60,14 @@ def build_image_urls(images):
     # Handle both comma-separated string and list
     if isinstance(images, str):
         images = [img.strip() for img in images.split(',') if img.strip()]
+    else:
+        # Filter out empty strings from list
+        images = [img.strip() if isinstance(img, str) else img for img in images if img and (not isinstance(img, str) or img.strip())]
     
     for img in images:
+        # Skip empty strings
+        if not img or (isinstance(img, str) and not img.strip()):
+            continue
         upload_path = os.path.join(UPLOAD_FOLDER, img)
         if os.path.exists(upload_path):
             urls.append(url_for('static', filename=f'uploads/{img}'))
@@ -52,11 +75,37 @@ def build_image_urls(images):
 
 def format_dish(dish_row):
     """Format a dish database row into the expected dictionary format"""
-    images = dish_row.get('images', '') or ''
-    if isinstance(images, str):
-        images_list = [img.strip() for img in images.split(',') if img.strip()]
+    images = dish_row.get('images', None)
+    
+    # Handle all possible image formats and filter empty values
+    if images is None or images == '' or images == 'null':
+        images_list = []
+    elif isinstance(images, str):
+        # Try JSON parsing first
+        try:
+            import json
+            parsed = json.loads(images)
+            if isinstance(parsed, list):
+                images_list = [img.strip() for img in parsed if img and isinstance(img, str) and img.strip()]
+            else:
+                images_list = []
+        except:
+            # Fallback to comma-separated
+            images_list = [img.strip() for img in images.split(',') if img.strip()]
+    elif isinstance(images, list):
+        # Filter out empty/None values from list
+        images_list = [img.strip() if isinstance(img, str) else str(img) for img in images if img and (not isinstance(img, str) or img.strip())]
     else:
-        images_list = images if images else []
+        images_list = []
+    
+    # Final validation - ensure no empty strings
+    images_list = [img for img in images_list if img and img.strip()]
+    
+    # DEDUPLICATE - remove any duplicate image filenames while preserving order
+    images_list = list(dict.fromkeys(images_list))
+    
+    # Build URLs only if we have valid images
+    image_urls = build_image_urls(images_list) if images_list else []
     
     return {
         "id": dish_row['id'],
@@ -65,7 +114,7 @@ def format_dish(dish_row):
         "quantity": dish_row['quantity'],
         "description": dish_row.get('description', ''),
         "images": images_list,
-        "image_urls": build_image_urls(images_list),
+        "image_urls": image_urls,
         "category_id": dish_row.get('category_id')
     }
 
@@ -113,7 +162,7 @@ def add_dish():
         category_id = int(request.form.get("category_id", 0))
         name = request.form.get("name", "").strip()
         price_str = request.form.get("price", "0").strip()
-        quantity_str = request.form.get("quantity", "0").strip()
+        quantity_str = request.form.get("quantity", "").strip()
         description = request.form.get("description", "").strip()
         
         # Validation
@@ -125,12 +174,11 @@ def add_dish():
         except ValueError:
             return jsonify({"success": False, "message": "Invalid price format"})
             
-        quantity = quantity_str.strip() if quantity_str else "0"
+        # Quantity is optional - use as-is or empty string
+        quantity = quantity_str if quantity_str else ""
         
         if price <= 0:
             return jsonify({"success": False, "message": "Price must be greater than 0"})
-        if not quantity:
-            return jsonify({"success": False, "message": "Quantity is required"})
         
         # Verify category exists for this hotel
         categories = MenuCategory.get_categories_by_hotel(hotel_id)
@@ -191,6 +239,7 @@ def add_dish():
             "image_urls": build_image_urls(images)
         }
         
+        log_menu_activity('menu', f"Dish '{name}' added to menu (₹{price})", hotel_id)
         return jsonify({"success": True, "message": "Dish added successfully", "dish": new_dish})
         
     except Exception as e:
@@ -230,23 +279,41 @@ def edit_dish():
         if not existing_dish:
             return jsonify({"success": False, "message": "Dish not found"})
         
+        # Get existing images - already a list from get_dish_by_id()
+        existing_images = existing_dish.get('images', [])
+        if isinstance(existing_images, str):
+            existing_images = [img.strip() for img in existing_images.split(',') if img.strip()]
+        # Deduplicate existing images
+        existing_images = list(dict.fromkeys(existing_images))  # Preserve order, remove duplicates
+        existing_image_count = len(existing_images)
+        
         # Handle new image uploads
         uploaded_files = request.files.getlist('images')
         valid_files = [f for f in uploaded_files if f and f.filename and f.filename.strip()]
         
         if valid_files:
-            if len(valid_files) > 3:
-                return jsonify({"success": False, "message": "Maximum 3 images allowed"})
+            # Check if new uploads would exceed limit
+            remaining_slots = 3 - existing_image_count
+            if len(valid_files) > remaining_slots:
+                return jsonify({
+                    "success": False, 
+                    "message": f"Cannot upload {len(valid_files)} images. You have {existing_image_count} existing image(s) and can only add {remaining_slots} more. (Max 3)"
+                })
             
+            if len(valid_files) + existing_image_count > 3:
+                return jsonify({"success": False, "message": "Total images cannot exceed 3"})
+            
+            # Add new images to existing ones
             new_images = []
             for file in valid_files:
                 saved_filename = save_uploaded_file(file, dish_id)
-                if saved_filename:
+                if saved_filename and saved_filename not in existing_images:
                     new_images.append(saved_filename)
-            images_list = new_images
+            # Combine and deduplicate
+            images_list = list(dict.fromkeys(existing_images + new_images))
         else:
             # Keep existing images (already a list from the model)
-            images_list = existing_dish.get('images', [])
+            images_list = existing_images
         
         # Update dish
         success = MenuDish.update_dish(
@@ -262,6 +329,7 @@ def edit_dish():
         if success:
             # Get updated dish for response
             updated_dish = MenuDish.get_dish_by_id(dish_id, hotel_id)
+            log_menu_activity('menu', f"Dish '{name}' was updated", hotel_id)
             return jsonify({"success": True, "message": "Dish updated successfully", "dish": format_dish(updated_dish)})
         else:
             return jsonify({"success": False, "message": "Failed to update dish"})
@@ -282,8 +350,87 @@ def delete_dish():
         
         dish_id = int(data.get("dish_id", 0))
         
+        # Get dish name before deletion for logging
+        dish = MenuDish.get_dish_by_id(dish_id, hotel_id)
+        dish_name = dish.get('name', 'Unknown') if dish else 'Unknown'
+        
         result = MenuDish.delete_dish(dish_id, hotel_id)
+        
+        if result.get('success'):
+            log_menu_activity('menu', f"Dish '{dish_name}' was deleted", hotel_id)
+        
         return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Server error: {str(e)}"})
+
+@menu_bp.route("/api/delete-dish-image", methods=["POST"])
+def delete_dish_image():
+    """Delete a specific image from a dish using image filename"""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({"success": False, "message": "Hotel not found"}), 400
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "No data provided"})
+        
+        dish_id = int(data.get("dish_id", 0))
+        image_filename = data.get("image_filename", "").strip()
+        
+        if dish_id <= 0 or not image_filename:
+            return jsonify({"success": False, "message": "Invalid dish or image"})
+        
+        # Get existing dish and verify ownership
+        existing_dish = MenuDish.get_dish_by_id(dish_id, hotel_id)
+        if not existing_dish:
+            return jsonify({"success": False, "message": "Dish not found or access denied"})
+        
+        # Get existing images
+        existing_images = existing_dish.get('images', [])
+        if isinstance(existing_images, str):
+            existing_images = [img.strip() for img in existing_images.split(',') if img.strip()]
+        
+        # Find and remove the image by filename
+        if image_filename not in existing_images:
+            return jsonify({"success": False, "message": "Image not found in dish"})
+        
+        existing_images.remove(image_filename)
+        
+        # Update dish with new image list
+        success = MenuDish.update_dish(
+            dish_id=dish_id,
+            name=existing_dish['name'],
+            price=existing_dish['price'],
+            quantity=existing_dish['quantity'],
+            description=existing_dish.get('description', ''),
+            images=existing_images,
+            hotel_id=hotel_id
+        )
+        
+        if success:
+            # Delete the actual file from disk
+            try:
+                file_path = os.path.join(UPLOAD_FOLDER, image_filename)
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception as file_error:
+                print(f"Warning: Could not delete image file: {file_error}")
+            
+            # Get updated dish for response
+            updated_dish = MenuDish.get_dish_by_id(dish_id, hotel_id)
+            remaining_count = len(existing_images)
+            
+            log_menu_activity('menu', f"Image removed from dish '{existing_dish['name']}'", hotel_id)
+            return jsonify({
+                "success": True, 
+                "message": "Image removed successfully",
+                "remaining_images": remaining_count,
+                "dish": format_dish(updated_dish)
+            })
+        else:
+            return jsonify({"success": False, "message": "Failed to update dish"})
         
     except Exception as e:
         return jsonify({"success": False, "message": f"Server error: {str(e)}"})
@@ -313,6 +460,7 @@ def add_category():
         result = MenuCategory.add_category(hotel_id, name)  # hotel_id first
         
         if result.get("success"):
+            log_menu_activity('menu', f"Category '{name}' was created", hotel_id)
             return jsonify({
                 "success": True, 
                 "message": f"Category '{name}' added successfully", 
@@ -355,6 +503,7 @@ def edit_category():
         result = MenuCategory.update_category(category_id, name, hotel_id)
         
         if result.get("success"):
+            log_menu_activity('menu', f"Category updated to '{name}'", hotel_id)
             return jsonify({
                 "success": True, 
                 "message": f"Category updated to '{name}' successfully", 
@@ -400,6 +549,7 @@ def delete_category():
         result = MenuCategory.delete_category(category_id, hotel_id)
         
         if result.get("success"):
+            log_menu_activity('menu', f"Category '{category_name}' deleted ({dishes_count} dishes)", hotel_id)
             return jsonify({
                 "success": True, 
                 "message": f"Category '{category_name}' and {dishes_count} dish(es) deleted successfully"

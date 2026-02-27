@@ -58,6 +58,11 @@
                     <span id="tablesCount">{{ tables|length }}</span>
                     <label>Tables</label>
                 </div>
+                <div class="stat-pill" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
+                    <i class="fas fa-hand-holding-heart"></i>
+                    <span id="todayTipsCount">₹0</span>
+                    <label>Today's Tips</label>
+                </div>
             </div>
 
             <!-- My Tables Section -->
@@ -331,7 +336,8 @@
             await Promise.all([
                 loadActiveOrders(),
                 loadPreparingOrders(),
-                loadCompletedOrders()
+                loadCompletedOrders(),
+                loadTipStatistics()
             ]);
         }
 
@@ -381,6 +387,21 @@
                 }
             } catch (error) {
                 console.error('Error loading completed orders:', error);
+            }
+        }
+        
+        async function loadTipStatistics() {
+            try {
+                const waiterId = {{ waiter_id }};
+                const response = await fetch(`/orders/api/tip-statistics/waiter/${waiterId}?period=today`);
+                const data = await response.json();
+                
+                if (data.success && data.statistics) {
+                    const totalTips = data.statistics.total_tips || 0;
+                    document.getElementById('todayTipsCount').textContent = `₹${Math.round(totalTips)}`;
+                }
+            } catch (error) {
+                console.error('Error loading tip statistics:', error);
             }
         }
 

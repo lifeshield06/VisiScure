@@ -232,8 +232,29 @@ class OrderService:
             # Calculate total
             total_amount = sum(item['price'] * item['quantity'] for item in items)
             
-            # Add ACTIVE order with guest_name
-            order_id, error_message = TableOrder.add_order(table_id, session_id, items, total_amount, hotel_id, guest_name)
+            # Get assigned waiter_id - check both tables.waiter_id AND waiter_table_assignments
+            waiter_id = table.get('waiter_id')
+            
+            # If no direct waiter_id, check waiter_table_assignments table
+            if not waiter_id:
+                from database.db import get_db_connection
+                try:
+                    conn = get_db_connection()
+                    cur = conn.cursor(dictionary=True)
+                    cur.execute("""
+                        SELECT waiter_id FROM waiter_table_assignments 
+                        WHERE table_id = %s LIMIT 1
+                    """, (table_id,))
+                    assignment = cur.fetchone()
+                    if assignment:
+                        waiter_id = assignment.get('waiter_id')
+                    cur.close()
+                    conn.close()
+                except Exception as e:
+                    print(f"Error fetching waiter assignment: {e}")
+            
+            # Add ACTIVE order with guest_name and waiter_id from assigned table waiter
+            order_id, error_message = TableOrder.add_order(table_id, session_id, items, total_amount, hotel_id, guest_name, waiter_id)
             if not order_id:
                 if error_message:
                     return {"success": False, "message": f"Failed to create order: {error_message}"}

@@ -1199,6 +1199,127 @@ body {
     font-size: 0.85rem;
 }
 
+/* Tip Section Styles */
+.tip-section {
+    margin: 1.5rem 0;
+    padding: 1.25rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 2px dashed #cbd5e1;
+}
+
+.tip-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: var(--dark);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.tip-header i {
+    color: #f59e0b;
+    font-size: 1.1rem;
+}
+
+.tip-custom {
+    margin-bottom: 0.75rem;
+}
+
+.tip-custom label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--gray);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.tip-custom label i {
+    color: #f59e0b;
+}
+
+.tip-custom input {
+    width: 100%;
+    padding: 0.875rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--dark);
+    transition: all 0.2s ease;
+}
+
+.tip-custom input:focus {
+    outline: none;
+    border-color: #f59e0b;
+    background: #fffbeb;
+}
+
+.tip-selected {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: #fef3c7;
+    border-radius: 8px;
+    color: #92400e;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.tip-selected i {
+    color: #f59e0b;
+}
+
+/* Payment Total Breakdown */
+.payment-total {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    font-size: 0.95rem;
+    color: var(--gray);
+}
+
+.total-row.tip-row {
+    color: #f59e0b;
+    font-weight: 600;
+}
+
+.total-row.grand-total-row {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 2px solid #e2e8f0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.payment-method-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: var(--dark);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.payment-method-label i {
+    color: var(--primary);
+}
+
 /* ===========================================
    PAYMENT SUCCESS MODAL
    =========================================== */

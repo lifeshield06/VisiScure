@@ -146,11 +146,59 @@
             <button class="payment-close-btn" onclick="closePaymentModal()">&times;</button>
             <div class="payment-header">
                 <i class="fas fa-credit-card"></i>
-                <h2>Select Payment Method</h2>
+                <h2>Complete Payment</h2>
             </div>
             <div class="payment-amount">
-                <span>Amount to Pay</span>
-                <span class="amount" id="payment-amount">₹0.00</span>
+                <span>Bill Amount</span>
+                <span class="amount" id="payment-bill-amount">₹0.00</span>
+            </div>
+            
+            <!-- Tip Section -->
+            <div class="tip-section">
+                <div class="tip-header">
+                    <i class="fas fa-hand-holding-heart"></i>
+                    <span>Add Tip for Waiter (Optional)</span>
+                </div>
+                <div class="tip-custom">
+                    <label for="custom-tip-input">
+                        <i class="fas fa-edit"></i> Enter Tip Amount
+                    </label>
+                    <input type="number" 
+                           id="custom-tip-input" 
+                           placeholder="Enter amount (₹0 for no tip)" 
+                           min="0" 
+                           step="10"
+                           value="0"
+                           oninput="selectCustomTip(this.value)">
+                </div>
+                <div class="tip-selected" id="tip-selected-display" style="display: none;">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Tip: ₹<span id="selected-tip-amount">0</span></span>
+                </div>
+            </div>
+            
+            <!-- Total with Tip -->
+            <div class="payment-total">
+                <div class="total-row">
+                    <span>Subtotal</span>
+                    <span id="payment-subtotal">₹0.00</span>
+                </div>
+                <div class="total-row">
+                    <span id="payment-tax-label">Tax (%)</span>
+                    <span id="payment-tax">₹0.00</span>
+                </div>
+                <div class="total-row tip-row" id="payment-tip-row" style="display: none;">
+                    <span>Tip</span>
+                    <span id="payment-tip-amount">₹0.00</span>
+                </div>
+                <div class="total-row grand-total-row">
+                    <span>Grand Total</span>
+                    <span id="payment-grand-total">₹0.00</span>
+                </div>
+            </div>
+            
+            <div class="payment-method-label">
+                <i class="fas fa-wallet"></i> Select Payment Method
             </div>
             <div class="payment-options">
                 <button class="payment-option" onclick="processPayment('CASH')">
@@ -166,7 +214,6 @@
                     <span>UPI</span>
                 </button>
             </div>
-            <p class="payment-note">Select how you'd like to pay</p>
         </div>
     </div>
 
@@ -330,6 +377,22 @@
         let currentBillTotal = 0;
         let menuData = [];
         let viewOnlyMode = false; // Track if guest is in view-only mode
+        
+        // Consistent date/time formatting utility
+        function formatDateTime(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            return date.toLocaleString('en-IN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+        }
         
         // ALWAYS require name entry on page load (strict rule)
         function checkGuestName() {
@@ -742,7 +805,7 @@
                     </div>
                 `
                 : `
-                    <button class="add-btn" onclick="addToCart('${escapedName}', ${dish.price})">
+                    <button class="add-btn" onclick="addToCart(${dish.id}, '${escapedName}', ${dish.price})">
                         <i class="fas fa-plus"></i> Add
                     </button>
                 `;
@@ -765,7 +828,7 @@
             `;
         }
         
-        function addToCart(itemName, price) {
+        function addToCart(dishId, itemName, price) {
             // Check if in view-only mode
             if (viewOnlyMode) {
                 showViewOnlyAlert();
@@ -784,6 +847,7 @@
                 existingItem.quantity += 1;
             } else {
                 cart.push({
+                    id: dishId,  // ← CRITICAL: Include dish ID for kitchen routing
                     name: itemName,
                     price: price,
                     quantity: 1
@@ -845,7 +909,7 @@
                     </div>
                 `
                 : `
-                    <button class="add-btn" onclick="addToCart('${escapedName}', ${dish.price})">
+                    <button class="add-btn" onclick="addToCart(${dish.id}, '${escapedName}', ${dish.price})">
                         <i class="fas fa-plus"></i> Add
                     </button>
                 `;
@@ -1070,6 +1134,7 @@
             
             const specialName = currentDailySpecial.menu_name;
             const specialPrice = parseFloat(currentDailySpecial.price);
+            const specialId = currentDailySpecial.menu_id;  // Get dish ID from daily special
             
             // Add to cart using existing addToCart logic
             const existingItem = cart.find(item => item.name === specialName);
@@ -1078,6 +1143,7 @@
                 existingItem.quantity += 1;
             } else {
                 cart.push({
+                    id: specialId,  // ← Include dish ID
                     name: specialName,
                     price: specialPrice,
                     quantity: 1
@@ -1339,7 +1405,7 @@
             document.getElementById('bill-number').textContent = bill.order_count > 1 ? `Session (${bill.order_count} orders)` : 'Order Bill';
             document.getElementById('bill-guest-name').textContent = bill.guest_name || guestName || 'Guest';
             document.getElementById('bill-table-number').textContent = bill.table_number;
-            document.getElementById('bill-date').textContent = new Date(bill.created_at).toLocaleString();
+            document.getElementById('bill-date').textContent = formatDateTime(bill.created_at);
             
             // Render items
             const itemsContainer = document.getElementById('bill-items');
@@ -1395,9 +1461,75 @@
         }
         
         // Payment Functions
+        let selectedTipAmount = 0;
+        let billSubtotal = 0;
+        let billTaxAmount = 0;
+        
         function showPaymentOptions() {
-            document.getElementById('payment-amount').textContent = `₹${parseFloat(currentBillTotal).toFixed(2)}`;
-            document.getElementById('payment-modal').classList.add('show');
+            // Get current bill details
+            fetch(`/orders/api/table-bill/${tableId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.bill) {
+                        const bill = data.bill;
+                        billSubtotal = parseFloat(bill.subtotal || 0);
+                        billTaxAmount = parseFloat(bill.tax_amount || 0);
+                        const billTaxRate = parseFloat(bill.tax_rate || 5.0);
+                        const billTotal = billSubtotal + billTaxAmount;
+                        
+                        // Update payment modal with bill details (including dynamic GST rate)
+                        document.getElementById('payment-bill-amount').textContent = `₹${billTotal.toFixed(2)}`;
+                        document.getElementById('payment-subtotal').textContent = `₹${billSubtotal.toFixed(2)}`;
+                        document.getElementById('payment-tax').textContent = `₹${billTaxAmount.toFixed(2)}`;
+                        document.getElementById('payment-tax-label').textContent = `Tax (${billTaxRate}%)`;
+                        document.getElementById('payment-grand-total').textContent = `₹${billTotal.toFixed(2)}`;
+                        
+                        // Reset tip selection
+                        selectedTipAmount = 0;
+                        document.getElementById('custom-tip-input').value = '0';
+                        document.getElementById('tip-selected-display').style.display = 'none';
+                        document.getElementById('payment-tip-row').style.display = 'none';
+                        
+                        document.getElementById('payment-modal').classList.add('show');
+                    } else {
+                        alert('Unable to load bill details');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading bill:', error);
+                    alert('Error loading bill details');
+                });
+        }
+        
+        function selectCustomTip(value) {
+            const amount = parseFloat(value) || 0;
+            
+            // Validate: must be non-negative
+            if (amount < 0) {
+                document.getElementById('custom-tip-input').value = 0;
+                selectedTipAmount = 0;
+            } else {
+                selectedTipAmount = amount;
+            }
+            
+            updateTotalWithTip();
+        }
+        
+        function updateTotalWithTip() {
+            const grandTotal = billSubtotal + billTaxAmount + selectedTipAmount;
+            
+            // Update display
+            document.getElementById('payment-grand-total').textContent = `₹${grandTotal.toFixed(2)}`;
+            
+            if (selectedTipAmount > 0) {
+                document.getElementById('payment-tip-row').style.display = 'flex';
+                document.getElementById('payment-tip-amount').textContent = `₹${selectedTipAmount.toFixed(2)}`;
+                document.getElementById('tip-selected-display').style.display = 'flex';
+                document.getElementById('selected-tip-amount').textContent = selectedTipAmount.toFixed(0);
+            } else {
+                document.getElementById('payment-tip-row').style.display = 'none';
+                document.getElementById('tip-selected-display').style.display = 'none';
+            }
         }
         
         function closePaymentModal() {
@@ -1417,7 +1549,8 @@
                     table_id: tableId,
                     session_id: sessionId,
                     guest_name: guestName,
-                    payment_method: method
+                    payment_method: method,
+                    tip_amount: selectedTipAmount  // Include tip in payment
                 })
             })
             .then(response => response.json())

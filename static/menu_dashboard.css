@@ -101,16 +101,6 @@
     box-shadow: 0 4px 15px rgba(8, 145, 178, 0.3);
 }
 
-.menu-tabs .full-menu-tab {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-    color: white;
-}
-
-.menu-tabs .full-menu-tab:hover {
-    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-    transform: translateY(-1px);
-}
-
 .menu-tabs .add-tab {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
@@ -337,39 +327,34 @@
     margin-bottom: 1.5rem;
 }
 
-/* Full Menu View Styles */
-.full-menu-view {
-    margin-top: 1rem;
-}
-
 .menu-book {
     background: #f8fafc;
     border-radius: 12px;
-    padding: 2rem;
+    padding: 1.25rem;
 }
 
 .menu-category {
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
 }
 
 .category-header {
     color: #2d3748;
-    font-size: 1.8rem;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.5rem;
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.4rem;
     border-bottom: 3px solid #667eea;
     display: inline-block;
 }
 
 .category-dishes {
     display: grid;
-    gap: 1.5rem;
+    gap: 0.75rem;
 }
 
 .menu-item {
     background: white;
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 0.85rem;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     transition: all 0.3s ease;
 }
@@ -381,13 +366,13 @@
 
 .menu-item-content {
     display: flex;
-    gap: 1.5rem;
+    gap: 0.85rem;
     align-items: flex-start;
 }
 
 .menu-item-image {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
     border-radius: 8px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     display: flex;
@@ -405,13 +390,13 @@
 .menu-item-image .image-placeholder {
     color: white;
     text-align: center;
-    font-size: 0.8rem;
+    font-size: 0.65rem;
 }
 
 .menu-item-image .image-placeholder i {
     display: block;
-    font-size: 1.5rem;
-    margin-bottom: 0.3rem;
+    font-size: 1.1rem;
+    margin-bottom: 0.15rem;
 }
 
 .menu-item-details {
@@ -422,31 +407,32 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .menu-item .dish-name {
-    font-size: 1.2rem;
+    font-size: 0.95rem;
     color: #2d3748;
     margin: 0;
 }
 
 .menu-item .dish-price {
-    font-size: 1.3rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #667eea;
 }
 
 .menu-item .dish-description {
     color: #718096;
-    line-height: 1.5;
-    margin: 0.5rem 0 1rem 0;
+    line-height: 1.35;
+    margin: 0.25rem 0 0.5rem 0;
+    font-size: 0.8rem;
 }
 
 .dish-meta {
     display: flex;
-    gap: 1rem;
-    font-size: 0.9rem;
+    gap: 0.75rem;
+    font-size: 0.75rem;
     color: #4a5568;
 }
 
@@ -801,6 +787,244 @@
     margin-top: 0.25rem;
 }
 
+/* Existing Images Info (Edit Mode) */
+.existing-images-info {
+    margin-bottom: 1rem;
+}
+
+.existing-images-count {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.image-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    width: fit-content;
+}
+
+.image-count-badge i {
+    font-size: 0.9rem;
+}
+
+.image-remaining-info {
+    color: #059669;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding-left: 0.25rem;
+}
+
+.image-limit-reached {
+    color: #dc2626;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding-left: 0.25rem;
+    background: #fef2f2;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid #fecaca;
+}
+
+.image-limit-reached i {
+    color: #dc2626;
+}
+
+/* Existing Images Section (Edit Mode with Remove) */
+.existing-images-section {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+}
+
+.existing-images-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.existing-images-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.existing-image-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.existing-image-item:hover {
+    border-color: #cbd5e1;
+    background: #fafafa;
+}
+
+.image-item-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #475569;
+    font-weight: 500;
+}
+
+.image-item-name i {
+    color: #667eea;
+    font-size: 1rem;
+}
+
+.btn-remove-image {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-remove-image:hover {
+    background: #fee2e2;
+    border-color: #f87171;
+    transform: translateY(-1px);
+}
+
+.btn-remove-image:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-remove-image i {
+    font-size: 0.75rem;
+}
+
+/* ===========================================
+   IMAGE THUMBNAIL GRID STYLES
+   =========================================== */
+
+.existing-images-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.image-thumbnail-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.image-thumbnail-box {
+    width: 100px;
+    height: 100px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border: 2px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.image-thumbnail-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-thumbnail-box i {
+    font-size: 2rem;
+    color: #94a3b8;
+}
+
+.image-thumbnail-container:hover .image-thumbnail-box {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-delete-thumbnail {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #ef4444;
+    color: white;
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+.btn-delete-thumbnail:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+.btn-delete-thumbnail:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.image-thumbnail-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* Disabled file input styling */
+#dish-images:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f1f5f9;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .menu-container {
@@ -878,23 +1102,60 @@
     
     .menu-item-content {
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.6rem;
     }
     
     .menu-item-image {
         width: 100%;
-        height: 120px;
+        height: 100px;
     }
     
     .menu-item-header {
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.3rem;
         align-items: flex-start;
     }
     
     .selected-images {
         flex-direction: column;
         gap: 0.25rem;
+    }
+    
+    /* Existing Images List Responsive */
+    .existing-image-item {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .image-item-name {
+        font-size: 0.85rem;
+    }
+    
+    .btn-remove-image {
+        padding: 0.35rem 0.6rem;
+        font-size: 0.75rem;
+    }
+    
+    /* Thumbnail Grid Responsive */
+    .existing-images-grid {
+        gap: 0.75rem;
+        justify-content: center;
+    }
+    
+    .image-thumbnail-box {
+        width: 85px;
+        height: 85px;
+    }
+    
+    .btn-delete-thumbnail {
+        width: 24px;
+        height: 24px;
+        top: -6px;
+        right: -6px;
+        font-size: 0.7rem;
+    }
+    
+    .image-thumbnail-label {
+        font-size: 0.7rem;
     }
     
     .slider-nav {
@@ -976,14 +1237,42 @@
     }
     
     .category-header {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
     }
     
     .menu-item .dish-name {
-        font-size: 1.1rem;
+        font-size: 0.85rem;
     }
     
     .menu-item .dish-price {
-        font-size: 1.2rem;
+        font-size: 0.95rem;
+    }
+    
+    .menu-book {
+        padding: 0.85rem;
+    }
+    
+    .menu-item {
+        padding: 0.7rem;
+    }
+    
+    /* Thumbnail grid mobile */
+    .existing-images-grid {
+        gap: 0.5rem;
+    }
+    
+    .image-thumbnail-box {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .btn-delete-thumbnail {
+        width: 20px;
+        height: 20px;
+        font-size: 0.65rem;
+    }
+    
+    .image-thumbnail-label {
+        font-size: 0.55rem;
     }
 }

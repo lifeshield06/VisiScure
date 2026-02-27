@@ -10,13 +10,23 @@ admin_bp = Blueprint("admin", __name__)
 # =========================
 
 def log_activity(activity_type, message):
-    """Reusable function to log activities safely"""
+    """Reusable function to log admin activities safely with role='admin'"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # Ensure role column exists
+        try:
+            cursor.execute("SHOW COLUMNS FROM recent_activities LIKE 'role'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE recent_activities ADD COLUMN role VARCHAR(20) DEFAULT 'admin'")
+                conn.commit()
+        except Exception:
+            pass
+        
         cursor.execute(
-            "INSERT INTO recent_activities (activity_type, message) VALUES (%s, %s)",
-            (activity_type, message)
+            "INSERT INTO recent_activities (activity_type, message, role) VALUES (%s, %s, %s)",
+            (activity_type, message, 'admin')
         )
         conn.commit()
         cursor.close()
@@ -308,12 +318,8 @@ def api_delete_hotel():
         # 4. Delete waiters for this hotel
         cursor.execute("DELETE FROM waiters WHERE hotel_id = %s", (hotel_id,))
 
-        # 5. Delete menu items for this hotel (via menu_categories)
-        cursor.execute("""
-            DELETE mi FROM menu_items mi
-            JOIN menu_categories mc ON mi.category_id = mc.id
-            WHERE mc.hotel_id = %s
-        """, (hotel_id,))
+        # 5. Delete menu dishes for this hotel (before categories due to FK)
+        cursor.execute("DELETE FROM menu_dishes WHERE hotel_id = %s", (hotel_id,))
 
         # 6. Delete menu categories for this hotel
         cursor.execute("DELETE FROM menu_categories WHERE hotel_id = %s", (hotel_id,))
@@ -376,6 +382,7 @@ def edit_hotel_modules(hotel_id):
         conn.commit()
         conn.close()
 
+        log_activity('hotel', f"Hotel modules updated for '{hotel[0]}'")
         flash("Hotel modules updated", "success")
         return redirect(url_for("admin.all_hotels"))
 
@@ -409,8 +416,8 @@ def delete_hotel(hotel_id):
         cursor.execute("DELETE FROM hotel_managers WHERE hotel_id = %s", (hotel_id,))
         cursor.execute("DELETE FROM hotel_modules WHERE hotel_id = %s", (hotel_id,))
         cursor.execute("DELETE FROM kyc_verifications WHERE hotel_id = %s", (hotel_id,))
-        cursor.execute("DELETE FROM menu_categories WHERE hotel_id = %s", (hotel_id,))
         cursor.execute("DELETE FROM menu_dishes WHERE hotel_id = %s", (hotel_id,))
+        cursor.execute("DELETE FROM menu_categories WHERE hotel_id = %s", (hotel_id,))
         cursor.execute("DELETE FROM waiters WHERE hotel_id = %s", (hotel_id,))
         
         # Delete the hotel
@@ -457,14 +464,20 @@ def add_manager():
     hotels = cursor.fetchall()
 
     if request.method == "POST":
-        name = request.form["name"]
-        email = request.form["email"]
-        username = request.form["username"]
+        name = request.form["name"].strip()
+        email = request.form["email"].strip().lower()
+        username = request.form["username"].strip()
         password = request.form["password"]
         hotel_id = request.form["hotel_id"]
+        
+        # Validate email format
+        if '@' not in email or '.' not in email.split('@')[-1]:
+            flash("Invalid email format!", "error")
+            conn.close()
+            return render_template("admin/add_manager.html", hotels=hotels)
 
         try:
-            # Insert manager
+            # Insert manager (email already normalized to lowercase)
             cursor.execute(
                 """
                 INSERT INTO managers (name, email, username, password)
@@ -523,11 +536,22 @@ def edit_manager(manager_id):
     cursor = conn.cursor()
     
     if request.method == "POST":
-        name = request.form["name"]
-        email = request.form["email"]
-        username = request.form["username"]
+        name = request.form["name"].strip()
+        email = request.form["email"].strip().lower()
+        username = request.form["username"].strip()
         password = request.form.get("password")
         hotel_id = request.form.get("hotel_id")
+        
+        # Validate email format
+        if '@' not in email or '.' not in email.split('@')[-1]:
+            flash("Invalid email format!", "error")
+            manager = Manager.get_manager_by_id(manager_id)
+            assigned_hotel = Manager.get_assigned_hotel(manager_id)
+            conn.close()
+            return render_template("admin/edit_manager.html", 
+                                  manager=manager, 
+                                  assigned_hotel=assigned_hotel,
+                                  hotels=[])
         
         try:
             Manager.update_manager(manager_id, name, email, username, password if password else None)
@@ -536,6 +560,7 @@ def edit_manager(manager_id):
             if hotel_id:
                 Manager.assign_hotel(manager_id, int(hotel_id))
             
+            log_activity('manager', f"Manager '{name}' was updated")
             flash("Manager updated successfully!", "success")
             return redirect(url_for("admin.all_managers"))
         except Exception as e:
@@ -591,12 +616,13 @@ def change_username():
         try:
             Admin.update_username(session["admin_id"], new_username)
             session["admin_username"] = new_username
+            log_activity('settings', f"Admin username changed to '{new_username}'")
             flash("Username updated successfully!", "success")
-            return redirect(url_for("admin.dashboard"))
+            return redirect(url_for("admin.account_settings"))
         except Exception as e:
             flash("Error updating username", "error")
     
-    return render_template("admin/change_username.html")
+    return redirect(url_for("admin.account_settings"))
 
 @admin_bp.route("/change-password", methods=["GET", "POST"])
 def change_password():
@@ -607,12 +633,20 @@ def change_password():
         new_password = request.form["password"]
         try:
             Admin.update_password(session["admin_id"], new_password)
+            log_activity('settings', "Admin password was changed")
             flash("Password updated successfully!", "success")
-            return redirect(url_for("admin.dashboard"))
+            return redirect(url_for("admin.account_settings"))
         except Exception as e:
             flash("Error updating password", "error")
     
-    return render_template("admin/change_password.html")
+    return redirect(url_for("admin.account_settings"))
+
+@admin_bp.route("/account-settings")
+def account_settings():
+    if "admin_id" not in session:
+        return redirect(url_for("admin.login"))
+    
+    return render_template("admin/account_settings.html")
 
 # =========================
 # API ENDPOINTS
@@ -642,12 +676,50 @@ def get_recent_activities():
         cursor.execute("DELETE FROM recent_activities WHERE created_at < NOW() - INTERVAL 3 DAY")
         conn.commit()
 
-        # Fetch latest 5 activities
+        # Fetch latest 5 admin-only activities (hotel_id IS NULL)
         cursor.execute("""
             SELECT activity_type, message, created_at
             FROM recent_activities
+            WHERE hotel_id IS NULL
             ORDER BY created_at DESC
             LIMIT 5
+        """)
+        activities = cursor.fetchall()
+        conn.close()
+
+        result = []
+        for activity in activities:
+            result.append({
+                "activity_type": activity[0],
+                "message": activity[1],
+                "created_at": activity[2].strftime("%Y-%m-%d %H:%M:%S")
+            })
+
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@admin_bp.route("/api/all-activities")
+def get_all_activities():
+    """Get all activities (up to 50) for View All modal"""
+    if "admin_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Delete activities older than 3 days
+        cursor.execute("DELETE FROM recent_activities WHERE created_at < NOW() - INTERVAL 3 DAY")
+        conn.commit()
+
+        # Fetch all admin-only activities (max 50, hotel_id IS NULL)
+        cursor.execute("""
+            SELECT activity_type, message, created_at
+            FROM recent_activities
+            WHERE hotel_id IS NULL
+            ORDER BY created_at DESC
+            LIMIT 50
         """)
         activities = cursor.fetchall()
         conn.close()

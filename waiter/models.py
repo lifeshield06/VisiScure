@@ -143,20 +143,27 @@ class WaiterAuth:
     
     @staticmethod
     def get_assigned_tables(waiter_id):
-        """Get all tables assigned to a waiter using waiter_id column"""
+        """Get all tables assigned to a waiter using both waiter_table_assignments and tables.waiter_id"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
+            # Check BOTH: waiter_table_assignments table AND direct waiter_id column on tables
             cursor.execute("""
-                SELECT t.*, 
+                SELECT DISTINCT t.*, 
                        CASE WHEN at.status = 'ACTIVE' THEN 'BUSY' ELSE t.status END as derived_status
                 FROM tables t
                 LEFT JOIN active_tables at ON t.id = at.table_id AND at.status = 'ACTIVE'
-                WHERE t.waiter_id = %s
+                LEFT JOIN waiter_table_assignments wta ON t.id = wta.table_id
+                WHERE t.waiter_id = %s OR wta.waiter_id = %s
                 ORDER BY t.table_number
-            """, (waiter_id,))
+            """, (waiter_id, waiter_id))
             tables = cursor.fetchall()
+            
+            # Debug logging
+            print(f"[WAITER DEBUG] get_assigned_tables for waiter_id={waiter_id}: found {len(tables)} tables")
+            for t in tables:
+                print(f"  - Table {t.get('table_number')} (id={t.get('id')}, waiter_id={t.get('waiter_id')})")
             
             # Update status to derived status
             for table in tables:
@@ -167,25 +174,36 @@ class WaiterAuth:
             connection.close()
             return tables
         except Error as exc:
+            print(f"[WAITER ERROR] get_assigned_tables error: {exc}")
             return []
     
     @staticmethod
     def get_orders_for_waiter(waiter_id, status=None):
-        """Get all orders from tables assigned to the waiter using waiter_id column"""
+        """Get all orders assigned to the waiter via waiter_id column on orders,
+        OR from tables assigned via waiter_table_assignments or tables.waiter_id."""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
+            # Filter by:
+            # 1. Order's waiter_id directly
+            # 2. OR table's waiter_id column
+            # 3. OR waiter_table_assignments junction table
             query = """
-                SELECT 
+                SELECT DISTINCT
                     o.*, 
                     t.table_number,
                     t.status as table_status
                 FROM table_orders o
                 JOIN tables t ON o.table_id = t.id
-                WHERE t.waiter_id = %s
+                LEFT JOIN waiter_table_assignments wta ON t.id = wta.table_id
+                WHERE (
+                    o.waiter_id = %s 
+                    OR t.waiter_id = %s 
+                    OR wta.waiter_id = %s
+                )
             """
-            params = [waiter_id]
+            params = [waiter_id, waiter_id, waiter_id]
             
             if status:
                 query += " AND o.order_status = %s"
@@ -196,25 +214,36 @@ class WaiterAuth:
             cursor.execute(query, tuple(params))
             orders = cursor.fetchall()
             
+            # Debug logging
+            print(f"[WAITER DEBUG] get_orders_for_waiter for waiter_id={waiter_id}, status={status}: found {len(orders)} orders")
+            for o in orders:
+                print(f"  - Order {o.get('id')} table={o.get('table_number')} status={o.get('order_status')} waiter_id={o.get('waiter_id')}")
+            
             cursor.close()
             connection.close()
             return orders
         except Error as exc:
+            print(f"[WAITER ERROR] get_orders_for_waiter error: {exc}")
             return []
     
     @staticmethod
     def update_order_status(order_id, new_status, waiter_id):
-        """Update order status (only if order belongs to waiter's tables using waiter_id)"""
+        """Update order status (only if order belongs to waiter via any assignment method)"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
-            # Verify order belongs to waiter's assigned tables
+            # Verify order belongs to waiter - check all assignment methods
             cursor.execute("""
                 SELECT o.* FROM table_orders o
                 JOIN tables t ON o.table_id = t.id
-                WHERE o.id = %s AND t.waiter_id = %s
-            """, (order_id, waiter_id))
+                LEFT JOIN waiter_table_assignments wta ON t.id = wta.table_id
+                WHERE o.id = %s AND (
+                    o.waiter_id = %s 
+                    OR t.waiter_id = %s 
+                    OR wta.waiter_id = %s
+                )
+            """, (order_id, waiter_id, waiter_id, waiter_id))
             
             if not cursor.fetchone():
                 cursor.close()

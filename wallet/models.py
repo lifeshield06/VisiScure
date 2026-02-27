@@ -35,7 +35,7 @@ class HotelWallet:
                     transaction_type ENUM('CREDIT', 'DEBIT') NOT NULL,
                     amount DECIMAL(10, 2) NOT NULL,
                     balance_after DECIMAL(10, 2) NOT NULL,
-                    description VARCHAR(500),
+                    utr_number VARCHAR(100),
                     reference_type ENUM('RECHARGE', 'VERIFICATION', 'ORDER', 'ADJUSTMENT') NOT NULL,
                     reference_id INT,
                     created_by_type ENUM('ADMIN', 'MANAGER', 'SYSTEM') NOT NULL,
@@ -44,6 +44,16 @@ class HotelWallet:
                     FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
                 )
             """)
+            
+            # Add utr_number column if it doesn't exist (migration)
+            cursor.execute("SHOW COLUMNS FROM wallet_transactions LIKE 'utr_number'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE wallet_transactions ADD COLUMN utr_number VARCHAR(100) AFTER balance_after")
+            
+            # Remove description column if it exists (migration)
+            cursor.execute("SHOW COLUMNS FROM wallet_transactions LIKE 'description'")
+            if cursor.fetchone():
+                cursor.execute("ALTER TABLE wallet_transactions DROP COLUMN description")
             
             connection.commit()
             cursor.close()
@@ -173,11 +183,14 @@ class HotelWallet:
             return []
     
     @staticmethod
-    def add_balance(hotel_id, amount, description, created_by_type, created_by_id):
-        """Add balance to hotel wallet"""
+    def add_balance(hotel_id, amount, utr_number, created_by_type, created_by_id):
+        """Add balance to hotel wallet with UTR number"""
         try:
             if amount <= 0:
                 return {'success': False, 'message': 'Amount must be positive'}
+            
+            if not utr_number or not utr_number.strip():
+                return {'success': False, 'message': 'UTR Number is required'}
             
             # Auto-create wallet if not exists
             wallet_check = HotelWallet.get_or_create_wallet(hotel_id)
@@ -203,12 +216,12 @@ class HotelWallet:
                 UPDATE hotel_wallet SET balance = %s WHERE hotel_id = %s
             """, (new_balance, hotel_id))
             
-            # Record transaction
+            # Record transaction with UTR number
             cursor.execute("""
                 INSERT INTO wallet_transactions 
-                (hotel_id, transaction_type, amount, balance_after, description, reference_type, created_by_type, created_by_id)
+                (hotel_id, transaction_type, amount, balance_after, utr_number, reference_type, created_by_type, created_by_id)
                 VALUES (%s, 'CREDIT', %s, %s, %s, 'RECHARGE', %s, %s)
-            """, (hotel_id, amount, new_balance, description, created_by_type, created_by_id))
+            """, (hotel_id, amount, new_balance, utr_number.strip(), created_by_type, created_by_id))
             
             connection.commit()
             cursor.close()
@@ -223,10 +236,15 @@ class HotelWallet:
     def deduct_for_verification(hotel_id, verification_id):
         """Deduct charge for verification - returns success/failure"""
         try:
+            print(f"[WALLET] deduct_for_verification called - hotel_id={hotel_id}, verification_id={verification_id}")
+            
             # Auto-create wallet if not exists
             wallet_check = HotelWallet.get_or_create_wallet(hotel_id)
             if not wallet_check:
+                print(f"[WALLET] Could not create or retrieve wallet for hotel_id={hotel_id}")
                 return {'success': False, 'message': 'Could not create or retrieve wallet', 'insufficient_balance': False}
+            
+            print(f"[WALLET] Wallet found/created: {wallet_check}")
             
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
@@ -240,21 +258,26 @@ class HotelWallet:
             if not wallet:
                 cursor.close()
                 connection.close()
+                print(f"[WALLET] Wallet not found in database for hotel_id={hotel_id}")
                 return {'success': False, 'message': 'Wallet not found', 'insufficient_balance': False}
             
             charge = float(wallet['per_verification_charge'])
             current_balance = float(wallet['balance'])
             
+            print(f"[WALLET] Current balance: ₹{current_balance}, Charge: ₹{charge}")
+            
             # If charge is 0, allow without deduction
             if charge == 0:
                 cursor.close()
                 connection.close()
+                print(f"[WALLET] No charge configured, skipping deduction")
                 return {'success': True, 'message': 'No charge configured', 'deducted': 0}
             
             # Check sufficient balance
             if current_balance < charge:
                 cursor.close()
                 connection.close()
+                print(f"[WALLET] Insufficient balance - Required: ₹{charge}, Available: ₹{current_balance}")
                 return {
                     'success': False, 
                     'message': f'Insufficient wallet balance. Required: ₹{charge:.2f}, Available: ₹{current_balance:.2f}',
@@ -263,25 +286,31 @@ class HotelWallet:
             
             new_balance = current_balance - charge
             
+            print(f"[WALLET] Deducting ₹{charge}, New balance will be: ₹{new_balance}")
+            
             # Update balance
             cursor.execute("""
                 UPDATE hotel_wallet SET balance = %s WHERE hotel_id = %s
             """, (new_balance, hotel_id))
             
-            # Record transaction
+            # Record transaction (no description, system-generated)
             cursor.execute("""
                 INSERT INTO wallet_transactions 
-                (hotel_id, transaction_type, amount, balance_after, description, reference_type, reference_id, created_by_type)
-                VALUES (%s, 'DEBIT', %s, %s, %s, 'VERIFICATION', %s, 'SYSTEM')
-            """, (hotel_id, charge, new_balance, f'Verification charge for ID #{verification_id}', verification_id))
+                (hotel_id, transaction_type, amount, balance_after, reference_type, reference_id, created_by_type)
+                VALUES (%s, 'DEBIT', %s, %s, 'VERIFICATION', %s, 'SYSTEM')
+            """, (hotel_id, charge, new_balance, verification_id))
             
             connection.commit()
             cursor.close()
             connection.close()
             
+            print(f"[WALLET] Deduction successful - ₹{charge} deducted, new balance: ₹{new_balance}")
+            
             return {'success': True, 'message': 'Charge deducted successfully', 'deducted': charge, 'new_balance': new_balance}
         except Error as exc:
-            print(f"Error deducting verification charge: {exc}")
+            print(f"[WALLET] Error deducting verification charge: {exc}")
+            import traceback
+            traceback.print_exc()
             return {'success': False, 'message': f'Database error: {str(exc)}'}
     
     @staticmethod
@@ -333,12 +362,12 @@ class HotelWallet:
                 UPDATE hotel_wallet SET balance = %s WHERE hotel_id = %s
             """, (new_balance, hotel_id))
             
-            # Record transaction
+            # Record transaction (no description, system-generated)
             cursor.execute("""
                 INSERT INTO wallet_transactions 
-                (hotel_id, transaction_type, amount, balance_after, description, reference_type, reference_id, created_by_type)
-                VALUES (%s, 'DEBIT', %s, %s, %s, 'ORDER', %s, 'SYSTEM')
-            """, (hotel_id, charge, new_balance, f'Order charge for Order #{order_id}', order_id))
+                (hotel_id, transaction_type, amount, balance_after, reference_type, reference_id, created_by_type)
+                VALUES (%s, 'DEBIT', %s, %s, 'ORDER', %s, 'SYSTEM')
+            """, (hotel_id, charge, new_balance, order_id))
             
             connection.commit()
             cursor.close()
@@ -450,7 +479,7 @@ class HotelWallet:
                     'transaction_type': t['transaction_type'],
                     'amount': float(t['amount']),
                     'balance_after': float(t['balance_after']),
-                    'description': t['description'],
+                    'utr_number': t.get('utr_number'),
                     'reference_type': t['reference_type'],
                     'reference_id': t['reference_id'],
                     'created_by_type': t['created_by_type'],

@@ -24,6 +24,7 @@ class GuestVerification:
                     identity_file VARCHAR(500),
                     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+                    charge_deducted BOOLEAN DEFAULT FALSE,
                     FOREIGN KEY (manager_id) REFERENCES managers(id) ON DELETE CASCADE,
                     FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
                 )
@@ -33,6 +34,16 @@ class GuestVerification:
             cursor.execute("SHOW COLUMNS FROM guest_verifications LIKE 'hotel_id'")
             if not cursor.fetchone():
                 cursor.execute("ALTER TABLE guest_verifications ADD COLUMN hotel_id INT")
+            
+            # Ensure kyc_type column exists
+            cursor.execute("SHOW COLUMNS FROM guest_verifications LIKE 'kyc_type'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE guest_verifications ADD COLUMN kyc_type VARCHAR(50) AFTER kyc_number")
+            
+            # Ensure charge_deducted column exists (migration)
+            cursor.execute("SHOW COLUMNS FROM guest_verifications LIKE 'charge_deducted'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE guest_verifications ADD COLUMN charge_deducted BOOLEAN DEFAULT FALSE AFTER status")
             
             # Also create kyc_verifications as alias for admin dashboard compatibility
             cursor.execute("""
@@ -60,7 +71,7 @@ class GuestVerification:
             return False
 
     @staticmethod
-    def submit_verification(manager_id, guest_name, phone, address, kyc_number, identity_file=None, hotel_id=None):
+    def submit_verification(manager_id, guest_name, phone, address, kyc_number, identity_file=None, hotel_id=None, kyc_type=None):
         """Submit new guest verification directly to MySQL"""
         try:
             # Note: Wallet balance is checked and deducted only when verification is APPROVED (in update_status)
@@ -72,9 +83,9 @@ class GuestVerification:
             # Insert data directly using cursor execution
             cursor.execute("""
                 INSERT INTO guest_verifications 
-                (manager_id, guest_name, phone, address, kyc_number, identity_file, hotel_id) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (manager_id, guest_name, phone, address, kyc_number, identity_file, hotel_id))
+                (manager_id, guest_name, phone, address, kyc_number, kyc_type, identity_file, hotel_id) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (manager_id, guest_name, phone, address, kyc_number, kyc_type, identity_file, hotel_id))
             
             connection.commit()
             verification_id = cursor.lastrowid
@@ -92,19 +103,19 @@ class GuestVerification:
             connection = get_db_connection()
             cursor = connection.cursor()
             
-            # Fetch data directly using cursor execution
+            # Fetch data directly using cursor execution - include hotel_id and kyc_type
             if hotel_id:
                 cursor.execute("""
-                    SELECT id, guest_name, phone, address, kyc_number, 
-                           identity_file, submitted_at, status 
+                    SELECT id, guest_name, phone, address, kyc_number, kyc_type,
+                           identity_file, submitted_at, status, hotel_id 
                     FROM guest_verifications 
                     WHERE hotel_id = %s 
                     ORDER BY submitted_at DESC
                 """, (hotel_id,))
             else:
                 cursor.execute("""
-                    SELECT id, guest_name, phone, address, kyc_number, 
-                           identity_file, submitted_at, status 
+                    SELECT id, guest_name, phone, address, kyc_number, kyc_type,
+                           identity_file, submitted_at, status, hotel_id 
                     FROM guest_verifications 
                     ORDER BY submitted_at DESC
                 """)
@@ -125,10 +136,10 @@ class GuestVerification:
             connection = get_db_connection()
             cursor = connection.cursor()
             
-            # Fetch data directly using cursor execution
+            # Fetch data directly using cursor execution - include hotel_id and kyc_type
             cursor.execute("""
-                SELECT id, guest_name, phone, address, kyc_number, 
-                       identity_file, submitted_at, status 
+                SELECT id, guest_name, phone, address, kyc_number, kyc_type,
+                       identity_file, submitted_at, status, hotel_id 
                 FROM guest_verifications 
                 WHERE manager_id = %s 
                 ORDER BY submitted_at DESC
@@ -145,33 +156,10 @@ class GuestVerification:
 
     @staticmethod
     def update_status(verification_id, status):
-        """Update verification status directly in MySQL"""
+        """Update verification status directly in MySQL (no wallet deduction here)"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
-            
-            # Get hotel_id for wallet deduction if status is 'approved'
-            hotel_id = None
-            if status == 'approved':
-                cursor.execute("""
-                    SELECT hotel_id FROM guest_verifications WHERE id = %s
-                """, (verification_id,))
-                result = cursor.fetchone()
-                if result:
-                    hotel_id = result.get('hotel_id')
-                
-                # Check wallet balance before approving
-                if hotel_id:
-                    from wallet.models import HotelWallet
-                    balance_check = HotelWallet.check_balance_for_verification(hotel_id)
-                    if not balance_check.get('sufficient', True):
-                        cursor.close()
-                        connection.close()
-                        return {
-                            'success': False, 
-                            'message': f"Cannot approve: Insufficient wallet balance. Required: ₹{balance_check.get('charge', 0):.2f}, Available: ₹{balance_check.get('balance', 0):.2f}. Please add balance first.",
-                            'insufficient_balance': True
-                        }
             
             # Update data directly using cursor execution
             cursor.execute("""
@@ -183,13 +171,6 @@ class GuestVerification:
             connection.commit()
             cursor.close()
             connection.close()
-            
-            # Deduct wallet balance ONLY when verification is APPROVED
-            if status == 'approved' and hotel_id:
-                from wallet.models import HotelWallet
-                deduct_result = HotelWallet.deduct_for_verification(hotel_id, verification_id)
-                if not deduct_result.get('success') and deduct_result.get('insufficient_balance'):
-                    print(f"Warning: Could not deduct verification charge: {deduct_result.get('message')}")
             
             return {'success': True, 'message': 'Status updated successfully!'}
         except Error as exc:

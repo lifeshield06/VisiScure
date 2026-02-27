@@ -43,13 +43,9 @@
             </a>
             
             <div class="menu-label">Settings</div>
-            <a href="{{ url_for('admin.change_username') }}" class="menu-item">
-                <i class="fas fa-user-edit"></i>
-                <span>Change Username</span>
-            </a>
-            <a href="{{ url_for('admin.change_password') }}" class="menu-item">
-                <i class="fas fa-lock"></i>
-                <span>Change Password</span>
+            <a href="{{ url_for('admin.account_settings') }}" class="menu-item">
+                <i class="fas fa-cog"></i>
+                <span>Account Settings</span>
             </a>
         </nav>
     </aside>
@@ -72,8 +68,7 @@
                     <i class="fas fa-chevron-down" style="color: var(--gray); font-size: 0.8rem;"></i>
                 </div>
                 <div class="dropdown-menu" id="dropdownMenu">
-                    <a href="{{ url_for('admin.change_username') }}"><i class="fas fa-user"></i> Profile Settings</a>
-                    <a href="{{ url_for('admin.change_password') }}"><i class="fas fa-cog"></i> Account Settings</a>
+                    <a href="{{ url_for('admin.account_settings') }}"><i class="fas fa-cog"></i> Account Settings</a>
                     <a href="{{ url_for('admin.logout') }}" class="danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
             </div>
@@ -105,7 +100,7 @@
             {% endif %}
         {% endwith %}
 
-        <div class="form-container">
+        <div class="form-container full">
             <form method="POST">
                 <div class="form-group">
                     <label for="hotel_name"><i class="fas fa-hotel" style="margin-right: 0.5rem; color: var(--primary);"></i>Hotel Name</label>
