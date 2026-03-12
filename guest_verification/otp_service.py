@@ -37,7 +37,7 @@ class OTPService:
         try:
             # Get MSG91 credentials from environment
             MSG91_AUTH_KEY = os.getenv('MSG91_AUTH_KEY', '451618A0Y44msLOxW685a4c6aP1')
-            MSG91_TEMPLATE_ID = os.getenv('MSG91_TEMPLATE_ID', '1407177312988404171')
+            MSG91_TEMPLATE_ID = os.getenv('MSG91_TEMPLATE_ID', '69b244d394b176db2203e483')
             
             # Clean and format phone number
             original_phone = phone_number
@@ -52,54 +52,45 @@ class OTPService:
             print(f"[MSG91] Generated OTP: {otp_code}")
             print(f"[MSG91] Hotel name: {hotel_name}")
             
-            # MSG91 OTP API endpoint
-            url = "https://api.msg91.com/api/v5/otp"
-            
-            # Prepare request payload
-            payload = {
-                "template_id": MSG91_TEMPLATE_ID,
-                "mobile": phone_number,
-                "authkey": MSG91_AUTH_KEY,
-                "otp": otp_code,
-                "otp_length": 6,
-                "otp_expiry": 5,
-                "userip": "127.0.0.1",
-                "extra_param": {
-                    "hotel_name": hotel_name,
-                    "OTP": otp_code
-                }
-            }
-            
-            headers = {
-                "Content-Type": "application/json",
-                "authkey": MSG91_AUTH_KEY
-            }
+            # MSG91 OTP API endpoint (Send OTP) - Using GET method with query params
+            # Template format: Welcome to ##var1##. Your verification OTP is ##OTP##. Please enter this code to complete guest verification. VisiScure Order
+            # Variables: var1 = hotel_name, OTP = otp_code
+            url = f"https://control.msg91.com/api/v5/otp?template_id={MSG91_TEMPLATE_ID}&mobile={phone_number}&authkey={MSG91_AUTH_KEY}&var1={hotel_name}&otp={otp_code}"
             
             print(f"[MSG91] Sending request to: {url}")
-            print(f"[MSG91] Payload: {payload}")
             
-            # Send OTP via MSG91
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            # Send OTP via MSG91 using GET request
+            response = requests.get(url, timeout=10)
             
             print(f"[MSG91] Response Status: {response.status_code}")
             print(f"[MSG91] Response Body: {response.text}")
             
             # Check response
             if response.status_code == 200:
-                response_data = response.json()
-                if response_data.get('type') == 'success':
-                    print(f"[MSG91] ✅ OTP sent successfully to {phone_number}")
-                    return {
-                        'success': True,
-                        'message': 'OTP sent successfully to your mobile number',
-                        'otp_debug': otp_code  # For development/testing
-                    }
-                else:
-                    error_msg = response_data.get('message', 'Unknown error')
-                    print(f"[MSG91] ❌ API Error: {error_msg}")
+                try:
+                    response_data = response.json()
+                    if response_data.get('type') == 'success':
+                        request_id = response_data.get('request_id', 'N/A')
+                        print(f"[MSG91] ✅ OTP sent successfully to {phone_number}")
+                        print(f"[MSG91] Request ID: {request_id}")
+                        return {
+                            'success': True,
+                            'message': 'OTP sent successfully to your mobile number',
+                            'request_id': request_id,
+                            'otp_debug': otp_code  # For development/testing
+                        }
+                    else:
+                        error_msg = response_data.get('message', 'Unknown error')
+                        print(f"[MSG91] ❌ API Error: {error_msg}")
+                        return {
+                            'success': False,
+                            'message': f'Failed to send OTP: {error_msg}'
+                        }
+                except ValueError:
+                    print(f"[MSG91] ❌ Invalid JSON response: {response.text}")
                     return {
                         'success': False,
-                        'message': f'Failed to send OTP: {error_msg}'
+                        'message': 'Invalid response from SMS service'
                     }
             else:
                 print(f"[MSG91] ❌ HTTP Error: {response.status_code}")

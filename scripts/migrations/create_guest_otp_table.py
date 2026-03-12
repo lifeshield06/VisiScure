@@ -51,7 +51,7 @@ if __name__ == "__main__":
         print("\n✓ Migration completed successfully!")
         print("\nNext steps:")
         print("1. Set SMS_ENABLED=true in environment or config.py for production")
-        print("2. Set FAST2SMS_API_KEY in environment variables for SMS sending")
+        print("2. Configure MSG91 credentials (AUTH_KEY, TEMPLATE_ID, SENDER_ID) in .env")
         print("3. Test OTP flow in guest verification form")
     else:
         print("\n✗ Migration failed!")
