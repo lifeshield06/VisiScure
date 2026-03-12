@@ -22,14 +22,14 @@ class OTPService:
         return str(random.randint(100000, 999999))
     
     @staticmethod
-    def send_otp_sms(phone_number, otp_code, hotel_name="Tip Top Restaurant"):
+    def send_otp_sms(phone_number, otp_code, hotel_name="VisiScure Order"):
         """
         Send OTP via MSG91 SMS API
         
         Args:
             phone_number: Mobile number (with country code 91)
             otp_code: 6-digit OTP code
-            hotel_name: Name of the hotel/restaurant to display in SMS
+            hotel_name: Name of the hotel/restaurant for ##var1## in template
             
         Returns:
             dict: {success: bool, message: str}
@@ -55,7 +55,15 @@ class OTPService:
             # MSG91 OTP API endpoint (Send OTP) - Using GET method with query params
             # Template format: Welcome to ##var1##. Your verification OTP is ##OTP##. Please enter this code to complete guest verification. VisiScure Order
             # Variables: var1 = hotel_name, OTP = otp_code
-            url = f"https://control.msg91.com/api/v5/otp?template_id={MSG91_TEMPLATE_ID}&mobile={phone_number}&authkey={MSG91_AUTH_KEY}&var1={hotel_name}&otp={otp_code}"
+            
+            # URL encode the hotel name to handle spaces and special characters
+            from urllib.parse import quote
+            hotel_name_encoded = quote(hotel_name)
+            
+            url = f"https://control.msg91.com/api/v5/otp?template_id={MSG91_TEMPLATE_ID}&mobile={phone_number}&authkey={MSG91_AUTH_KEY}&var1={hotel_name_encoded}&otp={otp_code}"
+            
+            print(f"[MSG91] Hotel name (original): {hotel_name}")
+            print(f"[MSG91] Hotel name (encoded): {hotel_name_encoded}")
             
             print(f"[MSG91] Sending request to: {url}")
             
@@ -121,8 +129,8 @@ class OTPService:
             }
     
     @staticmethod
-    def send_otp(phone_number, hotel_name="Tip Top Restaurant"):
-        """Send OTP to phone number via SMS"""
+    def send_otp(phone_number, hotel_name="VisiScure Order"):
+        """Send OTP to phone number via SMS with hotel name for ##var1##"""
         try:
             # Store original 10-digit number for database and display
             original_phone = phone_number.strip()

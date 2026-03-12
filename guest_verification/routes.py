@@ -430,21 +430,38 @@ def send_otp():
                 'message': 'Invalid phone number. Please enter a valid 10-digit number.'
             }), 400
         
-        # Get hotel name from database
-        hotel_name = "Tip Top Restaurant"  # Default
+        # Get hotel name from database dynamically for ##var1##
+        hotel_name = "VisiScure Order"  # Default fallback
+        
+        print(f"[ROUTE] Hotel ID received: {hotel_id} (type: {type(hotel_id)})")
+        
         if hotel_id:
             try:
-                conn = get_db_connection()
-                cursor = conn.cursor()
-                cursor.execute("SELECT hotel_name FROM hotels WHERE id = %s", (hotel_id,))
-                result = cursor.fetchone()
-                if result:
-                    hotel_name = result[0]
-                    print(f"[ROUTE] Found hotel name: {hotel_name}")
-                cursor.close()
-                conn.close()
+                # Convert hotel_id to int if it's a string
+                if isinstance(hotel_id, str):
+                    hotel_id = int(hotel_id) if hotel_id.isdigit() else None
+                
+                if hotel_id:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT hotel_name FROM hotels WHERE id = %s", (hotel_id,))
+                    result = cursor.fetchone()
+                    
+                    if result and result[0]:
+                        hotel_name = result[0].strip()  # Remove any whitespace
+                        print(f"[ROUTE] ✅ Found hotel name from DB: '{hotel_name}'")
+                    else:
+                        print(f"[ROUTE] ⚠️ No hotel found with ID {hotel_id}, using default: '{hotel_name}'")
+                    
+                    cursor.close()
+                    conn.close()
+                else:
+                    print(f"[ROUTE] ⚠️ Invalid hotel_id, using default: '{hotel_name}'")
             except Exception as e:
-                print(f"[ROUTE] Error fetching hotel name: {e}")
+                print(f"[ROUTE] ❌ Error fetching hotel name: {e}")
+                print(f"[ROUTE] Using default hotel name: '{hotel_name}'")
+        else:
+            print(f"[ROUTE] ⚠️ No hotel_id provided, using default: '{hotel_name}'")
         
         print(f"[ROUTE] ✅ Validation Passed")
         print(f"[ROUTE] Using hotel name: {hotel_name}")
