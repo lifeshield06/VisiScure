@@ -13,9 +13,9 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
 
 # SMS Configuration for OTP (MSG91)
 SMS_ENABLED = os.getenv("SMS_ENABLED", "true").lower() == "true"
-MSG91_AUTH_KEY = os.getenv("MSG91_AUTH_KEY", "451618A0Y44msLOxW685a4c6aP1")  # Correct auth key
-MSG91_TEMPLATE_ID = os.getenv("MSG91_TEMPLATE_ID", "69b244d394b176db2203e483")  # Your MSG91 Template ID
-MSG91_SENDER_ID = os.getenv("MSG91_SENDER_ID", "VisScU")  # Correct sender ID
+MSG91_AUTH_KEY = os.getenv("MSG91_AUTH_KEY", "451618A0Y44msLOxW685a4c6aP1")
+MSG91_TEMPLATE_ID = os.getenv("MSG91_TEMPLATE_ID", "1407177312988404171")
+MSG91_SENDER_ID = os.getenv("MSG91_SENDER_ID", "VisScu")
 
 # OTP Configuration
 OTP_EXPIRY_MINUTES = 5
