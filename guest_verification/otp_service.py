@@ -24,10 +24,10 @@ class OTPService:
     @staticmethod
     def send_otp_sms(phone_number, otp_code, hotel_name="Tip Top Restaurant"):
         """
-        Send OTP via SMS (placeholder for SMS provider integration)
+        Send OTP via MSG91 SMS API
         
         Args:
-            phone_number: Mobile number
+            phone_number: Mobile number (with country code 91)
             otp_code: 6-digit OTP code
             hotel_name: Name of the hotel/restaurant to display in SMS
             
@@ -35,6 +35,10 @@ class OTPService:
             dict: {success: bool, message: str}
         """
         try:
+            # Get MSG91 credentials from environment
+            MSG91_AUTH_KEY = os.getenv('MSG91_AUTH_KEY', '451618A0Y44msLOxW685a4c6aP1')
+            MSG91_TEMPLATE_ID = os.getenv('MSG91_TEMPLATE_ID', '1407177312988404171')
+            
             # Clean and format phone number
             original_phone = phone_number
             phone_number = phone_number.replace(' ', '').replace('-', '').replace('+', '')
@@ -43,21 +47,81 @@ class OTPService:
             if not phone_number.startswith('91'):
                 phone_number = '91' + phone_number
             
-            print(f"[OTP] User entered mobile: {original_phone}")
-            print(f"[OTP] Formatted mobile: {phone_number}")
-            print(f"[OTP] Generated OTP: {otp_code}")
+            print(f"[MSG91] User entered mobile: {original_phone}")
+            print(f"[MSG91] Formatted mobile: {phone_number}")
+            print(f"[MSG91] Generated OTP: {otp_code}")
+            print(f"[MSG91] Hotel name: {hotel_name}")
             
-            # TODO: Integrate with your SMS provider here
-            # For now, just log the OTP (development mode)
-            print(f"[OTP] SMS would be sent to {phone_number}: Your OTP is {otp_code}")
+            # MSG91 OTP API endpoint
+            url = "https://api.msg91.com/api/v5/otp"
             
-            return {
-                'success': True,
-                'message': f'OTP logged for development (would be sent to +{phone_number})'
+            # Prepare request payload
+            payload = {
+                "template_id": MSG91_TEMPLATE_ID,
+                "mobile": phone_number,
+                "authkey": MSG91_AUTH_KEY,
+                "otp": otp_code,
+                "otp_length": 6,
+                "otp_expiry": 5,
+                "userip": "127.0.0.1",
+                "extra_param": {
+                    "hotel_name": hotel_name,
+                    "OTP": otp_code
+                }
             }
+            
+            headers = {
+                "Content-Type": "application/json",
+                "authkey": MSG91_AUTH_KEY
+            }
+            
+            print(f"[MSG91] Sending request to: {url}")
+            print(f"[MSG91] Payload: {payload}")
+            
+            # Send OTP via MSG91
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            
+            print(f"[MSG91] Response Status: {response.status_code}")
+            print(f"[MSG91] Response Body: {response.text}")
+            
+            # Check response
+            if response.status_code == 200:
+                response_data = response.json()
+                if response_data.get('type') == 'success':
+                    print(f"[MSG91] ✅ OTP sent successfully to {phone_number}")
+                    return {
+                        'success': True,
+                        'message': 'OTP sent successfully to your mobile number',
+                        'otp_debug': otp_code  # For development/testing
+                    }
+                else:
+                    error_msg = response_data.get('message', 'Unknown error')
+                    print(f"[MSG91] ❌ API Error: {error_msg}")
+                    return {
+                        'success': False,
+                        'message': f'Failed to send OTP: {error_msg}'
+                    }
+            else:
+                print(f"[MSG91] ❌ HTTP Error: {response.status_code}")
+                return {
+                    'success': False,
+                    'message': f'Failed to send OTP. Please try again. (Error: {response.status_code})'
+                }
                 
+        except requests.exceptions.Timeout:
+            print(f"[MSG91] ❌ Request timeout")
+            return {
+                'success': False,
+                'message': 'Request timeout. Please check your internet connection and try again.'
+            }
+        except requests.exceptions.RequestException as e:
+            print(f"[MSG91] ❌ Request error: {e}")
+            return {
+                'success': False,
+                'message': f'Network error: {str(e)}'
+            }
         except Exception as e:
-            print(f"[OTP] ❌ Unexpected error: {e}")
+            print(f"[MSG91] ❌ Unexpected error: {e}")
             import traceback
             traceback.print_exc()
             return {
