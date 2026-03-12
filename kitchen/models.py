@@ -13,8 +13,8 @@ class KitchenAuth:
         return hashlib.sha256(password.encode()).hexdigest()
     
     @staticmethod
-    def create_kitchen(hotel_id, section_name, category_ids):
-        """Create new kitchen with auto-generated ID and category assignments"""
+    def create_kitchen(hotel_id, section_name):
+        """Create new kitchen with auto-generated ID"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
@@ -37,15 +37,6 @@ class KitchenAuth:
                 SET kitchen_unique_id = %s
                 WHERE id = %s
             """, (kitchen_unique_id, kitchen_id))
-            
-            # Assign categories
-            if category_ids:
-                for category_id in category_ids:
-                    cursor.execute("""
-                        INSERT INTO kitchen_category_mapping (kitchen_section_id, category_id)
-                        VALUES (%s, %s)
-                        ON DUPLICATE KEY UPDATE kitchen_section_id = kitchen_section_id
-                    """, (kitchen_id, category_id))
             
             connection.commit()
             cursor.close()
@@ -160,7 +151,7 @@ class KitchenAuth:
             return []
     
     @staticmethod
-    def update_kitchen(kitchen_id, section_name, category_ids):
+    def update_kitchen(kitchen_id, section_name):
         """Update kitchen details"""
         try:
             connection = get_db_connection()
@@ -172,18 +163,6 @@ class KitchenAuth:
                 SET section_name = %s
                 WHERE id = %s
             """, (section_name, kitchen_id))
-            
-            # Update category mappings
-            # First, remove existing mappings
-            cursor.execute("DELETE FROM kitchen_category_mapping WHERE kitchen_section_id = %s", (kitchen_id,))
-            
-            # Then add new mappings
-            if category_ids:
-                for category_id in category_ids:
-                    cursor.execute("""
-                        INSERT INTO kitchen_category_mapping (kitchen_section_id, category_id)
-                        VALUES (%s, %s)
-                    """, (kitchen_id, category_id))
             
             connection.commit()
             cursor.close()

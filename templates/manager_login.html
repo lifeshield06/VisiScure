@@ -3,13 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hotel Manager - Login</title>
+    <title>VisiScure Order - Manager Login</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
 </head>
 <body class="login-page">
     <div class="login-container">
         <h1>Manager Login</h1>
-        <p class="login-subtitle">Access your hotel management dashboard</p>
+        <p class="login-subtitle">Access your restaurant management dashboard</p>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}

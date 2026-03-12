@@ -3,6 +3,23 @@ from . import wallet_bp
 from .models import HotelWallet
 from database.db import get_db_connection
 
+# Import Razorpay client from payment module
+try:
+    from payment.razorpay_client import get_razorpay_client
+    razorpay_service = get_razorpay_client()
+    RAZORPAY_ENABLED = razorpay_service.is_enabled
+    RAZORPAY_KEY_ID = razorpay_service.key_id if RAZORPAY_ENABLED else ""
+except ImportError as e:
+    print(f"[WALLET] Could not import Razorpay client: {e}")
+    razorpay_service = None
+    RAZORPAY_ENABLED = False
+    RAZORPAY_KEY_ID = ""
+except Exception as e:
+    print(f"[WALLET] Razorpay initialization error: {e}")
+    razorpay_service = None
+    RAZORPAY_ENABLED = False
+    RAZORPAY_KEY_ID = ""
+
 # Initialize tables on import
 HotelWallet.create_tables()
 
@@ -175,3 +192,142 @@ def check_order_balance(hotel_id):
     """Check if hotel has sufficient balance for order"""
     result = HotelWallet.check_balance_for_order(hotel_id)
     return jsonify(result)
+
+
+# ================================
+# RAZORPAY PAYMENT INTEGRATION
+# ================================
+
+@wallet_bp.route('/api/razorpay/config', methods=['GET'])
+def get_razorpay_config():
+    """Get Razorpay configuration for frontend"""
+    config = razorpay_service.get_config()
+    return jsonify({
+        'success': True,
+        'enabled': config['enabled'],
+        'key_id': config['key_id']
+    })
+
+
+@wallet_bp.route('/api/razorpay/create-order', methods=['POST'])
+def create_razorpay_order():
+    """Create a Razorpay order for wallet recharge"""
+    if not RAZORPAY_ENABLED:
+        return jsonify({'success': False, 'message': 'Razorpay is not configured'}), 400
+    
+    try:
+        data = request.json
+        hotel_id = int(data.get('hotel_id', 0))
+        amount = float(data.get('amount', 0))
+        
+        if not hotel_id:
+            return jsonify({'success': False, 'message': 'Hotel ID is required'})
+        
+        if amount <= 0:
+            return jsonify({'success': False, 'message': 'Amount must be greater than 0'})
+        
+        # Check authorization
+        admin_id = session.get('admin_id')
+        manager_id = session.get('manager_id')
+        manager_hotel_id = session.get('hotel_id')
+        
+        if not admin_id and not (manager_id and int(manager_hotel_id or 0) == hotel_id):
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+        
+        # Get hotel name for order notes
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT hotel_name FROM hotels WHERE id = %s", (hotel_id,))
+        hotel = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        hotel_name = hotel['hotel_name'] if hotel else f"Hotel {hotel_id}"
+        
+        # Create Razorpay order using service
+        notes = {
+            'hotel_id': str(hotel_id),
+            'hotel_name': hotel_name,
+            'purpose': 'Wallet Recharge'
+        }
+        
+        result = razorpay_service.create_order(amount, notes=notes)
+        
+        if not result['success']:
+            return jsonify(result)
+        
+        return jsonify({
+            'success': True,
+            'order_id': result['order_id'],
+            'amount': amount,
+            'currency': 'INR',
+            'key_id': result['key_id']
+        })
+        
+    except Exception as e:
+        print(f"Error creating Razorpay order: {e}")
+        return jsonify({'success': False, 'message': f'Error creating order: {str(e)}'})
+
+
+@wallet_bp.route('/api/razorpay/verify-payment', methods=['POST'])
+def verify_razorpay_payment():
+    """Verify Razorpay payment and credit wallet"""
+    if not RAZORPAY_ENABLED:
+        return jsonify({'success': False, 'message': 'Razorpay is not configured'}), 400
+    
+    try:
+        data = request.json
+        hotel_id = int(data.get('hotel_id', 0))
+        amount = float(data.get('amount', 0))
+        razorpay_payment_id = data.get('razorpay_payment_id', '')
+        razorpay_order_id = data.get('razorpay_order_id', '')
+        razorpay_signature = data.get('razorpay_signature', '')
+        
+        if not all([hotel_id, amount, razorpay_payment_id, razorpay_order_id, razorpay_signature]):
+            return jsonify({'success': False, 'message': 'Missing required payment details'})
+        
+        # Verify signature using service
+        is_valid = razorpay_service.verify_payment_signature(
+            razorpay_order_id, razorpay_payment_id, razorpay_signature
+        )
+        
+        if not is_valid:
+            print(f"[RAZORPAY] Signature verification failed for order {razorpay_order_id}")
+            return jsonify({'success': False, 'message': 'Payment verification failed - invalid signature'})
+        
+        # Check authorization
+        admin_id = session.get('admin_id')
+        manager_id = session.get('manager_id')
+        manager_hotel_id = session.get('hotel_id')
+        
+        if admin_id:
+            created_by_type = 'ADMIN'
+            created_by_id = admin_id
+        elif manager_id and int(manager_hotel_id or 0) == hotel_id:
+            created_by_type = 'MANAGER'
+            created_by_id = manager_id
+        else:
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+        
+        # Add balance via Razorpay
+        result = HotelWallet.add_balance_razorpay(
+            hotel_id, amount, razorpay_payment_id, razorpay_order_id,
+            created_by_type, created_by_id
+        )
+        
+        # Log activity on success
+        if result.get('success'):
+            if admin_id:
+                log_wallet_activity('wallet', f"Balance ₹{amount:.0f} added via Razorpay (Pay ID: {razorpay_payment_id[:12]}...)", None, role='admin')
+            else:
+                log_hotel_id = int(manager_hotel_id) if manager_hotel_id else hotel_id
+                log_wallet_activity('wallet', f"Wallet recharged ₹{amount:.0f} via Razorpay", log_hotel_id, role='manager')
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error verifying Razorpay payment: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Error verifying payment: {str(e)}'})
+

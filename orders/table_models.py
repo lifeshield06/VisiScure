@@ -137,6 +137,9 @@ class Table:
             ensure_column("bills", "bill_status", "bill_status ENUM('OPEN', 'COMPLETED') DEFAULT 'OPEN'")
             ensure_column("bills", "tip_amount", "tip_amount DECIMAL(10,2) DEFAULT 0.00")
             ensure_column("bills", "waiter_id", "waiter_id INT")
+            ensure_column("bills", "cgst_amount", "cgst_amount DECIMAL(10,2) DEFAULT 0.00")
+            ensure_column("bills", "sgst_amount", "sgst_amount DECIMAL(10,2) DEFAULT 0.00")
+            ensure_column("bills", "tax_breakdown", "tax_breakdown JSON")
             
             # Ensure payment_status column exists in table_orders
             ensure_column("table_orders", "payment_status", "payment_status ENUM('PENDING', 'PAID') DEFAULT 'PENDING')")
@@ -340,18 +343,17 @@ class TableOrder:
                 if not dish_id:
                     continue
                 
-                # Get category_id and kitchen_section_id for this dish
+                # Get category_id and kitchen_id directly from the dish
                 cursor.execute("""
-                    SELECT d.category_id, kcm.kitchen_section_id
-                    FROM menu_dishes d
-                    LEFT JOIN kitchen_category_mapping kcm ON d.category_id = kcm.category_id
-                    WHERE d.id = %s
+                    SELECT category_id, kitchen_id
+                    FROM menu_dishes
+                    WHERE id = %s
                     LIMIT 1
                 """, (dish_id,))
                 
                 dish_info = cursor.fetchone()
                 category_id = dish_info['category_id'] if dish_info else None
-                kitchen_section_id = dish_info['kitchen_section_id'] if dish_info else None
+                kitchen_section_id = dish_info['kitchen_id'] if dish_info else None
                 
                 # Insert into order_items with kitchen routing
                 cursor.execute("""
@@ -416,18 +418,21 @@ class TableOrder:
             
             if hotel_id:
                 # Match orders by hotel_id OR by table's hotel_id (fallback for older orders)
+                # Also join with bills to get payment_method
                 cursor.execute("""
-                    SELECT o.*, t.table_number, t.status as table_status
+                    SELECT o.*, t.table_number, t.status as table_status, b.payment_method
                     FROM table_orders o
                     JOIN tables t ON o.table_id = t.id
+                    LEFT JOIN bills b ON o.table_id = b.table_id AND o.session_id = b.session_id
                     WHERE o.hotel_id = %s OR (o.hotel_id IS NULL AND t.hotel_id = %s)
                     ORDER BY o.created_at DESC
                 """, (hotel_id, hotel_id))
             else:
                 cursor.execute("""
-                    SELECT o.*, t.table_number, t.status as table_status
+                    SELECT o.*, t.table_number, t.status as table_status, b.payment_method
                     FROM table_orders o
                     JOIN tables t ON o.table_id = t.id
+                    LEFT JOIN bills b ON o.table_id = b.table_id AND o.session_id = b.session_id
                     ORDER BY o.created_at DESC
                 """)
             
@@ -504,6 +509,130 @@ class Bill:
     TAX_RATE = 5.0  # 5% tax rate (DEPRECATED - use hotel's gst_percentage instead)
     
     @staticmethod
+    def enrich_items_with_tax(items, cursor):
+        """Add CGST/SGST percentages and amounts to each item.
+        Uses per-dish tax rates (cgst, sgst columns in menu_dishes).
+        Returns enriched items list with tax info per item."""
+        enriched_items = []
+        
+        for item in items:
+            item_copy = dict(item)  # Make a copy to avoid modifying original
+            item_price = float(item.get('price', 0))
+            item_qty = int(item.get('quantity', 1))
+            item_total = item_price * item_qty
+            dish_id = item.get('id')
+            
+            # Get category name and DISH-SPECIFIC tax percentages
+            category_name = "Other"
+            cgst_pct = 2.50
+            sgst_pct = 2.50
+            
+            if dish_id:
+                cursor.execute("""
+                    SELECT mc.name as category_name, 
+                           COALESCE(d.cgst, 2.50) as cgst_percentage, 
+                           COALESCE(d.sgst, 2.50) as sgst_percentage 
+                    FROM menu_dishes d
+                    LEFT JOIN menu_categories mc ON d.category_id = mc.id
+                    WHERE d.id = %s
+                """, (dish_id,))
+                cat_info = cursor.fetchone()
+                if cat_info:
+                    category_name = cat_info.get('category_name') or "Other"
+                    cgst_pct = float(cat_info.get('cgst_percentage') or 2.50)
+                    sgst_pct = float(cat_info.get('sgst_percentage') or 2.50)
+            
+            # Calculate item tax
+            item_cgst = round(item_total * (cgst_pct / 100), 2)
+            item_sgst = round(item_total * (sgst_pct / 100), 2)
+            item_total_with_tax = round(item_total + item_cgst + item_sgst, 2)
+            
+            # Add tax info to item
+            item_copy['category'] = category_name
+            item_copy['cgst_percentage'] = cgst_pct
+            item_copy['sgst_percentage'] = sgst_pct
+            item_copy['cgst_amount'] = item_cgst
+            item_copy['sgst_amount'] = item_sgst
+            item_copy['total_with_tax'] = item_total_with_tax
+            
+            enriched_items.append(item_copy)
+        
+        return enriched_items
+    
+    @staticmethod
+    def calculate_category_tax_breakdown(items, cursor):
+        """Calculate dish-wise CGST and SGST breakdown for items.
+        Uses per-dish tax rates (cgst, sgst columns in menu_dishes).
+        Returns dict with tax_breakdown, total_cgst, total_sgst"""
+        import json
+        
+        # Track tax by category for display purposes: {category_name: {subtotal, cgst_amt, sgst_amt}}
+        category_taxes = {}
+        total_cgst = 0.0
+        total_sgst = 0.0
+        
+        for item in items:
+            item_total = float(item.get('price', 0)) * int(item.get('quantity', 1))
+            dish_id = item.get('id')
+            
+            # Get category name and DISH-SPECIFIC tax percentages
+            category_name = "Other"
+            cgst_pct = 2.50
+            sgst_pct = 2.50
+            
+            if dish_id:
+                cursor.execute("""
+                    SELECT mc.name as category_name, 
+                           COALESCE(d.cgst, 2.50) as cgst_percentage, 
+                           COALESCE(d.sgst, 2.50) as sgst_percentage 
+                    FROM menu_dishes d
+                    LEFT JOIN menu_categories mc ON d.category_id = mc.id
+                    WHERE d.id = %s
+                """, (dish_id,))
+                cat_info = cursor.fetchone()
+                if cat_info:
+                    category_name = cat_info.get('category_name') or "Other"
+                    cgst_pct = float(cat_info.get('cgst_percentage') or 2.50)
+                    sgst_pct = float(cat_info.get('sgst_percentage') or 2.50)
+            
+            # Calculate item tax
+            item_cgst = round(item_total * (cgst_pct / 100), 2)
+            item_sgst = round(item_total * (sgst_pct / 100), 2)
+            
+            # Aggregate by category
+            if category_name not in category_taxes:
+                category_taxes[category_name] = {
+                    'cgst_percentage': cgst_pct,
+                    'sgst_percentage': sgst_pct,
+                    'subtotal': 0.0,
+                    'cgst_amount': 0.0,
+                    'sgst_amount': 0.0
+                }
+            
+            category_taxes[category_name]['subtotal'] += item_total
+            category_taxes[category_name]['cgst_amount'] += item_cgst
+            category_taxes[category_name]['sgst_amount'] += item_sgst
+            
+            total_cgst += item_cgst
+            total_sgst += item_sgst
+        
+        # Round totals
+        total_cgst = round(total_cgst, 2)
+        total_sgst = round(total_sgst, 2)
+        
+        # Round category amounts
+        for cat in category_taxes.values():
+            cat['subtotal'] = round(cat['subtotal'], 2)
+            cat['cgst_amount'] = round(cat['cgst_amount'], 2)
+            cat['sgst_amount'] = round(cat['sgst_amount'], 2)
+        
+        return {
+            'breakdown': category_taxes,
+            'total_cgst': total_cgst,
+            'total_sgst': total_sgst
+        }
+    
+    @staticmethod
     def get_hotel_gst_percentage(hotel_id):
         """Get GST percentage for a specific hotel (dynamic per hotel)"""
         try:
@@ -543,16 +672,22 @@ class Bill:
             cursor = connection.cursor(dictionary=True)
             
             cursor.execute("""
-                SELECT * FROM bills 
-                WHERE table_id = %s AND guest_name = %s AND bill_status = 'OPEN'
-                ORDER BY created_at DESC LIMIT 1
+                SELECT b.*, h.hotel_name, h.logo as hotel_logo
+                FROM bills b
+                LEFT JOIN hotels h ON b.hotel_id = h.id
+                WHERE b.table_id = %s AND b.guest_name = %s AND b.bill_status = 'OPEN'
+                ORDER BY b.created_at DESC LIMIT 1
             """, (table_id, guest_name))
             
             bill = cursor.fetchone()
             
             if bill and bill.get('items'):
                 import json
-                bill['items'] = json.loads(bill['items'])
+                items = json.loads(bill['items'])
+                # Enrich items with tax info if missing
+                if items:  # Always enrich with current tax rates
+                    items = Bill.enrich_items_with_tax(items, cursor)
+                bill['items'] = items
             
             cursor.close()
             connection.close()
@@ -569,16 +704,24 @@ class Bill:
             cursor = connection.cursor(dictionary=True)
             
             cursor.execute("""
-                SELECT * FROM bills 
-                WHERE table_id = %s AND bill_status = 'OPEN'
-                ORDER BY created_at DESC LIMIT 1
+                SELECT b.*, h.hotel_name, h.logo as hotel_logo
+                FROM bills b
+                LEFT JOIN hotels h ON b.hotel_id = h.id
+                WHERE b.table_id = %s AND b.bill_status = 'OPEN'
+                ORDER BY b.created_at DESC LIMIT 1
             """, (table_id,))
             
             bill = cursor.fetchone()
             
-            if bill and bill.get('items'):
+            if bill:
                 import json
-                bill['items'] = json.loads(bill['items'])
+                if bill.get('items'):
+                    items = json.loads(bill['items']) if isinstance(bill['items'], str) else bill['items']
+                    # Always enrich items with tax info to ensure they have current rates
+                    items = Bill.enrich_items_with_tax(items, cursor)
+                    bill['items'] = items
+                if bill.get('tax_breakdown'):
+                    bill['tax_breakdown'] = json.loads(bill['tax_breakdown']) if isinstance(bill['tax_breakdown'], str) else bill['tax_breakdown']
             
             cursor.close()
             connection.close()
@@ -595,7 +738,7 @@ class Bill:
             cursor = connection.cursor(dictionary=True)
             
             # Get current bill
-            cursor.execute("SELECT items, subtotal FROM bills WHERE id = %s AND bill_status = 'OPEN'", (bill_id,))
+            cursor.execute("SELECT items, subtotal, hotel_id FROM bills WHERE id = %s AND bill_status = 'OPEN'", (bill_id,))
             bill = cursor.fetchone()
             
             if not bill:
@@ -606,7 +749,7 @@ class Bill:
             import json
             existing_items = json.loads(bill['items']) if isinstance(bill['items'], str) else bill['items']
             
-            # Merge items - combine quantities for same items
+            # Merge items - combine quantities for same items (use basic info first)
             for new_item in new_items:
                 found = False
                 for existing_item in existing_items:
@@ -617,25 +760,31 @@ class Bill:
                 if not found:
                     existing_items.append(new_item)
             
-            # Recalculate totals using hotel's GST percentage
-            subtotal = sum(item['price'] * item['quantity'] for item in existing_items)
+            # Enrich items with per-item tax info
+            enriched_items = Bill.enrich_items_with_tax(existing_items, cursor)
             
-            # Get hotel_id from bill to fetch correct GST
-            cursor.execute("SELECT hotel_id, tax_rate FROM bills WHERE id = %s", (bill_id,))
-            bill_info = cursor.fetchone()
-            hotel_id = bill_info.get('hotel_id') if bill_info else None
+            # Recalculate totals with category-wise CGST/SGST using helper
+            subtotal = sum(item['price'] * item['quantity'] for item in enriched_items)
             
-            # Use stored tax_rate from bill (preserves historical GST)
-            tax_rate = float(bill_info.get('tax_rate', 5.0)) if bill_info and bill_info.get('tax_rate') else Bill.get_hotel_gst_percentage(hotel_id)
-            tax_amount = round(subtotal * (tax_rate / 100), 2)
+            # Calculate category-wise tax breakdown using helper
+            tax_result = Bill.calculate_category_tax_breakdown(enriched_items, cursor)
+            cgst_amount = tax_result['total_cgst']
+            sgst_amount = tax_result['total_sgst']
+            tax_breakdown = tax_result['breakdown']
+            tax_amount = cgst_amount + sgst_amount
             total_amount = round(subtotal + tax_amount, 2)
             
-            # Update bill
+            # Calculate effective tax rate for display (backward compatibility)
+            tax_rate = round((tax_amount / subtotal) * 100, 2) if subtotal > 0 else 5.0
+            
+            # Update bill with CGST/SGST, tax breakdown, and enriched items
             cursor.execute("""
                 UPDATE bills 
-                SET items = %s, subtotal = %s, tax_amount = %s, total_amount = %s
+                SET items = %s, subtotal = %s, tax_rate = %s, tax_amount = %s, 
+                    cgst_amount = %s, sgst_amount = %s, tax_breakdown = %s, total_amount = %s
                 WHERE id = %s
-            """, (json.dumps(existing_items), subtotal, tax_amount, total_amount, bill_id))
+            """, (json.dumps(enriched_items), subtotal, tax_rate, tax_amount, 
+                  cgst_amount, sgst_amount, json.dumps(tax_breakdown), total_amount, bill_id))
             
             connection.commit()
             cursor.close()
@@ -646,6 +795,9 @@ class Bill:
                 'subtotal': subtotal,
                 'tax_rate': tax_rate,
                 'tax_amount': tax_amount,
+                'cgst_amount': cgst_amount,
+                'sgst_amount': sgst_amount,
+                'tax_breakdown': tax_breakdown,
                 'total_amount': total_amount,
                 'items_added': True
             }
@@ -697,24 +849,34 @@ class Bill:
                 if order:
                     waiter_id = order.get('waiter_id')
             
-            # Calculate tax and total using hotel's dynamic GST percentage
-            tax_rate = Bill.get_hotel_gst_percentage(hotel_id)
-            tax_amount = round(subtotal * (tax_rate / 100), 2)
+            # Enrich items with per-item tax info
+            enriched_items = Bill.enrich_items_with_tax(items, cursor)
+            
+            # Calculate category-wise tax breakdown using helper
+            tax_result = Bill.calculate_category_tax_breakdown(items, cursor)
+            cgst_amount = tax_result['total_cgst']
+            sgst_amount = tax_result['total_sgst']
+            tax_breakdown = tax_result['breakdown']
+            tax_amount = cgst_amount + sgst_amount
             total_amount = round(subtotal + tax_amount, 2)
+            
+            # Calculate effective tax rate for display (backward compatibility)
+            tax_rate = round((tax_amount / subtotal) * 100, 2) if subtotal > 0 else 5.0
             
             # Generate bill number
             bill_number = Bill.generate_bill_number()
             
             import json
-            items_json = json.dumps(items)
+            items_json = json.dumps(enriched_items)
+            tax_breakdown_json = json.dumps(tax_breakdown)
             
             cursor.execute("""
                 INSERT INTO bills 
                 (bill_number, order_id, hotel_id, table_id, session_id, guest_name, hotel_name, hotel_address, 
-                 table_number, items, subtotal, tax_rate, tax_amount, total_amount, bill_status, waiter_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'OPEN', %s)
+                 table_number, items, subtotal, tax_rate, tax_amount, cgst_amount, sgst_amount, tax_breakdown, total_amount, bill_status, waiter_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'OPEN', %s)
             """, (bill_number, order_id, hotel_id, table_id, session_id, guest_name, hotel_name, hotel_address,
-                  table_number, items_json, subtotal, tax_rate, tax_amount, total_amount, waiter_id))
+                  table_number, items_json, subtotal, tax_rate, tax_amount, cgst_amount, sgst_amount, tax_breakdown_json, total_amount, waiter_id))
             
             bill_id = cursor.lastrowid
             
@@ -728,6 +890,9 @@ class Bill:
                 'subtotal': subtotal,
                 'tax_rate': tax_rate,
                 'tax_amount': tax_amount,
+                'cgst_amount': cgst_amount,
+                'sgst_amount': sgst_amount,
+                'tax_breakdown': tax_breakdown,
                 'total_amount': total_amount
             }
         except Exception as e:
@@ -742,14 +907,23 @@ class Bill:
             cursor = connection.cursor(dictionary=True)
             
             cursor.execute("""
-                SELECT * FROM bills WHERE order_id = %s
+                SELECT b.*, h.hotel_name, h.logo as hotel_logo
+                FROM bills b
+                LEFT JOIN hotels h ON b.hotel_id = h.id
+                WHERE b.order_id = %s
             """, (order_id,))
             
             bill = cursor.fetchone()
             
             if bill and bill.get('items'):
                 import json
-                bill['items'] = json.loads(bill['items'])
+                items = json.loads(bill['items'])
+                # Enrich items with tax info if missing
+                if items:  # Always enrich with current tax rates
+                    items = Bill.enrich_items_with_tax(items, cursor)
+                    bill['items'] = items
+                else:
+                    bill['items'] = items
             
             cursor.close()
             connection.close()
@@ -776,7 +950,11 @@ class Bill:
             import json
             for bill in bills:
                 if bill.get('items'):
-                    bill['items'] = json.loads(bill['items'])
+                    items = json.loads(bill['items'])
+                    # Enrich items with tax info if missing
+                    if items:  # Always enrich with current tax rates
+                        items = Bill.enrich_items_with_tax(items, cursor)
+                    bill['items'] = items
             
             cursor.close()
             connection.close()
@@ -794,7 +972,7 @@ class Bill:
             
             # Get all orders for this session
             cursor.execute("""
-                SELECT o.*, t.table_number, h.hotel_name, h.address, h.city
+                SELECT o.*, t.table_number, h.hotel_name, h.address, h.city, h.logo as hotel_logo
                 FROM table_orders o
                 JOIN tables t ON o.table_id = t.id
                 LEFT JOIN hotels h ON t.hotel_id = h.id
@@ -822,39 +1000,81 @@ class Bill:
             # Get hotel info from first order
             first_order = orders[0]
             hotel_name = first_order.get('hotel_name', '')
+            hotel_logo = first_order.get('hotel_logo', '')
             address = first_order.get('address', '')
             city = first_order.get('city', '')
             hotel_address = f"{address}, {city}" if address else city
             table_number = first_order.get('table_number', '')
             guest_name = first_order.get('guest_name', '')
             
-            # Calculate tax using hotel's dynamic GST percentage
-            tax_rate = Bill.get_hotel_gst_percentage(first_order.get('hotel_id'))
-            tax_amount = round(subtotal * (tax_rate / 100), 2)
+            # Calculate category-wise tax breakdown using helper
+            tax_result = Bill.calculate_category_tax_breakdown(all_items, cursor)
+            cgst_amount = tax_result['total_cgst']
+            sgst_amount = tax_result['total_sgst']
+            tax_breakdown = tax_result['breakdown']
+            tax_amount = cgst_amount + sgst_amount
             total_amount = round(subtotal + tax_amount, 2)
             
-            # Get payment status (PAID only if all orders are paid)
+            # Calculate effective tax rate for display (backward compatibility)
+            tax_rate = round((tax_amount / subtotal) * 100, 2) if subtotal > 0 else 5.0
+            
+            # Get payment status and payment_method from bills table
             cursor.execute("""
-                SELECT COUNT(*) as unpaid FROM table_orders 
-                WHERE table_id = %s AND session_id = %s AND payment_status != 'PAID'
+                SELECT payment_status, payment_method, bill_number, cgst_amount, sgst_amount, tax_breakdown
+                FROM bills 
+                WHERE table_id = %s AND session_id = %s
+                ORDER BY created_at DESC LIMIT 1
             """, (table_id, session_id))
-            unpaid_result = cursor.fetchone()
-            payment_status = 'PAID' if unpaid_result['unpaid'] == 0 else 'PENDING'
+            bill_info = cursor.fetchone()
+            
+            if bill_info:
+                payment_status = bill_info.get('payment_status', 'PENDING')
+                payment_method = bill_info.get('payment_method', '')
+                bill_number = bill_info.get('bill_number', '')
+                # Use stored values if available
+                if bill_info.get('cgst_amount') is not None:
+                    cgst_amount = float(bill_info.get('cgst_amount'))
+                    sgst_amount = float(bill_info.get('sgst_amount'))
+                if bill_info.get('tax_breakdown'):
+                    stored_breakdown = bill_info.get('tax_breakdown')
+                    if isinstance(stored_breakdown, str):
+                        tax_breakdown = json.loads(stored_breakdown)
+                    else:
+                        tax_breakdown = stored_breakdown
+            else:
+                # Fallback: check if all orders are paid
+                cursor.execute("""
+                    SELECT COUNT(*) as unpaid FROM table_orders 
+                    WHERE table_id = %s AND session_id = %s AND payment_status != 'PAID'
+                """, (table_id, session_id))
+                unpaid_result = cursor.fetchone()
+                payment_status = 'PAID' if unpaid_result['unpaid'] == 0 else 'PENDING'
+                payment_method = ''
+                bill_number = ''
+            
+            # Enrich items with per-item tax info before returning
+            enriched_items = Bill.enrich_items_with_tax(all_items, cursor)
             
             cursor.close()
             connection.close()
             
             return {
                 'hotel_name': hotel_name,
+                'hotel_logo': hotel_logo,
                 'hotel_address': hotel_address,
                 'table_number': table_number,
                 'guest_name': guest_name,
-                'items': all_items,
+                'items': enriched_items,
                 'subtotal': subtotal,
                 'tax_rate': tax_rate,
                 'tax_amount': tax_amount,
+                'cgst_amount': cgst_amount,
+                'sgst_amount': sgst_amount,
+                'tax_breakdown': tax_breakdown,
                 'total_amount': total_amount,
                 'payment_status': payment_status,
+                'payment_method': payment_method,
+                'bill_number': bill_number,
                 'order_count': len(orders),
                 'created_at': orders[0]['created_at']
             }
@@ -917,6 +1137,7 @@ class Bill:
     def process_payment_atomic(table_id, bill_id, payment_method='CASH', tip_amount=0.00):
         """Process payment atomically - ALWAYS succeeds if bill exists and is OPEN
         tip_amount: Optional tip for waiter (does NOT affect hotel wallet)
+        Tips are assigned to the specific waiter who served the order (from bill.waiter_id)
         """
         connection = None
         cursor = None
@@ -928,9 +1149,9 @@ class Bill:
             
             print(f"[PAYMENT ATOMIC] Starting payment for table_id={table_id}, bill_id={bill_id}, tip={tip_amount}")
             
-            # Lock and verify bill is OPEN
+            # Lock and verify bill is OPEN - also get waiter_id for tip assignment
             cursor.execute("""
-                SELECT id, bill_status, table_id, session_id, guest_name, subtotal, tax_amount
+                SELECT id, bill_status, table_id, session_id, guest_name, subtotal, tax_amount, waiter_id
                 FROM bills 
                 WHERE id = %s AND bill_status = 'OPEN'
                 FOR UPDATE
@@ -962,6 +1183,65 @@ class Bill:
             new_total = round(subtotal + tax_amount + tip, 2)
             
             print(f"[PAYMENT ATOMIC] Calculated totals: subtotal={subtotal}, tax={tax_amount}, tip={tip}, new_total={new_total}")
+            
+            # Assign tip to the waiter who served this order (from bill.waiter_id)
+            if tip > 0:
+                try:
+                    # First priority: Use waiter_id from the bill itself (the actual server)
+                    bill_waiter_id = bill.get('waiter_id')
+                    
+                    if bill_waiter_id:
+                        # Assign full tip to the waiter who served this order
+                        print(f"[PAYMENT ATOMIC] Assigning tip to bill's waiter: waiter_id={bill_waiter_id}, amount=₹{tip}")
+                        
+                        try:
+                            cursor.execute("""
+                                INSERT INTO waiter_tips (waiter_id, bill_id, tip_amount, created_at)
+                                VALUES (%s, %s, %s, %s)
+                            """, (bill_waiter_id, bill_id, tip, paid_at))
+                            
+                            print(f"[PAYMENT ATOMIC] Tip recorded: waiter_id={bill_waiter_id}, amount=₹{tip}")
+                        except Exception as tip_error:
+                            print(f"[PAYMENT ATOMIC WARNING] Could not record tip in waiter_tips table: {tip_error}")
+                    else:
+                        # Fallback: Try to get waiters from table assignments (for backward compatibility)
+                        cursor.execute("""
+                            SELECT DISTINCT waiter_id 
+                            FROM waiter_table_assignments 
+                            WHERE table_id = %s
+                        """, (table_id,))
+                        
+                        assigned_waiters = cursor.fetchall()
+                        
+                        if assigned_waiters and len(assigned_waiters) > 0:
+                            waiter_count = len(assigned_waiters)
+                            tip_per_waiter = round(tip / waiter_count, 2)
+                            
+                            print(f"[PAYMENT ATOMIC] No waiter_id in bill, distributing to {waiter_count} assigned waiters: ₹{tip_per_waiter} each")
+                            
+                            # Also update the bill's waiter_id with the first assigned waiter for record keeping
+                            first_waiter_id = assigned_waiters[0]['waiter_id']
+                            cursor.execute("""
+                                UPDATE bills SET waiter_id = %s WHERE id = %s AND waiter_id IS NULL
+                            """, (first_waiter_id, bill_id))
+                            
+                            try:
+                                for waiter in assigned_waiters:
+                                    waiter_id = waiter['waiter_id']
+                                    cursor.execute("""
+                                        INSERT INTO waiter_tips (waiter_id, bill_id, tip_amount, created_at)
+                                        VALUES (%s, %s, %s, %s)
+                                    """, (waiter_id, bill_id, tip_per_waiter, paid_at))
+                                    
+                                    print(f"[PAYMENT ATOMIC] Tip recorded: waiter_id={waiter_id}, amount=₹{tip_per_waiter}")
+                            except Exception as tip_error:
+                                print(f"[PAYMENT ATOMIC WARNING] Could not record tips in waiter_tips table: {tip_error}")
+                        else:
+                            print(f"[PAYMENT ATOMIC WARNING] No waiter_id in bill and no waiters assigned to table {table_id}, tip not distributed")
+                except Exception as e:
+                    # Gracefully handle any tip distribution errors - don't fail the payment
+                    print(f"[PAYMENT ATOMIC WARNING] Error during tip distribution: {e}")
+                    print(f"[PAYMENT ATOMIC WARNING] Payment will continue, but tips not distributed")
             
             # Mark bill as PAID and COMPLETED with tip
             cursor.execute("""
@@ -1196,16 +1476,22 @@ class Bill:
             cursor = connection.cursor(dictionary=True)
             
             cursor.execute("""
-                SELECT * FROM bills 
-                WHERE table_id = %s AND guest_name = %s AND bill_status = 'OPEN'
-                ORDER BY created_at DESC LIMIT 1
+                SELECT b.*, h.hotel_name, h.logo as hotel_logo
+                FROM bills b
+                LEFT JOIN hotels h ON b.hotel_id = h.id
+                WHERE b.table_id = %s AND b.guest_name = %s AND b.bill_status = 'OPEN'
+                ORDER BY b.created_at DESC LIMIT 1
             """, (table_id, guest_name))
             
             bill = cursor.fetchone()
             
             if bill and bill.get('items'):
                 import json
-                bill['items'] = json.loads(bill['items'])
+                items = json.loads(bill['items'])
+                # Enrich items with tax info if missing
+                if items:  # Always enrich with current tax rates
+                    items = Bill.enrich_items_with_tax(items, cursor)
+                bill['items'] = items
             
             cursor.close()
             connection.close()
@@ -1216,22 +1502,29 @@ class Bill:
     
     @staticmethod
     def get_bill_by_id(bill_id):
-        """Get bill by ID with table info"""
+        """Get bill by ID with table info and hotel logo"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
             cursor.execute("""
-                SELECT b.*, t.table_number 
+                SELECT b.*, t.table_number, h.hotel_name, h.logo as hotel_logo
                 FROM bills b
                 JOIN tables t ON b.table_id = t.id
+                LEFT JOIN hotels h ON b.hotel_id = h.id
                 WHERE b.id = %s
             """, (bill_id,))
             bill = cursor.fetchone()
             
             if bill and bill.get('items'):
                 import json
-                bill['items'] = json.loads(bill['items'])
+                items = json.loads(bill['items'])
+                # Enrich items with tax info if missing
+                if items:  # Always enrich with current tax rates
+                    items = Bill.enrich_items_with_tax(items, cursor)
+                    bill['items'] = items
+                else:
+                    bill['items'] = items
             
             cursor.close()
             connection.close()
@@ -1249,17 +1542,19 @@ class Bill:
             
             if hotel_id:
                 cursor.execute("""
-                    SELECT b.*, t.status as table_status, t.table_number
+                    SELECT b.*, t.status as table_status, t.table_number, h.hotel_name, h.logo as hotel_logo
                     FROM bills b
                     JOIN tables t ON b.table_id = t.id
+                    LEFT JOIN hotels h ON b.hotel_id = h.id
                     WHERE b.hotel_id = %s AND b.bill_status = 'OPEN'
                     ORDER BY b.created_at DESC
                 """, (hotel_id,))
             else:
                 cursor.execute("""
-                    SELECT b.*, t.status as table_status, t.table_number
+                    SELECT b.*, t.status as table_status, t.table_number, h.hotel_name, h.logo as hotel_logo
                     FROM bills b
                     JOIN tables t ON b.table_id = t.id
+                    LEFT JOIN hotels h ON b.hotel_id = h.id
                     WHERE b.bill_status = 'OPEN'
                     ORDER BY b.created_at DESC
                 """)
@@ -1269,7 +1564,11 @@ class Bill:
             import json
             for bill in bills:
                 if bill.get('items'):
-                    bill['items'] = json.loads(bill['items'])
+                    items = json.loads(bill['items'])
+                    # Enrich items with tax info if missing
+                    if items:  # Always enrich with current tax rates
+                        items = Bill.enrich_items_with_tax(items, cursor)
+                    bill['items'] = items
             
             cursor.close()
             connection.close()
@@ -1286,9 +1585,10 @@ class Bill:
             cursor = connection.cursor(dictionary=True)
             
             query = """
-                SELECT b.*, t.table_number 
+                SELECT b.*, t.table_number, h.hotel_name, h.logo as hotel_logo
                 FROM bills b
                 JOIN tables t ON b.table_id = t.id
+                LEFT JOIN hotels h ON b.hotel_id = h.id
                 WHERE 1=1
             """
             params = []
@@ -1309,7 +1609,11 @@ class Bill:
             import json
             for bill in bills:
                 if bill.get('items'):
-                    bill['items'] = json.loads(bill['items'])
+                    items = json.loads(bill['items'])
+                    # Enrich items with tax info if missing
+                    if items:  # Always enrich with current tax rates
+                        items = Bill.enrich_items_with_tax(items, cursor)
+                    bill['items'] = items
             
             cursor.close()
             connection.close()
@@ -1454,37 +1758,69 @@ class Bill:
     def get_waiter_wise_tips(hotel_id, period='today'):
         """Get tip breakdown by waiter for manager dashboard
         period: 'today', 'week', 'month', 'all'
+        Uses waiter_tips table for distributed tip tracking (falls back to bills table if not available)
         """
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
+            # Check if waiter_tips table exists
+            cursor.execute("SHOW TABLES LIKE 'waiter_tips'")
+            waiter_tips_exists = cursor.fetchone() is not None
+            
             date_filter = ""
             if period == 'today':
-                date_filter = "AND DATE(b.paid_at) = CURDATE()"
+                date_filter_wt = "AND DATE(wt.created_at) = CURDATE()"
+                date_filter_b = "AND DATE(b.paid_at) = CURDATE()"
             elif period == 'week':
-                date_filter = "AND b.paid_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+                date_filter_wt = "AND wt.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+                date_filter_b = "AND b.paid_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
             elif period == 'month':
-                date_filter = "AND b.paid_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+                date_filter_wt = "AND wt.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+                date_filter_b = "AND b.paid_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+            else:
+                date_filter_wt = ""
+                date_filter_b = ""
             
-            # Get today's tips per waiter
-            cursor.execute(f"""
-                SELECT 
-                    w.id as waiter_id,
-                    w.name as waiter_name,
-                    SUM(CASE WHEN DATE(b.paid_at) = CURDATE() THEN b.tip_amount ELSE 0 END) as today_tip,
-                    SUM(b.tip_amount) as total_tip,
-                    COUNT(CASE WHEN DATE(b.paid_at) = CURDATE() THEN 1 END) as today_bills,
-                    COUNT(*) as total_bills
-                FROM bills b
-                JOIN waiters w ON b.waiter_id = w.id
-                WHERE b.hotel_id = %s 
-                AND b.payment_status = 'PAID' 
-                AND b.tip_amount > 0
-                {date_filter}
-                GROUP BY b.waiter_id, w.name
-                ORDER BY today_tip DESC, total_tip DESC
-            """, (hotel_id,))
+            if waiter_tips_exists:
+                # Use waiter_tips table for distributed tip tracking
+                cursor.execute(f"""
+                    SELECT 
+                        w.id as waiter_id,
+                        w.name as waiter_name,
+                        SUM(CASE WHEN DATE(wt.created_at) = CURDATE() THEN wt.tip_amount ELSE 0 END) as today_tip,
+                        SUM(wt.tip_amount) as total_tip,
+                        COUNT(DISTINCT CASE WHEN DATE(wt.created_at) = CURDATE() THEN wt.bill_id END) as today_bills,
+                        COUNT(DISTINCT wt.bill_id) as total_bills
+                    FROM waiter_tips wt
+                    JOIN waiters w ON wt.waiter_id = w.id
+                    JOIN bills b ON wt.bill_id = b.id
+                    WHERE b.hotel_id = %s 
+                    AND wt.tip_amount > 0
+                    {date_filter_wt}
+                    GROUP BY w.id, w.name
+                    ORDER BY today_tip DESC, total_tip DESC
+                """, (hotel_id,))
+            else:
+                # Fallback to bills table (old method)
+                print("[TIP_SUMMARY] waiter_tips table not found, using bills table (run setup_tip_distribution.py)")
+                cursor.execute(f"""
+                    SELECT 
+                        w.id as waiter_id,
+                        w.name as waiter_name,
+                        SUM(CASE WHEN DATE(b.paid_at) = CURDATE() THEN b.tip_amount ELSE 0 END) as today_tip,
+                        SUM(b.tip_amount) as total_tip,
+                        COUNT(CASE WHEN DATE(b.paid_at) = CURDATE() THEN 1 END) as today_bills,
+                        COUNT(*) as total_bills
+                    FROM bills b
+                    JOIN waiters w ON b.waiter_id = w.id
+                    WHERE b.hotel_id = %s 
+                    AND b.payment_status = 'PAID' 
+                    AND b.tip_amount > 0
+                    {date_filter_b}
+                    GROUP BY b.waiter_id, w.name
+                    ORDER BY today_tip DESC, total_tip DESC
+                """, (hotel_id,))
             
             waiters = cursor.fetchall()
             

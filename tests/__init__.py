@@ -1,1 +1,1 @@
-# Test suite for Hotel Management System
+# Test suite for Smart Restaurant Management System

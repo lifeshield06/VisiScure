@@ -11,17 +11,17 @@ class MenuCategory:
             
             if hotel_id:
                 cursor.execute(
-                    "SELECT id, name FROM menu_categories WHERE hotel_id = %s ORDER BY id",
+                    "SELECT id, name, COALESCE(cgst_percentage, 2.50) as cgst_percentage, COALESCE(sgst_percentage, 2.50) as sgst_percentage FROM menu_categories WHERE hotel_id = %s ORDER BY id",
                     (hotel_id,)
                 )
             else:
-                cursor.execute("SELECT id, name FROM menu_categories ORDER BY id")
+                cursor.execute("SELECT id, name, COALESCE(cgst_percentage, 2.50) as cgst_percentage, COALESCE(sgst_percentage, 2.50) as sgst_percentage FROM menu_categories ORDER BY id")
             
             categories = cursor.fetchall()
             cursor.close()
             connection.close()
             
-            # Return list of dicts with id and name
+            # Return list of dicts with id, name, cgst_percentage, sgst_percentage
             return categories if categories else []
         except Exception as e:
             print(f"Error getting categories: {e}")
@@ -102,6 +102,59 @@ class MenuCategory:
         except Exception as e:
             print(f"Error deleting category: {e}")
             return {"success": False, "message": str(e)}
+    
+    @staticmethod
+    def update_category_tax(category_id, cgst_percentage, sgst_percentage, hotel_id=None):
+        """Update CGST and SGST percentages for a category"""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor()
+            
+            if hotel_id:
+                cursor.execute(
+                    "UPDATE menu_categories SET cgst_percentage = %s, sgst_percentage = %s WHERE id = %s AND hotel_id = %s",
+                    (cgst_percentage, sgst_percentage, category_id, hotel_id)
+                )
+            else:
+                cursor.execute(
+                    "UPDATE menu_categories SET cgst_percentage = %s, sgst_percentage = %s WHERE id = %s",
+                    (cgst_percentage, sgst_percentage, category_id)
+                )
+            
+            connection.commit()
+            cursor.close()
+            connection.close()
+            
+            return {"success": True, "message": "Category tax updated successfully"}
+        except Exception as e:
+            print(f"Error updating category tax: {e}")
+            return {"success": False, "message": str(e)}
+    
+    @staticmethod
+    def get_category_tax(category_id):
+        """Get tax rates for a specific category"""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            
+            cursor.execute(
+                "SELECT COALESCE(cgst_percentage, 2.50) as cgst_percentage, COALESCE(sgst_percentage, 2.50) as sgst_percentage FROM menu_categories WHERE id = %s",
+                (category_id,)
+            )
+            
+            result = cursor.fetchone()
+            cursor.close()
+            connection.close()
+            
+            if result:
+                return {
+                    'cgst_percentage': float(result['cgst_percentage']),
+                    'sgst_percentage': float(result['sgst_percentage'])
+                }
+            return {'cgst_percentage': 2.50, 'sgst_percentage': 2.50}  # Default
+        except Exception as e:
+            print(f"Error getting category tax: {e}")
+            return {'cgst_percentage': 2.50, 'sgst_percentage': 2.50}  # Default
 
 
 class MenuDish:
@@ -213,7 +266,7 @@ class MenuDish:
             return []
     
     @staticmethod
-    def add_dish(hotel_id, category_id, name, price, quantity, description, images=None):
+    def add_dish(hotel_id, category_id, name, price, quantity, description, images=None, kitchen_id=None, cgst=2.50, sgst=2.50):
         """Add a new dish"""
         try:
             connection = get_db_connection()
@@ -222,9 +275,9 @@ class MenuDish:
             images_json = json.dumps(images) if images else '[]'
             
             cursor.execute(
-                """INSERT INTO menu_dishes (hotel_id, category_id, name, price, quantity, description, images) 
-                   VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-                (hotel_id, category_id, name, price, quantity, description, images_json)
+                """INSERT INTO menu_dishes (hotel_id, category_id, name, price, quantity, description, images, kitchen_id, cgst, sgst) 
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                (hotel_id, category_id, name, price, quantity, description, images_json, kitchen_id, cgst, sgst)
             )
             
             dish_id = cursor.lastrowid
@@ -238,7 +291,7 @@ class MenuDish:
             return {"success": False, "message": str(e)}
     
     @staticmethod
-    def update_dish(dish_id, name, price, quantity, description, images=None, hotel_id=None):
+    def update_dish(dish_id, name, price, quantity, description, images=None, hotel_id=None, kitchen_id=None, cgst=2.50, sgst=2.50):
         """Update a dish"""
         try:
             connection = get_db_connection()
@@ -252,30 +305,30 @@ class MenuDish:
             if should_update_images and hotel_id:
                 cursor.execute(
                     """UPDATE menu_dishes 
-                       SET name = %s, price = %s, quantity = %s, description = %s, images = %s 
+                       SET name = %s, price = %s, quantity = %s, description = %s, images = %s, kitchen_id = %s, cgst = %s, sgst = %s 
                        WHERE id = %s AND hotel_id = %s""",
-                    (name, price, quantity, description, images_json, dish_id, hotel_id)
+                    (name, price, quantity, description, images_json, kitchen_id, cgst, sgst, dish_id, hotel_id)
                 )
             elif should_update_images:
                 cursor.execute(
                     """UPDATE menu_dishes 
-                       SET name = %s, price = %s, quantity = %s, description = %s, images = %s 
+                       SET name = %s, price = %s, quantity = %s, description = %s, images = %s, kitchen_id = %s, cgst = %s, sgst = %s 
                        WHERE id = %s""",
-                    (name, price, quantity, description, images_json, dish_id)
+                    (name, price, quantity, description, images_json, kitchen_id, cgst, sgst, dish_id)
                 )
             elif hotel_id:
                 cursor.execute(
                     """UPDATE menu_dishes 
-                       SET name = %s, price = %s, quantity = %s, description = %s 
+                       SET name = %s, price = %s, quantity = %s, description = %s, kitchen_id = %s, cgst = %s, sgst = %s 
                        WHERE id = %s AND hotel_id = %s""",
-                    (name, price, quantity, description, dish_id, hotel_id)
+                    (name, price, quantity, description, kitchen_id, cgst, sgst, dish_id, hotel_id)
                 )
             else:
                 cursor.execute(
                     """UPDATE menu_dishes 
-                       SET name = %s, price = %s, quantity = %s, description = %s 
+                       SET name = %s, price = %s, quantity = %s, description = %s, kitchen_id = %s, cgst = %s, sgst = %s 
                        WHERE id = %s""",
-                    (name, price, quantity, description, dish_id)
+                    (name, price, quantity, description, kitchen_id, cgst, sgst, dish_id)
                 )
             
             connection.commit()
@@ -323,12 +376,12 @@ class MenuDish:
             
             if hotel_id:
                 cursor.execute(
-                    "SELECT id, name, price, quantity, description, images, category_id, hotel_id FROM menu_dishes WHERE id = %s AND hotel_id = %s",
+                    "SELECT id, name, price, quantity, description, images, category_id, hotel_id, kitchen_id, cgst, sgst FROM menu_dishes WHERE id = %s AND hotel_id = %s",
                     (dish_id, hotel_id)
                 )
             else:
                 cursor.execute(
-                    "SELECT id, name, price, quantity, description, images, category_id, hotel_id FROM menu_dishes WHERE id = %s",
+                    "SELECT id, name, price, quantity, description, images, category_id, hotel_id, kitchen_id, cgst, sgst FROM menu_dishes WHERE id = %s",
                     (dish_id,)
                 )
             

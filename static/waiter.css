@@ -1338,3 +1338,343 @@ body {
     background: #d1fae5;
     color: #065f46;
 }
+
+/* ===========================================
+   WAITER CALL SYSTEM STYLES
+   =========================================== */
+
+/* Blinking Banner */
+.assistance-banner {
+    position: fixed;
+    top: 0;
+    left: 250px;
+    right: 0;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    padding: 1rem;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0.7; }
+}
+
+.banner-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.banner-content i {
+    font-size: 1.3rem;
+    animation: ring 1s infinite;
+}
+
+@keyframes ring {
+    0%, 100% { transform: rotate(0deg); }
+    10%, 30% { transform: rotate(-15deg); }
+    20%, 40% { transform: rotate(15deg); }
+}
+
+/* Assistance Requests Card */
+.assistance-requests-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.assistance-request-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #fef2f2;
+    border-left: 4px solid #ef4444;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.assistance-request-item:hover {
+    background: #fee2e2;
+    transform: translateX(4px);
+}
+
+.request-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.request-table {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    color: #1f2937;
+}
+
+.request-table i {
+    color: #ef4444;
+}
+
+.request-guest {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.request-time {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #9ca3af;
+    font-size: 0.85rem;
+}
+
+.request-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.assistance-count {
+    background: #ef4444;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* Popup Notification */
+.waiter-call-popup {
+    position: fixed;
+    top: 80px;
+    right: 1rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 1001;
+    min-width: 320px;
+    max-width: 400px;
+    transform: translateX(500px);
+    transition: transform 0.3s ease;
+    border-left: 4px solid #f97316;
+}
+
+.waiter-call-popup.show {
+    transform: translateX(0);
+}
+
+.popup-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.popup-icon i {
+    color: white;
+    font-size: 1.5rem;
+    animation: ring 1s infinite;
+}
+
+.popup-content h4 {
+    margin: 0 0 0.25rem 0;
+    color: #1f2937;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.popup-content p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .assistance-banner {
+        left: 0;
+    }
+    
+    .assistance-request-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .request-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    .request-actions button {
+        width: 100%;
+    }
+    
+    .waiter-call-popup {
+        right: 0.5rem;
+        left: 0.5rem;
+        min-width: auto;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Dashboard Cards - Modern Gradient Design
+   -------------------------------------------------------------------------- */
+.dashboard-cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.dashboard-card {
+    position: relative;
+    border-radius: 20px;
+    padding: 1.5rem;
+    overflow: hidden;
+    color: white;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-card-bg {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.dashboard-card-bg svg {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* Card Color Variants */
+.dashboard-card-tables {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+}
+
+.dashboard-card-active {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+}
+
+.dashboard-card-preparing {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+}
+
+.dashboard-card-completed {
+    background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+}
+
+.dashboard-card-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.dashboard-card-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.dashboard-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.dashboard-card-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dashboard-card-value {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.2;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    opacity: 0.85;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    z-index: 1;
+}
+
+@media (max-width: 768px) {
+    .dashboard-cards-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dashboard-card {
+        min-height: 130px;
+        padding: 1.25rem;
+    }
+
+    .dashboard-card-value {
+        font-size: 1.5rem;
+    }
+
+    .dashboard-card-icon {
+        width: 42px;
+        height: 42px;
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-cards-container {
+        grid-template-columns: 1fr;
+    }
+}

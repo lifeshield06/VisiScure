@@ -1,5 +1,5 @@
 """
-Comprehensive Test Suite for Hotel Management System
+Comprehensive Test Suite for Smart Restaurant Management System
 Tests all functionalities including login, hotel-specific data isolation, and module access
 """
 
@@ -468,7 +468,7 @@ class HotelManagementTests:
 
     def run_all_tests(self):
         """Run all tests"""
-        print_header("HOTEL MANAGEMENT SYSTEM - TEST SUITE")
+        print_header("SMART RESTAURANT MANAGEMENT SYSTEM - TEST SUITE")
         print(f"Testing against: {BASE_URL}")
         print(f"Time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
         
@@ -496,7 +496,7 @@ class HotelManagementTests:
 
 
 def main():
-    print(f"\n{Colors.BOLD}Starting Hotel Management System Tests...{Colors.RESET}")
+    print(f"\n{Colors.BOLD}Starting Smart Restaurant Management System Tests...{Colors.RESET}")
     print("Make sure the Flask server is running on http://127.0.0.1:5000\n")
     
     tester = HotelManagementTests()

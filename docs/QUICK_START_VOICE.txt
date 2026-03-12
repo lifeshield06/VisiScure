@@ -1,0 +1,64 @@
+╔══════════════════════════════════════════════════════════════╗
+║     WAITER CALL VOICE SYSTEM - QUICK START GUIDE            ║
+╚══════════════════════════════════════════════════════════════╝
+
+WHAT'S NEW:
+-----------
+✅ Voice announcements now use gTTS (Google Text-to-Speech)
+✅ Reliable playback on ALL browsers
+✅ High-quality voice: "Table X is calling waiter"
+✅ Automatic MP3 generation
+
+
+INSTALLATION (3 COMMANDS):
+---------------------------
+
+1. Install gTTS:
+   > pip install gTTS==2.5.0
+
+2. Test it works:
+   > python test_voice_generation.py
+
+3. Restart server:
+   > python app.py
+
+
+VERIFY IT'S WORKING:
+--------------------
+
+1. Open waiter dashboard
+2. Press F12 (open console)
+3. Look for: "[WAITER_CALL] Initializing... v3.0 - gTTS"
+4. Have guest press "Call Waiter"
+5. Should hear: "Table X is calling waiter"
+
+
+TROUBLESHOOTING:
+----------------
+
+Problem: "No module named 'gtts'"
+Fix: pip install gTTS==2.5.0
+
+Problem: Voice not playing
+Fix: Hard refresh browser (Ctrl + Shift + R)
+
+Problem: Permission error
+Fix: Check static/sounds/waiter_calls/ exists
+
+
+FILES LOCATION:
+---------------
+
+Voice files: Hotel/static/sounds/waiter_calls/
+Service code: Hotel/waiter_calls/voice_service.py
+Full docs: Hotel/WAITER_CALL_VOICE_SYSTEM.md
+
+
+THAT'S IT! 🎉
+-------------
+
+The system will now automatically:
+- Generate voice files when guests call waiter
+- Play announcements in waiter dashboard
+- Clean up old files after 24 hours
+

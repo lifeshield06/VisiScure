@@ -1,4 +1,9 @@
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 import mysql.connector
 from datetime import datetime, date
 from decimal import Decimal
@@ -32,6 +37,27 @@ app.json_provider_class = CustomJSONProvider
 app.json = CustomJSONProvider(app)
 app.secret_key = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 
+# Ensure upload directories exist
+UPLOAD_FOLDERS = [
+    os.path.join(app.static_folder, 'uploads', 'hotel_logos'),
+    os.path.join(app.static_folder, 'uploads', 'hotel_qr')
+]
+for folder in UPLOAD_FOLDERS:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+        print(f"Created upload folder: {folder}")
+
+# Template helper function to check if logo file exists
+@app.context_processor
+def utility_processor():
+    def logo_file_exists(logo_filename):
+        """Check if hotel logo file exists in the file system"""
+        if not logo_filename:
+            return False
+        logo_path = os.path.join(app.static_folder, 'uploads', 'hotel_logos', logo_filename)
+        return os.path.exists(logo_path)
+    return dict(logo_file_exists=logo_file_exists)
+
 # Register blueprints
 app.register_blueprint(hotel_manager_bp, url_prefix='/hotel-manager')
 app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -50,6 +76,10 @@ app.register_blueprint(kitchen_bp, url_prefix='/kitchen')
 # Import and register wallet blueprint
 from wallet import wallet_bp
 app.register_blueprint(wallet_bp)
+
+# Import and register waiter calls blueprint
+from waiter_calls import waiter_calls_bp
+app.register_blueprint(waiter_calls_bp)
 
 def get_db_connection():
     """Create a MySQL connection using environment variables."""
@@ -234,6 +264,24 @@ def init_db():
         if cursor.fetchone():
             cursor.execute("ALTER TABLE hotels MODIFY COLUMN password VARCHAR(255) NULL")
         
+        # Ensure hotels table has logo column
+        cursor.execute("SHOW COLUMNS FROM hotels LIKE 'logo'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE hotels ADD COLUMN logo VARCHAR(255) DEFAULT NULL")
+            print("Added logo column to hotels table")
+        
+        # Ensure hotels table has upi_id column
+        cursor.execute("SHOW COLUMNS FROM hotels LIKE 'upi_id'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE hotels ADD COLUMN upi_id VARCHAR(100) DEFAULT NULL")
+            print("Added upi_id column to hotels table")
+        
+        # Ensure hotels table has upi_qr_image column
+        cursor.execute("SHOW COLUMNS FROM hotels LIKE 'upi_qr_image'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE hotels ADD COLUMN upi_qr_image VARCHAR(255) DEFAULT NULL")
+            print("Added upi_qr_image column to hotels table")
+        
         # Create hotel_modules table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS hotel_modules (
@@ -244,6 +292,12 @@ def init_db():
                 FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
             )
         """)
+        
+        # Add show_waiter_tips column if not exists
+        cursor.execute("SHOW COLUMNS FROM hotel_modules LIKE 'show_waiter_tips'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE hotel_modules ADD COLUMN show_waiter_tips BOOLEAN DEFAULT TRUE")
+            print("Added show_waiter_tips column to hotel_modules table")
         
         # Create hotel_managers table
         cursor.execute("""
@@ -287,6 +341,8 @@ def init_db():
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 hotel_id INT,
                 name VARCHAR(255) NOT NULL,
+                cgst_percentage DECIMAL(5,2) DEFAULT 2.50,
+                sgst_percentage DECIMAL(5,2) DEFAULT 2.50,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -295,6 +351,14 @@ def init_db():
         cursor.execute("SHOW COLUMNS FROM menu_categories LIKE 'hotel_id'")
         if not cursor.fetchone():
             cursor.execute("ALTER TABLE menu_categories ADD COLUMN hotel_id INT")
+        
+        # Ensure menu_categories has cgst_percentage and sgst_percentage columns
+        cursor.execute("SHOW COLUMNS FROM menu_categories LIKE 'cgst_percentage'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE menu_categories ADD COLUMN cgst_percentage DECIMAL(5,2) DEFAULT 2.50")
+        cursor.execute("SHOW COLUMNS FROM menu_categories LIKE 'sgst_percentage'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE menu_categories ADD COLUMN sgst_percentage DECIMAL(5,2) DEFAULT 2.50")
         
         # Create menu_dishes table if not exists
         cursor.execute("""

@@ -3,12 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verification Submitted - HotelEase</title>
+    <title>Verification Submitted - {{ hotel_name or 'VisiScure Order' }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #10b981 0%, #059669 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .success-container { background: white; border-radius: 20px; padding: 3rem; box-shadow: 0 25px 50px rgba(0,0,0,0.15); max-width: 550px; width: 100%; text-align: center; position: relative; overflow: hidden; }
         .success-container::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .hotel-logo-section { margin-bottom: 1.5rem; }
+        .hotel-logo-img { max-height: 60px; max-width: 200px; object-fit: contain; }
+        .hotel-name-text { font-size: 1.1rem; font-weight: 600; color: #2d3748; margin-top: 0.5rem; }
         .success-icon { font-size: 5rem; color: #10b981; margin-bottom: 1.5rem; animation: checkmark 0.6s ease-in-out; }
         @keyframes checkmark { 0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
         .success-container h1 { color: #2d3748; margin-bottom: 1rem; font-size: 2rem; font-weight: 700; }
@@ -35,6 +39,17 @@
 </head>
 <body>
     <div class="success-container">
+        {% if hotel_logo and logo_file_exists(hotel_logo) %}
+        <div class="hotel-logo-section">
+            <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel_logo) }}" 
+                 alt="{{ hotel_name or 'Hotel' }} Logo" 
+                 class="hotel-logo-img">
+            {% if hotel_name %}
+            <div class="hotel-name-text">{{ hotel_name }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
         <div class="success-icon">
             <i class="fas fa-check-circle"></i>
         </div>

@@ -18,7 +18,7 @@ def test(name, condition, error_msg=""):
 
 def main():
     print("\n" + "="*60)
-    print("QUICK TEST - Hotel Management System")
+    print("QUICK TEST - Smart Restaurant Management System")
     print("="*60)
     
     passed = 0
@@ -78,7 +78,7 @@ def main():
         print(f"       Dashboard status: {r.status_code}, length: {len(r.text)}")
     
     # 4. Test Hotel Creation
-    print("\n[4] Hotel Management")
+    print("\n[4] Restaurant Management")
     r = session.post(f"{BASE_URL}/admin/create-hotel", data={
         "name": "Quick Test Hotel",
         "address": "Test Address",

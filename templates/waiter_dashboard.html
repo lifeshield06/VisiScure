@@ -3,7 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Waiter Dashboard - HotelEase</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Waiter Dashboard - VisiScure Order</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,8 +22,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-brand">
-            <i class="fas fa-hotel"></i>
-            <span>HotelEase</span>
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="VisiScure Order" class="brand-logo">
         </div>
         <nav class="sidebar-menu">
             <div class="menu-label">Main Menu</div>
@@ -96,46 +103,116 @@
                 <p>{{ hotel_name }} - Here's your order overview</p>
             </div>
 
-            <!-- Stats Cards -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-icon blue">
+            <!-- Stats Cards - Modern Gradient Design -->
+            <div class="dashboard-cards-container">
+                <!-- Assigned Tables Card -->
+                <div class="dashboard-card dashboard-card-tables">
+                    <div class="dashboard-card-bg">
+                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="150" cy="50" r="80" fill="rgba(255,255,255,0.1)"/>
+                            <circle cx="180" cy="150" r="60" fill="rgba(255,255,255,0.05)"/>
+                        </svg>
+                    </div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-icon">
                             <i class="fas fa-chair"></i>
                         </div>
+                        <div class="dashboard-card-info">
+                            <span class="dashboard-card-label">Assigned Tables</span>
+                            <span class="dashboard-card-value">{{ tables_count }}</span>
+                        </div>
                     </div>
-                    <div class="stat-value">{{ tables_count }}</div>
-                    <div class="stat-label">Assigned Tables</div>
+                    <div class="dashboard-card-footer">
+                        <i class="fas fa-th-large"></i>
+                        <span>Your tables</span>
+                    </div>
                 </div>
 
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-icon red">
+                <!-- Active Orders Card -->
+                <div class="dashboard-card dashboard-card-active">
+                    <div class="dashboard-card-bg">
+                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="30" cy="170" r="70" fill="rgba(255,255,255,0.1)"/>
+                            <circle cx="160" cy="30" r="50" fill="rgba(255,255,255,0.05)"/>
+                        </svg>
+                    </div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-icon">
                             <i class="fas fa-fire"></i>
                         </div>
+                        <div class="dashboard-card-info">
+                            <span class="dashboard-card-label">Active Orders</span>
+                            <span class="dashboard-card-value">{{ active_count }}</span>
+                        </div>
                     </div>
-                    <div class="stat-value">{{ active_count }}</div>
-                    <div class="stat-label">Active Orders</div>
+                    <div class="dashboard-card-footer">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>Need attention</span>
+                    </div>
                 </div>
 
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-icon orange">
+                <!-- Preparing Card -->
+                <div class="dashboard-card dashboard-card-preparing">
+                    <div class="dashboard-card-bg">
+                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="100" cy="180" r="90" fill="rgba(255,255,255,0.1)"/>
+                            <circle cx="20" cy="40" r="40" fill="rgba(255,255,255,0.05)"/>
+                        </svg>
+                    </div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-icon">
                             <i class="fas fa-clock"></i>
                         </div>
-                    </div>
-                    <div class="stat-value">{{ preparing_count }}</div>
-                    <div class="stat-label">Preparing</div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-icon green">
-                            <i class="fas fa-check-circle"></i>
+                        <div class="dashboard-card-info">
+                            <span class="dashboard-card-label">Preparing</span>
+                            <span class="dashboard-card-value">{{ preparing_count }}</span>
                         </div>
                     </div>
-                    <div class="stat-value">{{ completed_count }}</div>
-                    <div class="stat-label">Completed Today</div>
+                    <div class="dashboard-card-footer">
+                        <i class="fas fa-utensils"></i>
+                        <span>In kitchen</span>
+                    </div>
+                </div>
+
+                <!-- Completed Card -->
+                <div class="dashboard-card dashboard-card-completed">
+                    <div class="dashboard-card-bg">
+                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="180" cy="100" r="100" fill="rgba(255,255,255,0.1)"/>
+                            <circle cx="50" cy="180" r="60" fill="rgba(255,255,255,0.05)"/>
+                        </svg>
+                    </div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="dashboard-card-info">
+                            <span class="dashboard-card-label">Completed Today</span>
+                            <span class="dashboard-card-value">{{ completed_count }}</span>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-footer">
+                        <i class="fas fa-trophy"></i>
+                        <span>Great work!</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Waiter Call Assistance Requests -->
+            <div class="assistance-banner" id="assistance-banner" style="display: none;">
+                <div class="banner-content">
+                    <i class="fas fa-bell"></i>
+                    <span id="banner-message">🔔 TABLE T5 CALLING WAITER</span>
+                </div>
+            </div>
+
+            <div class="data-card" id="assistance-requests-card" style="display: none;">
+                <div class="card-header">
+                    <h3><i class="fas fa-hand-paper"></i> Table Assistance Requests</h3>
+                    <span class="assistance-count" id="assistance-count">0</span>
+                </div>
+                <div class="assistance-requests-container" id="assistance-requests">
+                    <!-- Assistance requests will be loaded via JavaScript -->
                 </div>
             </div>
 
@@ -487,6 +564,14 @@
                 </tr>
             `).join('');
             
+            const hotelLogoHTML = bill.hotel_logo ? `
+                <div style="margin-bottom: 1rem;">
+                    <img src="/static/uploads/hotel_logos/${bill.hotel_logo}" 
+                         alt="${bill.hotel_name || 'Hotel'} Logo" 
+                         style="max-height: 80px; max-width: 200px; object-fit: contain; background: white; padding: 0.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                </div>
+            ` : '';
+            
             const modalHTML = `
                 <div class="bill-overlay" id="billOverlay" onclick="closeBillModal(event)">
                     <div class="bill-container" onclick="event.stopPropagation()">
@@ -496,6 +581,7 @@
                         </div>
                         <div class="bill-body">
                             <div class="bill-info">
+                                ${hotelLogoHTML}
                                 <h3>${bill.hotel_name || 'Restaurant'}</h3>
                                 <p>${bill.hotel_address || ''}</p>
                                 <div class="bill-meta">
@@ -775,10 +861,279 @@
             }, 30000);
         }
 
+        // ============== Waiter Call System ==============
+        console.log('[WAITER_CALL] Initializing Waiter Call System v3.0 - gTTS Voice Generation');
+        let previousRequestIds = new Set();
+        let pollingInterval = null;
+        let audioElement = null;
+
+        // Initialize audio element
+        function initializeAudio() {
+            if (!audioElement) {
+                audioElement = new Audio();
+                audioElement.volume = 1.0;
+                console.log('[WAITER_CALL] Audio element initialized');
+            }
+        }
+
+        // Play voice announcement using gTTS-generated audio
+        async function playVoiceAnnouncement(tableNumber, requestId) {
+            try {
+                console.log(`[WAITER_CALL] Generating voice for Table ${tableNumber}, Request ${requestId}`);
+                
+                // Generate voice file on server
+                const response = await fetch(`/api/waiter-calls/generate-voice/${requestId}`);
+                const data = await response.json();
+                
+                if (data.success && data.voice_url) {
+                    console.log(`[WAITER_CALL] Voice file ready: ${data.voice_url}`);
+                    
+                    // Initialize audio if needed
+                    initializeAudio();
+                    
+                    // Set the audio source and play
+                    audioElement.src = data.voice_url;
+                    
+                    // Play the audio
+                    audioElement.play()
+                        .then(() => {
+                            console.log('[WAITER_CALL] Voice announcement playing');
+                        })
+                        .catch(err => {
+                            console.error('[WAITER_CALL] Error playing voice:', err);
+                            // Fallback: try to play again after user interaction
+                            document.addEventListener('click', function playOnClick() {
+                                audioElement.play().catch(e => console.error('[WAITER_CALL] Retry failed:', e));
+                                document.removeEventListener('click', playOnClick);
+                            }, { once: true });
+                        });
+                } else {
+                    console.error('[WAITER_CALL] Failed to generate voice:', data.message);
+                }
+            } catch (error) {
+                console.error('[WAITER_CALL] Error in playVoiceAnnouncement:', error);
+            }
+        }
+
+        // Start polling for waiter calls
+        function startWaiterCallPolling() {
+            initializeAudio();
+            
+            // Poll immediately
+            pollWaiterCalls();
+            
+            // Then poll every 5 seconds
+            pollingInterval = setInterval(pollWaiterCalls, 5000);
+        }
+
+        // Stop polling
+        function stopWaiterCallPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        // Poll for pending waiter calls
+        async function pollWaiterCalls() {
+            try {
+                console.log('[WAITER_CALL] Polling for pending requests...');
+                const response = await fetch('/api/waiter-calls/pending');
+                const data = await response.json();
+                
+                console.log('[WAITER_CALL] Poll response:', data);
+                
+                if (data.success && data.requests) {
+                    console.log(`[WAITER_CALL] Found ${data.requests.length} pending request(s)`);
+                    const currentRequestIds = new Set(data.requests.map(r => r.id));
+                    
+                    // Check for new requests
+                    const newRequests = data.requests.filter(r => !previousRequestIds.has(r.id));
+                    
+                    if (newRequests.length > 0) {
+                        console.log(`[WAITER_CALL] ${newRequests.length} NEW request(s) detected!`);
+                        // New requests detected - trigger alerts
+                        newRequests.forEach(request => {
+                            console.log('[WAITER_CALL] New request:', request);
+                            showPopupNotification(request);
+                            playVoiceAnnouncement(request.table_number, request.id); // gTTS voice announcement
+                        });
+                    }
+                    
+                    // Update previous request IDs
+                    previousRequestIds = currentRequestIds;
+                    
+                    // Update UI
+                    updateAssistanceRequestsUI(data.requests);
+                    updateBanner(data.requests);
+                } else if (!data.success && data.message && data.message.includes('Unauthorized')) {
+                    console.error('[WAITER_CALL] Unauthorized - waiter not logged in');
+                    // Waiter not logged in - stop polling
+                    stopWaiterCallPolling();
+                } else {
+                    console.warn('[WAITER_CALL] Unexpected response:', data);
+                }
+            } catch (error) {
+                console.error('[WAITER_CALL] Error polling waiter calls:', error);
+            }
+        }
+
+        // Show popup notification
+        function showPopupNotification(request) {
+            const popup = document.createElement('div');
+            popup.className = 'waiter-call-popup';
+            popup.innerHTML = `
+                <div class="popup-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="popup-content">
+                    <h4>🔔 Table ${request.table_number} is calling you</h4>
+                    ${request.guest_name ? `<p>Guest: ${request.guest_name}</p>` : ''}
+                </div>
+            `;
+            
+            document.body.appendChild(popup);
+            
+            // Show popup
+            setTimeout(() => popup.classList.add('show'), 100);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                popup.classList.remove('show');
+                setTimeout(() => popup.remove(), 300);
+            }, 5000);
+        }
+
+        // Update assistance requests UI
+        function updateAssistanceRequestsUI(requests) {
+            const card = document.getElementById('assistance-requests-card');
+            const container = document.getElementById('assistance-requests');
+            const countBadge = document.getElementById('assistance-count');
+            
+            if (requests.length === 0) {
+                card.style.display = 'none';
+                return;
+            }
+            
+            card.style.display = 'block';
+            countBadge.textContent = requests.length;
+            
+            container.innerHTML = requests.map(request => {
+                const elapsed = getElapsedTime(request.created_at);
+                return `
+                    <div class="assistance-request-item">
+                        <div class="request-info">
+                            <div class="request-table">
+                                <i class="fas fa-chair"></i>
+                                <strong>Table ${request.table_number}</strong>
+                            </div>
+                            ${request.guest_name ? `<div class="request-guest">${request.guest_name}</div>` : ''}
+                            <div class="request-time">
+                                <i class="fas fa-clock"></i>
+                                ${elapsed}
+                            </div>
+                        </div>
+                        <div class="request-actions">
+                            <button class="btn btn-primary btn-sm" onclick="acknowledgeRequest(${request.id})">
+                                <i class="fas fa-check"></i> Acknowledge
+                            </button>
+                            <button class="btn btn-success btn-sm" onclick="completeRequest(${request.id})">
+                                <i class="fas fa-check-double"></i> Complete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update blinking banner
+        function updateBanner(requests) {
+            const banner = document.getElementById('assistance-banner');
+            const message = document.getElementById('banner-message');
+            
+            if (requests.length === 0) {
+                banner.style.display = 'none';
+                return;
+            }
+            
+            // Show oldest request
+            const oldestRequest = requests[0];
+            message.textContent = `🔔 TABLE ${oldestRequest.table_number} CALLING WAITER`;
+            banner.style.display = 'flex';
+        }
+
+        // Acknowledge request
+        async function acknowledgeRequest(requestId) {
+            try {
+                const response = await fetch('/api/waiter-calls/acknowledge', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ request_id: requestId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Request acknowledged!', 'success');
+                    pollWaiterCalls(); // Refresh immediately
+                } else {
+                    showNotification(data.message || 'Failed to acknowledge request', 'error');
+                }
+            } catch (error) {
+                console.error('Error acknowledging request:', error);
+                showNotification('Error acknowledging request', 'error');
+            }
+        }
+
+        // Complete request
+        async function completeRequest(requestId) {
+            try {
+                const response = await fetch('/api/waiter-calls/complete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ request_id: requestId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Request completed!', 'success');
+                    pollWaiterCalls(); // Refresh immediately
+                } else {
+                    showNotification(data.message || 'Failed to complete request', 'error');
+                }
+            } catch (error) {
+                console.error('Error completing request:', error);
+                showNotification('Error completing request', 'error');
+            }
+        }
+
+        // Get elapsed time
+        function getElapsedTime(createdAt) {
+            const now = new Date();
+            const created = new Date(createdAt);
+            const diffMs = now - created;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins === 1) return '1 minute ago';
+            if (diffMins < 60) return `${diffMins} minutes ago`;
+            
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours === 1) return '1 hour ago';
+            return `${diffHours} hours ago`;
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadRecentOrders();
             startAutoRefresh();
+            startWaiterCallPolling(); // Start waiter call polling
+        });
+
+        // Stop polling when page is unloaded
+        window.addEventListener('beforeunload', function() {
+            stopWaiterCallPolling();
         });
     </script>
 </body>

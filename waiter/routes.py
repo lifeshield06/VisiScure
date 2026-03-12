@@ -2,6 +2,8 @@ from flask import request, jsonify, session, render_template, redirect, url_for
 from . import waiter_bp
 from .models import WaiterAuth, WaiterTableAssignment
 from orders.table_models import Table
+from waiter_calls.models import WaiterCallService
+from database.db import get_db_connection
 import json
 
 @waiter_bp.route('/login-page')
@@ -54,6 +56,21 @@ def dashboard():
     if not waiter_id or not waiter_name:
         return "Invalid access. Please login first.", 403
     
+    # Fetch hotel logo
+    hotel_logo = None
+    if hotel_id:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT logo FROM hotels WHERE id = %s", (hotel_id,))
+            result = cursor.fetchone()
+            if result:
+                hotel_logo = result[0]
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"Error fetching hotel logo: {e}")
+    
     # Get assigned tables
     assigned_tables = WaiterAuth.get_assigned_tables(waiter_id)
     tables_count = len(assigned_tables) if assigned_tables else 0
@@ -75,6 +92,7 @@ def dashboard():
                          waiter_name=waiter_name,
                          hotel_id=hotel_id,
                          hotel_name=hotel_name,
+                         hotel_logo=hotel_logo,
                          tables=assigned_tables or [],
                          tables_count=tables_count,
                          all_orders=all_orders,
@@ -134,6 +152,94 @@ def update_order_status(order_id):
     result = WaiterAuth.update_order_status(order_id, new_status, waiter_id)
     return jsonify(result)
 
+@waiter_bp.route('/api/tip-statistics')
+def get_tip_statistics():
+    """Get tip statistics for the waiter"""
+    waiter_id = session.get('waiter_id')
+    hotel_id = session.get('waiter_hotel_id')
+    if not waiter_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Check if tips should be shown to waiters
+        cursor.execute("""
+            SELECT COALESCE(show_waiter_tips, TRUE) as show_waiter_tips
+            FROM hotel_modules
+            WHERE hotel_id = %s
+        """, (hotel_id,))
+        visibility_result = cursor.fetchone()
+        show_tips = visibility_result['show_waiter_tips'] if visibility_result else True
+        
+        # If tips are hidden, return zeros with a flag
+        if not show_tips:
+            cursor.close()
+            conn.close()
+            return jsonify({
+                'success': True,
+                'tips_visible': False,
+                'today_tips': 0,
+                'week_tips': 0,
+                'month_tips': 0,
+                'total_tips': 0
+            })
+        
+        # Get today's tips
+        cursor.execute("""
+            SELECT COALESCE(SUM(tip_amount), 0) as today_tips
+            FROM waiter_tips
+            WHERE waiter_id = %s AND DATE(created_at) = CURDATE()
+        """, (waiter_id,))
+        today_result = cursor.fetchone()
+        
+        # Get this week's tips
+        cursor.execute("""
+            SELECT COALESCE(SUM(tip_amount), 0) as week_tips
+            FROM waiter_tips
+            WHERE waiter_id = %s AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)
+        """, (waiter_id,))
+        week_result = cursor.fetchone()
+        
+        # Get this month's tips
+        cursor.execute("""
+            SELECT COALESCE(SUM(tip_amount), 0) as month_tips
+            FROM waiter_tips
+            WHERE waiter_id = %s AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())
+        """, (waiter_id,))
+        month_result = cursor.fetchone()
+        
+        # Get total tips
+        cursor.execute("""
+            SELECT COALESCE(SUM(tip_amount), 0) as total_tips
+            FROM waiter_tips
+            WHERE waiter_id = %s
+        """, (waiter_id,))
+        total_result = cursor.fetchone()
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'tips_visible': True,
+            'today_tips': float(today_result['today_tips']) if today_result else 0,
+            'week_tips': float(week_result['week_tips']) if week_result else 0,
+            'month_tips': float(month_result['month_tips']) if month_result else 0,
+            'total_tips': float(total_result['total_tips']) if total_result else 0
+        })
+    except Exception as e:
+        print(f"Error fetching tip statistics: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Error fetching tip statistics',
+            'today_tips': 0,
+            'week_tips': 0,
+            'month_tips': 0,
+            'total_tips': 0
+        })
+
 @waiter_bp.route('/change-password', methods=['POST'])
 def change_password():
     """Change waiter password"""
@@ -163,3 +269,126 @@ def assign_table():
 def unassign_table():
     """Disabled - Only managers can unassign tables from waiters"""
     return jsonify({'success': False, 'message': 'Access denied. Only managers can unassign tables.'}), 403
+
+# ============================================================================
+# WAITER CALL SYSTEM - Integrated into existing waiter dashboard
+# ============================================================================
+
+@waiter_bp.route('/api/waiter-calls/pending')
+def get_pending_calls():
+    """Get pending waiter call requests for logged-in waiter"""
+    waiter_id = session.get('waiter_id')
+    
+    if not waiter_id:
+        return jsonify({'success': False, 'message': 'Unauthorized: Waiter not logged in'}), 401
+    
+    try:
+        requests = WaiterCallService.get_pending_requests(waiter_id)
+        return jsonify({
+            'success': True,
+            'requests': requests,
+            'count': len(requests)
+        }), 200
+    except Exception as e:
+        print(f"[WAITER_CALL API ERROR] get_pending_calls: {e}")
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+
+@waiter_bp.route('/api/waiter-calls/acknowledge', methods=['POST'])
+def acknowledge_call():
+    """Acknowledge a waiter call request"""
+    waiter_id = session.get('waiter_id')
+    
+    if not waiter_id:
+        return jsonify({'success': False, 'message': 'Unauthorized: Waiter not logged in'}), 401
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
+        
+        request_id = data.get('request_id')
+        if not request_id:
+            return jsonify({'success': False, 'message': 'request_id is required'}), 400
+        
+        # Validate request_id is positive integer
+        try:
+            request_id = int(request_id)
+            if request_id <= 0:
+                return jsonify({'success': False, 'message': 'request_id must be positive'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'request_id must be an integer'}), 400
+        
+        result = WaiterCallService.acknowledge_request(request_id, waiter_id)
+        
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+    except Exception as e:
+        print(f"[WAITER_CALL API ERROR] acknowledge_call: {e}")
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+
+@waiter_bp.route('/api/waiter-calls/complete', methods=['POST'])
+def complete_call():
+    """Mark a waiter call request as completed"""
+    waiter_id = session.get('waiter_id')
+    
+    if not waiter_id:
+        return jsonify({'success': False, 'message': 'Unauthorized: Waiter not logged in'}), 401
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
+        
+        request_id = data.get('request_id')
+        if not request_id:
+            return jsonify({'success': False, 'message': 'request_id is required'}), 400
+        
+        # Validate request_id is positive integer
+        try:
+            request_id = int(request_id)
+            if request_id <= 0:
+                return jsonify({'success': False, 'message': 'request_id must be positive'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'request_id must be an integer'}), 400
+        
+        result = WaiterCallService.complete_request(request_id, waiter_id)
+        
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+    except Exception as e:
+        print(f"[WAITER_CALL API ERROR] complete_call: {e}")
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+
+@waiter_bp.route('/api/waiter-calls/voice-message')
+def get_voice_message():
+    """Get the configured voice message for waiter calls"""
+    waiter_id = session.get('waiter_id')
+    hotel_id = session.get('waiter_hotel_id')
+    
+    if not waiter_id or not hotel_id:
+        return jsonify({'success': False, 'message': 'Unauthorized: Waiter not logged in'}), 401
+    
+    try:
+        from database.db import get_db_connection
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        cursor.execute("SELECT waiter_call_voice FROM hotels WHERE id = %s", (hotel_id,))
+        result = cursor.fetchone()
+        
+        cursor.close()
+        connection.close()
+        
+        if result:
+            voice_message = result.get('waiter_call_voice', 'Table {table} is calling waiter')
+            return jsonify({'success': True, 'voice_message': voice_message}), 200
+        
+        return jsonify({'success': True, 'voice_message': 'Table {table} is calling waiter'}), 200
+    except Exception as e:
+        print(f"[WAITER_CALL API ERROR] get_voice_message: {e}")
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+

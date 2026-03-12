@@ -3,10 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - HotelEase</title>
+    <title>Admin Dashboard - VisiScure Order</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}?v={{ range(10000, 99999) | random }}">
 </head>
 <body>
     <!-- Flash Messages -->
@@ -21,11 +26,50 @@
         {% endif %}
     {% endwith %}
 
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                 alt="VisiScure Order" 
+                 class="project-logo">
+        </div>
+        <div class="header-center">
+            <div class="header-brand">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                     alt="VisiScure Order" 
+                     class="hotel-logo">
+                <div class="header-title">
+                    <span class="hotel-name">VisiScure Order</span>
+                    <span class="dashboard-title">Admin Dashboard</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="header-info">
+                <div class="profile-dropdown">
+                    <div class="profile-btn" onclick="toggleDropdown()">
+                        <div class="profile-avatar">
+                            {{ session.admin_name[:1]|upper if session.admin_name else 'A' }}
+                        </div>
+                        <div class="profile-info">
+                            <div class="profile-name">{{ session.admin_name or 'Admin' }}</div>
+                            <div class="profile-role">Administrator</div>
+                        </div>
+                        <i class="fas fa-chevron-down" style="color: var(--gray); font-size: 0.8rem;"></i>
+                    </div>
+                    <div class="dropdown-menu" id="dropdownMenu">
+                        <a href="{{ url_for('admin.account_settings') }}"><i class="fas fa-user"></i> Account Settings</a>
+                        <a href="{{ url_for('admin.logout') }}" class="danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-brand">
-            <i class="fas fa-hotel"></i>
-            <span>HotelEase</span>
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="VisiScure Order" class="brand-logo">
         </div>
         <nav class="sidebar-menu">
             <div class="menu-label">Main Menu</div>
@@ -34,7 +78,7 @@
                 <span>Dashboard</span>
             </a>
             
-            <div class="menu-label">Hotel Management</div>
+            <div class="menu-label">Restaurant Management</div>
             <a href="{{ url_for('admin.create_hotel') }}" class="menu-item">
                 <i class="fas fa-plus-circle"></i>
                 <span>Create Hotel</span>
@@ -62,31 +106,6 @@
         </nav>
     </aside>
 
-    <!-- Header -->
-    <header class="header">
-        <div class="header-left">
-            <h1>Admin Dashboard</h1>
-        </div>
-        <div class="header-right">
-            <div class="profile-dropdown">
-                <div class="profile-btn" onclick="toggleDropdown()">
-                    <div class="profile-avatar">
-                        {{ session.admin_name[0] | upper if session.admin_name else 'A' }}
-                    </div>
-                    <div class="profile-info">
-                        <div class="profile-name">{{ session.admin_name or 'Admin' }}</div>
-                        <div class="profile-role">Super Admin</div>
-                    </div>
-                    <i class="fas fa-chevron-down" style="color: var(--gray); font-size: 0.8rem;"></i>
-                </div>
-                <div class="dropdown-menu" id="dropdownMenu">
-                    <a href="{{ url_for('admin.account_settings') }}"><i class="fas fa-cog"></i> Account Settings</a>
-                    <a href="{{ url_for('admin.logout') }}" class="danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                </div>
-            </div>
-        </div>
-    </header>
-
     <!-- Main Content -->
     <main class="main-content">
         <div class="page-header">
@@ -94,64 +113,44 @@
         </div>
 
         <!-- Stats Cards -->
-        <div class="stats-grid">
-            <a href="{{ url_for('admin.all_hotels') }}" class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon purple">
-                        <i class="fas fa-hotel"></i>
-                    </div>
-                    <div class="stat-change up">
-                        <i class="fas fa-arrow-up"></i> 12%
-                    </div>
+        <div class="admin-cards-container">
+            <a href="{{ url_for('admin.all_hotels') }}" class="admin-card admin-card-hotels">
+                <div class="card-bg-icon">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="100" cy="100" r="80" fill="white"/>
+                    </svg>
                 </div>
-                <div class="stat-value">{{ total_hotels or 0 }}</div>
-                <div class="stat-label">Total Hotels</div>
+                <div class="card-icon-wrapper">
+                    <i class="fas fa-hotel"></i>
+                </div>
+                <div class="card-value">{{ total_hotels or 0 }}</div>
+                <div class="card-label">Total Hotels</div>
             </a>
 
-            <a href="{{ url_for('admin.all_managers') }}" class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon blue">
-                        <i class="fas fa-user-tie"></i>
-                    </div>
-                    <div class="stat-change up">
-                        <i class="fas fa-arrow-up"></i> 8%
-                    </div>
+            <a href="{{ url_for('admin.all_managers') }}" class="admin-card admin-card-managers">
+                <div class="card-bg-icon">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="100" cy="100" r="80" fill="white"/>
+                    </svg>
                 </div>
-                <div class="stat-value">{{ total_managers or 0 }}</div>
-                <div class="stat-label">Active Managers</div>
+                <div class="card-icon-wrapper">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div class="card-value">{{ total_managers or 0 }}</div>
+                <div class="card-label">Active Managers</div>
             </a>
 
-            <a href="#" class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon green">
-                        <i class="fas fa-id-card"></i>
-                    </div>
-                    <div class="stat-change up">
-                        <i class="fas fa-arrow-up"></i> 24%
-                    </div>
+            <a href="#" class="admin-card admin-card-pending">
+                <div class="card-bg-icon">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="100" cy="100" r="80" fill="white"/>
+                    </svg>
                 </div>
-                <div class="stat-value">{{ total_kyc or 0 }}</div>
-                <div class="stat-label">Total Verifications</div>
-            </a>
-
-            <a href="#" class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon orange">
-                        <i class="fas fa-calendar-check"></i>
-                    </div>
+                <div class="card-icon-wrapper">
+                    <i class="fas fa-clock"></i>
                 </div>
-                <div class="stat-value">{{ today_kyc or 0 }}</div>
-                <div class="stat-label">Today's Verifications</div>
-            </a>
-
-            <a href="#" class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon pink">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                </div>
-                <div class="stat-value">{{ pending_approvals or 0 }}</div>
-                <div class="stat-label">Pending Approvals</div>
+                <div class="card-value">{{ pending_approvals or 0 }}</div>
+                <div class="card-label">Pending Approvals</div>
             </a>
         </div>
 

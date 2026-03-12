@@ -50,6 +50,16 @@ class HotelWallet:
             if not cursor.fetchone():
                 cursor.execute("ALTER TABLE wallet_transactions ADD COLUMN utr_number VARCHAR(100) AFTER balance_after")
             
+            # Add razorpay_payment_id column if it doesn't exist (migration)
+            cursor.execute("SHOW COLUMNS FROM wallet_transactions LIKE 'razorpay_payment_id'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE wallet_transactions ADD COLUMN razorpay_payment_id VARCHAR(100) AFTER utr_number")
+            
+            # Add razorpay_order_id column if it doesn't exist (migration)
+            cursor.execute("SHOW COLUMNS FROM wallet_transactions LIKE 'razorpay_order_id'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE wallet_transactions ADD COLUMN razorpay_order_id VARCHAR(100) AFTER razorpay_payment_id")
+            
             # Remove description column if it exists (migration)
             cursor.execute("SHOW COLUMNS FROM wallet_transactions LIKE 'description'")
             if cursor.fetchone():
@@ -230,6 +240,65 @@ class HotelWallet:
             return {'success': True, 'message': 'Balance added successfully', 'new_balance': new_balance}
         except Error as exc:
             print(f"Error adding balance: {exc}")
+            return {'success': False, 'message': f'Database error: {str(exc)}'}
+    
+    @staticmethod
+    def add_balance_razorpay(hotel_id, amount, razorpay_payment_id, razorpay_order_id, created_by_type, created_by_id):
+        """Add balance to hotel wallet via Razorpay payment"""
+        try:
+            if amount <= 0:
+                return {'success': False, 'message': 'Amount must be positive'}
+            
+            if not razorpay_payment_id:
+                return {'success': False, 'message': 'Razorpay Payment ID is required'}
+            
+            # Auto-create wallet if not exists
+            wallet_check = HotelWallet.get_or_create_wallet(hotel_id)
+            if not wallet_check:
+                return {'success': False, 'message': 'Could not create or retrieve wallet'}
+            
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            
+            # Check if this payment ID was already processed (prevent duplicate credits)
+            cursor.execute("""
+                SELECT id FROM wallet_transactions WHERE razorpay_payment_id = %s
+            """, (razorpay_payment_id,))
+            if cursor.fetchone():
+                cursor.close()
+                connection.close()
+                return {'success': False, 'message': 'This payment has already been processed'}
+            
+            # Get current balance
+            cursor.execute("SELECT balance FROM hotel_wallet WHERE hotel_id = %s FOR UPDATE", (hotel_id,))
+            wallet = cursor.fetchone()
+            
+            if not wallet:
+                cursor.close()
+                connection.close()
+                return {'success': False, 'message': 'Wallet not found'}
+            
+            new_balance = float(wallet['balance']) + amount
+            
+            # Update balance
+            cursor.execute("""
+                UPDATE hotel_wallet SET balance = %s WHERE hotel_id = %s
+            """, (new_balance, hotel_id))
+            
+            # Record transaction with Razorpay details
+            cursor.execute("""
+                INSERT INTO wallet_transactions 
+                (hotel_id, transaction_type, amount, balance_after, razorpay_payment_id, razorpay_order_id, reference_type, created_by_type, created_by_id)
+                VALUES (%s, 'CREDIT', %s, %s, %s, %s, 'RECHARGE', %s, %s)
+            """, (hotel_id, amount, new_balance, razorpay_payment_id, razorpay_order_id, created_by_type, created_by_id))
+            
+            connection.commit()
+            cursor.close()
+            connection.close()
+            
+            return {'success': True, 'message': 'Balance added successfully via Razorpay', 'new_balance': new_balance}
+        except Error as exc:
+            print(f"Error adding balance via Razorpay: {exc}")
             return {'success': False, 'message': f'Database error: {str(exc)}'}
     
     @staticmethod
@@ -480,6 +549,8 @@ class HotelWallet:
                     'amount': float(t['amount']),
                     'balance_after': float(t['balance_after']),
                     'utr_number': t.get('utr_number'),
+                    'razorpay_payment_id': t.get('razorpay_payment_id'),
+                    'razorpay_order_id': t.get('razorpay_order_id'),
                     'reference_type': t['reference_type'],
                     'reference_id': t['reference_id'],
                     'created_by_type': t['created_by_type'],

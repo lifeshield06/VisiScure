@@ -143,27 +143,27 @@ class WaiterAuth:
     
     @staticmethod
     def get_assigned_tables(waiter_id):
-        """Get all tables assigned to a waiter using both waiter_table_assignments and tables.waiter_id"""
+        """Get all tables assigned to a waiter using ONLY waiter_table_assignments mapping table"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
-            # Check BOTH: waiter_table_assignments table AND direct waiter_id column on tables
+            # Use ONLY waiter_table_assignments table (not tables.waiter_id column)
             cursor.execute("""
                 SELECT DISTINCT t.*, 
                        CASE WHEN at.status = 'ACTIVE' THEN 'BUSY' ELSE t.status END as derived_status
                 FROM tables t
+                INNER JOIN waiter_table_assignments wta ON t.id = wta.table_id
                 LEFT JOIN active_tables at ON t.id = at.table_id AND at.status = 'ACTIVE'
-                LEFT JOIN waiter_table_assignments wta ON t.id = wta.table_id
-                WHERE t.waiter_id = %s OR wta.waiter_id = %s
+                WHERE wta.waiter_id = %s
                 ORDER BY t.table_number
-            """, (waiter_id, waiter_id))
+            """, (waiter_id,))
             tables = cursor.fetchall()
             
             # Debug logging
             print(f"[WAITER DEBUG] get_assigned_tables for waiter_id={waiter_id}: found {len(tables)} tables")
             for t in tables:
-                print(f"  - Table {t.get('table_number')} (id={t.get('id')}, waiter_id={t.get('waiter_id')})")
+                print(f"  - Table {t.get('table_number')} (id={t.get('id')})")
             
             # Update status to derived status
             for table in tables:
@@ -179,16 +179,12 @@ class WaiterAuth:
     
     @staticmethod
     def get_orders_for_waiter(waiter_id, status=None):
-        """Get all orders assigned to the waiter via waiter_id column on orders,
-        OR from tables assigned via waiter_table_assignments or tables.waiter_id."""
+        """Get all orders from tables assigned via waiter_table_assignments mapping table ONLY."""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
-            # Filter by:
-            # 1. Order's waiter_id directly
-            # 2. OR table's waiter_id column
-            # 3. OR waiter_table_assignments junction table
+            # Filter by waiter_table_assignments junction table ONLY
             query = """
                 SELECT DISTINCT
                     o.*, 
@@ -196,14 +192,10 @@ class WaiterAuth:
                     t.status as table_status
                 FROM table_orders o
                 JOIN tables t ON o.table_id = t.id
-                LEFT JOIN waiter_table_assignments wta ON t.id = wta.table_id
-                WHERE (
-                    o.waiter_id = %s 
-                    OR t.waiter_id = %s 
-                    OR wta.waiter_id = %s
-                )
+                INNER JOIN waiter_table_assignments wta ON t.id = wta.table_id
+                WHERE wta.waiter_id = %s
             """
-            params = [waiter_id, waiter_id, waiter_id]
+            params = [waiter_id]
             
             if status:
                 query += " AND o.order_status = %s"
@@ -217,7 +209,7 @@ class WaiterAuth:
             # Debug logging
             print(f"[WAITER DEBUG] get_orders_for_waiter for waiter_id={waiter_id}, status={status}: found {len(orders)} orders")
             for o in orders:
-                print(f"  - Order {o.get('id')} table={o.get('table_number')} status={o.get('order_status')} waiter_id={o.get('waiter_id')}")
+                print(f"  - Order {o.get('id')} table={o.get('table_number')} status={o.get('order_status')}")
             
             cursor.close()
             connection.close()
@@ -228,24 +220,21 @@ class WaiterAuth:
     
     @staticmethod
     def update_order_status(order_id, new_status, waiter_id):
-        """Update order status (only if order belongs to waiter via any assignment method)"""
+        """Update order status (only if order belongs to waiter via waiter_table_assignments)"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
-            # Verify order belongs to waiter - check all assignment methods
+            # Verify order belongs to waiter - check waiter_table_assignments ONLY
             cursor.execute("""
-                SELECT o.* FROM table_orders o
+                SELECT o.*, t.hotel_id as table_hotel_id FROM table_orders o
                 JOIN tables t ON o.table_id = t.id
-                LEFT JOIN waiter_table_assignments wta ON t.id = wta.table_id
-                WHERE o.id = %s AND (
-                    o.waiter_id = %s 
-                    OR t.waiter_id = %s 
-                    OR wta.waiter_id = %s
-                )
-            """, (order_id, waiter_id, waiter_id, waiter_id))
+                INNER JOIN waiter_table_assignments wta ON t.id = wta.table_id
+                WHERE o.id = %s AND wta.waiter_id = %s
+            """, (order_id, waiter_id))
             
-            if not cursor.fetchone():
+            order = cursor.fetchone()
+            if not order:
                 cursor.close()
                 connection.close()
                 return {'success': False, 'message': 'Order not found or not authorized'}
@@ -257,6 +246,28 @@ class WaiterAuth:
             )
             
             connection.commit()
+            
+            # Deduct wallet charge when order is COMPLETED
+            if new_status == 'COMPLETED' and not order.get('charge_deducted'):
+                hotel_id = order.get('hotel_id') or order.get('table_hotel_id')
+                if hotel_id:
+                    from wallet.models import HotelWallet
+                    
+                    # Check balance first
+                    balance_check = HotelWallet.check_balance_for_order(hotel_id)
+                    if balance_check.get('sufficient', True):
+                        deduct_result = HotelWallet.deduct_for_order(hotel_id, order_id)
+                        if deduct_result.get('success'):
+                            cursor.execute("""
+                                UPDATE table_orders SET charge_deducted = TRUE WHERE id = %s
+                            """, (order_id,))
+                            connection.commit()
+                            print(f"[WAITER_COMPLETE] Wallet deducted for order {order_id}")
+                        else:
+                            print(f"[WAITER_COMPLETE] Wallet deduction failed: {deduct_result.get('message')}")
+                    else:
+                        print(f"[WAITER_COMPLETE] Insufficient balance for order {order_id}")
+            
             cursor.close()
             connection.close()
             

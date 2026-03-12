@@ -3,9 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>All Hotels - HotelEase Admin</title>
+    <title>All Hotels - VisiScure Order Admin</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
 </head>
 <body>
@@ -16,7 +22,7 @@
                 <h3><i class="fas fa-edit"></i> Edit Hotel</h3>
                 <button class="modal-close" onclick="closeEditHotelModal()">&times;</button>
             </div>
-            <form id="edit-hotel-form" onsubmit="handleEditHotel(event)">
+            <form id="edit-hotel-form" onsubmit="handleEditHotel(event)" enctype="multipart/form-data">
                 <input type="hidden" id="edit-hotel-id">
                 
                 <div class="form-group">
@@ -32,6 +38,49 @@
                 <div class="form-group">
                     <label for="edit-hotel-city">City</label>
                     <input type="text" id="edit-hotel-city" placeholder="Enter city">
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-hotel-logo"><i class="fas fa-image"></i> Hotel Logo (Optional)</label>
+                    <div id="current-logo-display" style="margin-bottom: 10px; display: none;">
+                        <p style="color: var(--gray); font-size: 0.875rem; margin-bottom: 0.5rem;">Current Logo:</p>
+                        <img id="current-logo-img" style="max-width: 150px; max-height: 80px; border: 1px solid #ddd; border-radius: 8px; padding: 5px;">
+                    </div>
+                    <input type="file" id="edit-hotel-logo" name="hotel_logo" accept=".png,.jpg,.jpeg,.gif,.svg" onchange="handleLogoSelection(this)">
+                    <small style="color: var(--gray); display: block; margin-top: 0.5rem;">
+                        Upload a new logo to replace the existing one. Allowed: PNG, JPG, JPEG, GIF, SVG (Max 2MB)
+                    </small>
+                    <div id="logo-preview" style="margin-top: 10px; display: none;">
+                        <p style="color: var(--success); font-size: 0.875rem; margin-bottom: 0.5rem;">New Logo Preview:</p>
+                        <img id="logo-preview-img" style="max-width: 150px; max-height: 80px; border: 1px solid #ddd; border-radius: 8px; padding: 5px;">
+                    </div>
+                </div>
+                
+                <h4 style="margin-top: 1.5rem; margin-bottom: 1rem; color: var(--dark); font-size: 1rem;">
+                    <i class="fas fa-mobile-alt" style="margin-right: 0.5rem; color: var(--success);"></i>UPI Payment Configuration
+                </h4>
+                
+                <div class="form-group">
+                    <label for="edit-upi-id"><i class="fas fa-wallet"></i> Hotel UPI ID</label>
+                    <input type="text" id="edit-upi-id" name="upi_id" placeholder="Enter hotel UPI ID (example: hotelname@upi)">
+                    <small style="color: var(--gray); display: block; margin-top: 0.5rem;">
+                        Format: identifier@bank (e.g., hotel@paytm, 9876543210@ybl)
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-upi-qr"><i class="fas fa-qrcode"></i> Upload UPI QR Code</label>
+                    <input type="file" id="edit-upi-qr" name="upi_qr_image" accept=".png,.jpg,.jpeg">
+                    <small style="color: var(--gray); display: block; margin-top: 0.5rem;">
+                        Upload a new QR code to replace the existing one. Allowed: PNG, JPG, JPEG (Max 2MB)
+                    </small>
+                    <div id="qr-current-display" style="margin-top: 10px; display: none;">
+                        <p style="color: var(--gray); font-size: 0.875rem; margin-bottom: 0.5rem;">Current QR Code:</p>
+                        <img id="qr-current-img" style="max-width: 150px; max-height: 150px; border: 1px solid #ddd; border-radius: 8px; padding: 5px;">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeQRCode()" style="display: block; margin-top: 0.5rem;">
+                            <i class="fas fa-trash"></i> Remove QR Code
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -54,6 +103,46 @@
                     <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Logo Crop Modal -->
+    <div class="modal-overlay" id="crop-logo-modal" style="z-index: 10000;">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-crop"></i> Crop Logo</h3>
+                <button class="modal-close" onclick="closeCropModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <div style="max-height: 400px; overflow: hidden; background: #f8fafc; border-radius: 8px;">
+                    <img id="crop-image" style="max-width: 100%; display: block;">
+                </div>
+                <div style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="cropperZoomIn()">
+                        <i class="fas fa-search-plus"></i> Zoom In
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="cropperZoomOut()">
+                        <i class="fas fa-search-minus"></i> Zoom Out
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="cropperRotateLeft()">
+                        <i class="fas fa-rotate-left"></i> Rotate Left
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="cropperRotateRight()">
+                        <i class="fas fa-rotate-right"></i> Rotate Right
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="cropperReset()">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeCropModal()">
+                    <i class="fas fa-forward"></i> Skip Cropping
+                </button>
+                <button type="button" class="btn btn-primary" onclick="applyCrop()">
+                    <i class="fas fa-check"></i> Crop & Save
+                </button>
+            </div>
         </div>
     </div>
 
@@ -136,8 +225,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-brand">
-            <i class="fas fa-hotel"></i>
-            <span>HotelEase</span>
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="VisiScure Order" class="brand-logo">
         </div>
         <nav class="sidebar-menu">
             <div class="menu-label">Main Menu</div>
@@ -146,7 +234,7 @@
                 <span>Dashboard</span>
             </a>
             
-            <div class="menu-label">Hotel Management</div>
+            <div class="menu-label">Restaurant Management</div>
             <a href="{{ url_for('admin.create_hotel') }}" class="menu-item">
                 <i class="fas fa-plus-circle"></i>
                 <span>Create Hotel</span>
@@ -260,7 +348,7 @@
                                 <span class="wallet-balance {% if h[6] > 100 %}balance-good{% elif h[6] > 0 %}balance-low{% else %}balance-zero{% endif %}" id="balance-{{ h[0] }}">
                                     ₹{{ "%.2f"|format(h[6]) }}
                                 </span>
-                                <button class="btn btn-sm btn-success" onclick="openAddBalanceModal({{ h[0] }}, '{{ h[1] }}', {{ h[6] }})" title="Add Balance">
+                                <button class="btn btn-sm btn-success btn-add-balance" data-id="{{ h[0] }}" data-name="{{ h[1] }}" data-balance="{{ h[6] }}" title="Add Balance">
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
@@ -270,19 +358,19 @@
                                 <div><i class="fas fa-id-card"></i> ₹{{ "%.2f"|format(h[7]) }}/verify</div>
                                 <div><i class="fas fa-utensils"></i> ₹{{ "%.2f"|format(h[8]) }}/order</div>
                             </div>
-                            <button class="btn btn-sm btn-outline" onclick="openUpdateChargesModal({{ h[0] }}, '{{ h[1] }}', {{ h[7] }}, {{ h[8] }})" title="Update Charges" style="margin-top: 0.25rem; font-size: 0.7rem;">
+                            <button class="btn btn-sm btn-outline btn-update-charges" data-id="{{ h[0] }}" data-name="{{ h[1] }}" data-verify="{{ h[7] }}" data-order="{{ h[8] }}" title="Update Charges" style="margin-top: 0.25rem; font-size: 0.7rem;">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
                         </td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn btn-edit" onclick="openEditHotelModal({{ h[0] }}, '{{ h[1] }}', '{{ h[5] or '' }}', '{{ h[2] or '' }}', {{ 'true' if h[3] else 'false' }}, {{ 'true' if h[4] else 'false' }})" title="Edit Hotel">
+                                <button class="btn btn-edit btn-edit-hotel" data-id="{{ h[0] }}" data-name="{{ h[1] }}" data-address="{{ h[5] or '' }}" data-city="{{ h[2] or '' }}" data-kyc="{{ 'true' if h[3] else 'false' }}" data-food="{{ 'true' if h[4] else 'false' }}" data-upi="{{ h[9] or '' }}" data-qr="{{ h[10] or '' }}" data-logo="{{ h[11] or '' }}" title="Edit Hotel">
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
                                 <a href="{{ url_for('admin.edit_hotel_modules', hotel_id=h[0]) }}" class="btn btn-edit" title="Edit Modules">
                                     <i class="fas fa-cog"></i> Modules
                                 </a>
-                                <button class="btn btn-delete" onclick="openDeleteHotelModal({{ h[0] }}, '{{ h[1] }}')" title="Delete Hotel">
+                                <button class="btn btn-delete btn-delete-hotel" data-id="{{ h[0] }}" data-name="{{ h[1] }}" title="Delete Hotel">
                                     <i class="fas fa-trash"></i> Delete
                                 </button>
                             </div>
@@ -311,6 +399,57 @@
             }
         }
         
+        // Event delegation for buttons with data attributes
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('click', function(e) {
+                // Add Balance button
+                const addBalanceBtn = e.target.closest('.btn-add-balance');
+                if (addBalanceBtn) {
+                    const id = parseInt(addBalanceBtn.dataset.id);
+                    const name = addBalanceBtn.dataset.name;
+                    const balance = parseFloat(addBalanceBtn.dataset.balance);
+                    openAddBalanceModal(id, name, balance);
+                    return;
+                }
+                
+                // Update Charges button
+                const updateChargesBtn = e.target.closest('.btn-update-charges');
+                if (updateChargesBtn) {
+                    const id = parseInt(updateChargesBtn.dataset.id);
+                    const name = updateChargesBtn.dataset.name;
+                    const verify = parseFloat(updateChargesBtn.dataset.verify);
+                    const order = parseFloat(updateChargesBtn.dataset.order);
+                    openUpdateChargesModal(id, name, verify, order);
+                    return;
+                }
+                
+                // Edit Hotel button
+                const editHotelBtn = e.target.closest('.btn-edit-hotel');
+                if (editHotelBtn) {
+                    const id = parseInt(editHotelBtn.dataset.id);
+                    const name = editHotelBtn.dataset.name;
+                    const address = editHotelBtn.dataset.address;
+                    const city = editHotelBtn.dataset.city;
+                    const kyc = editHotelBtn.dataset.kyc === 'true';
+                    const food = editHotelBtn.dataset.food === 'true';
+                    const upi = editHotelBtn.dataset.upi;
+                    const qr = editHotelBtn.dataset.qr;
+                    const logo = editHotelBtn.dataset.logo;
+                    openEditHotelModal(id, name, address, city, kyc, food, upi, qr, logo);
+                    return;
+                }
+                
+                // Delete Hotel button
+                const deleteHotelBtn = e.target.closest('.btn-delete-hotel');
+                if (deleteHotelBtn) {
+                    const id = parseInt(deleteHotelBtn.dataset.id);
+                    const name = deleteHotelBtn.dataset.name;
+                    openDeleteHotelModal(id, name);
+                    return;
+                }
+            });
+        });
+        
         // Flash message helper
         function showFlash(message, type) {
             const container = document.getElementById('flash-container');
@@ -325,18 +464,84 @@
         }
         
         // Edit Hotel Modal
-        function openEditHotelModal(id, name, address, city, kycEnabled, foodEnabled) {
+        let currentQRImage = null;
+        let removeQR = false;
+        // Use window scope so croppedBlob is accessible from both script blocks
+        window.croppedBlob = null;
+        
+        function openEditHotelModal(id, name, address, city, kycEnabled, foodEnabled, upiId, upiQrImage, hotelLogo) {
             document.getElementById('edit-hotel-id').value = id;
             document.getElementById('edit-hotel-name').value = name;
             document.getElementById('edit-hotel-address').value = address || '';
             document.getElementById('edit-hotel-city').value = city || '';
             document.getElementById('edit-kyc-enabled').checked = kycEnabled;
             document.getElementById('edit-food-enabled').checked = foodEnabled;
+            document.getElementById('edit-upi-id').value = upiId || '';
+            
+            // Handle QR image display
+            currentQRImage = upiQrImage;
+            removeQR = false;
+            const qrDisplay = document.getElementById('qr-current-display');
+            const qrImg = document.getElementById('qr-current-img');
+            
+            if (upiQrImage) {
+                qrImg.src = `/static/uploads/hotel_qr/${upiQrImage}`;
+                qrDisplay.style.display = 'block';
+            } else {
+                qrDisplay.style.display = 'none';
+            }
+            
+            // Handle current logo display
+            window.croppedBlob = null;
+            const logoDisplay = document.getElementById('current-logo-display')
+            const logoImg = document.getElementById('current-logo-img');
+            const logoPreview = document.getElementById('logo-preview');
+            
+            if (hotelLogo) {
+                logoImg.src = `/static/uploads/hotel_logos/${hotelLogo}`;
+                logoDisplay.style.display = 'block';
+            } else {
+                logoDisplay.style.display = 'none';
+            }
+            logoPreview.style.display = 'none';
+            document.getElementById('edit-hotel-logo').value = '';
+            
             document.getElementById('edit-hotel-modal').classList.add('show');
+        }
+        
+        function removeQRCode() {
+            if (confirm('Are you sure you want to remove the UPI QR code?')) {
+                removeQR = true;
+                document.getElementById('qr-current-display').style.display = 'none';
+                currentQRImage = null;
+            }
         }
         
         function closeEditHotelModal() {
             document.getElementById('edit-hotel-modal').classList.remove('show');
+            // Clear the file inputs and previews
+            document.getElementById('edit-hotel-logo').value = '';
+            document.getElementById('logo-preview').style.display = 'none';
+            document.getElementById('current-logo-display').style.display = 'none';
+            document.getElementById('edit-upi-qr').value = '';
+            window.croppedBlob = null;
+            removeQR = false;
+        }
+        
+        function previewLogo(input) {
+            const preview = document.getElementById('logo-preview');
+            const previewImg = document.getElementById('logo-preview-img');
+            
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.style.display = 'none';
+            }
         }
         
         function handleEditHotel(event) {
@@ -348,6 +553,9 @@
             const city = document.getElementById('edit-hotel-city').value.trim();
             const kycEnabled = document.getElementById('edit-kyc-enabled').checked;
             const foodEnabled = document.getElementById('edit-food-enabled').checked;
+            const upiId = document.getElementById('edit-upi-id').value.trim();
+            const upiQrFile = document.getElementById('edit-upi-qr').files[0];
+            const logoFile = document.getElementById('edit-hotel-logo').files[0];
             
             if (!name) {
                 showFlash('Hotel name is required!', 'error');
@@ -359,32 +567,87 @@
                 return;
             }
             
-            fetch('/admin/api/update-hotel', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    hotel_id: parseInt(hotelId),
-                    hotel_name: name,
-                    address: address,
-                    city: city,
-                    kyc_enabled: kycEnabled,
-                    food_enabled: foodEnabled
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showFlash(data.message, 'success');
-                    closeEditHotelModal();
-                    // Reload page to refresh the table
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showFlash(data.message || 'Error updating hotel', 'error');
+            // Determine which logo to use: cropped blob (if user used cropper) or raw file
+            const logoToUpload = window.croppedBlob || logoFile;
+            
+            console.log('[LOGO DEBUG] handleEditHotel - croppedBlob:', window.croppedBlob, 'logoFile:', logoFile, 'logoToUpload:', logoToUpload);
+            
+            // Use FormData if any file is present or QR needs to be removed
+            if (logoToUpload || upiQrFile || removeQR) {
+                console.log('[LOGO DEBUG] Using FormData path');
+                const formData = new FormData();
+                formData.append('hotel_id', hotelId);
+                formData.append('hotel_name', name);
+                formData.append('address', address);
+                formData.append('city', city);
+                formData.append('kyc_enabled', kycEnabled);
+                formData.append('food_enabled', foodEnabled);
+                formData.append('upi_id', upiId);
+                
+                if (logoToUpload) {
+                    if (window.croppedBlob) {
+                        console.log('[LOGO DEBUG] Appending croppedBlob to FormData, size:', window.croppedBlob.size);
+                        formData.append('hotel_logo', window.croppedBlob, 'hotel_logo.png');
+                    } else if (logoFile) {
+                        console.log('[LOGO DEBUG] Appending raw logoFile to FormData:', logoFile.name, 'size:', logoFile.size);
+                        formData.append('hotel_logo', logoFile);
+                    }
                 }
-            })
-            .catch(error => {
-                showFlash('Error updating hotel', 'error');
-            });
+                
+                if (upiQrFile) {
+                    formData.append('upi_qr_image', upiQrFile);
+                }
+                
+                if (removeQR) {
+                    formData.append('remove_qr', 'true');
+                }
+                
+                fetch('/admin/api/update-hotel', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showFlash(data.message, 'success');
+                        closeEditHotelModal();
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showFlash(data.message || 'Error updating hotel', 'error');
+                    }
+                })
+                .catch(error => {
+                    showFlash('Error updating hotel', 'error');
+                });
+            } else {
+                // No files, use JSON
+                fetch('/admin/api/update-hotel', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        hotel_id: parseInt(hotelId),
+                        hotel_name: name,
+                        address: address,
+                        city: city,
+                        kyc_enabled: kycEnabled,
+                        food_enabled: foodEnabled,
+                        upi_id: upiId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showFlash(data.message, 'success');
+                        closeEditHotelModal();
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showFlash(data.message || 'Error updating hotel', 'error');
+                    }
+                })
+                .catch(error => {
+                    showFlash('Error updating hotel', 'error');
+                });
+            }
         }
         
         // Delete Hotel Modal
@@ -564,5 +827,166 @@
             color: white;
         }
     </style>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        let cropper = null;
+        // croppedBlob is already defined in the first script block
+        
+        // Logo Selection and Crop Modal
+        function handleLogoSelection(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                
+                // Validate file size (2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    showFlash('File size must be less than 2MB', 'error');
+                    input.value = '';
+                    return;
+                }
+                
+                // Validate file type
+                const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/svg+xml'];
+                if (!validTypes.includes(file.type)) {
+                    showFlash('Invalid file type. Please upload PNG, JPG, JPEG, GIF, or SVG', 'error');
+                    input.value = '';
+                    return;
+                }
+                
+                // Open crop modal
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    openCropModal(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        function openCropModal(imageSrc) {
+            const modal = document.getElementById('crop-logo-modal');
+            const image = document.getElementById('crop-image');
+            
+            image.src = imageSrc;
+            modal.classList.add('show');
+            
+            // Initialize Cropper.js
+            if (cropper) {
+                cropper.destroy();
+            }
+            
+            cropper = new Cropper(image, {
+                aspectRatio: 1, // Square crop for logos
+                viewMode: 1,
+                dragMode: 'move',
+                autoCropArea: 0.8,
+                restore: false,
+                guides: true,
+                center: true,
+                highlight: false,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                toggleDragModeOnDblclick: false,
+            });
+        }
+        
+        function closeCropModal() {
+            const modal = document.getElementById('crop-logo-modal');
+            modal.classList.remove('show');
+            
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            
+            // Don't clear the file input - user can still submit uncropped file
+            // Only clear croppedBlob since user didn't complete crop
+            window.croppedBlob = null;
+            
+            // Show preview of the original file (uncropped)
+            const fileInput = document.getElementById('edit-hotel-logo');
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('logo-preview');
+                    const previewImg = document.getElementById('logo-preview-img');
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
+                    document.getElementById('current-logo-display').style.display = 'none';
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+                showFlash('Logo selected (uncropped). Click "Save Changes" to upload.', 'info');
+            }
+        }
+        
+        function cropperZoomIn() {
+            if (cropper) cropper.zoom(0.1);
+        }
+        
+        function cropperZoomOut() {
+            if (cropper) cropper.zoom(-0.1);
+        }
+        
+        function cropperRotateLeft() {
+            if (cropper) cropper.rotate(-90);
+        }
+        
+        function cropperRotateRight() {
+            if (cropper) cropper.rotate(90);
+        }
+        
+        function cropperReset() {
+            if (cropper) cropper.reset();
+        }
+        
+        function applyCrop() {
+            if (!cropper) {
+                console.log('[LOGO DEBUG] No cropper instance');
+                return;
+            }
+            
+            console.log('[LOGO DEBUG] applyCrop called');
+            
+            // Get cropped canvas
+            const canvas = cropper.getCroppedCanvas({
+                width: 500,
+                height: 500,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+            
+            console.log('[LOGO DEBUG] Canvas created:', canvas);
+            
+            // Convert to blob
+            canvas.toBlob(function(blob) {
+                console.log('[LOGO DEBUG] Blob created:', blob, 'size:', blob ? blob.size : 'null');
+                window.croppedBlob = blob;
+                
+                // Show preview
+                const preview = document.getElementById('logo-preview');
+                const previewImg = document.getElementById('logo-preview-img');
+                previewImg.src = canvas.toDataURL();
+                preview.style.display = 'block';
+                
+                // Hide current logo display since we have a new one
+                document.getElementById('current-logo-display').style.display = 'none';
+                
+                // Close crop modal without clearing croppedBlob
+                const modal = document.getElementById('crop-logo-modal');
+                modal.classList.remove('show');
+                
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                
+                showFlash('Logo cropped successfully! Click "Save Changes" to upload.', 'success');
+            }, 'image/png');
+        }
+        
+        // Note: openEditHotelModal is defined in the earlier script block with full functionality
+        // This block only contains the cropper-specific functions
+        
+        // closeEditHotelModal is also defined earlier - this duplicate is removed
+    </script>
 </body>
 </html>

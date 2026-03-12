@@ -3,13 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manager Dashboard - HotelEase</title>
+    <title>Manager Dashboard - VisiScure Order</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="{{ url_for('static', filename='manager_dashboard.css') }}?v={{ range(1000, 9999) | random }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='menu_dashboard.css') }}?v={{ range(1000, 9999) | random }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='manager_dashboard.css') }}?v={{ range(10000, 99999) | random }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='menu_dashboard.css') }}?v={{ range(10000, 99999) | random }}">
     <style>
         /* Kitchen Dashboard Link Styles */
         .kitchen-dashboard-link:hover {
@@ -451,6 +458,7 @@
             margin: 0 0 0.6rem 0;
             display: -webkit-box;
             -webkit-line-clamp: 2;
+            line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
@@ -547,6 +555,151 @@
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
+        }
+
+        /* Daily Special Header with Add Button */
+        .daily-special-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .btn-add-special {
+            padding: 0.6rem 1.25rem;
+            font-size: 0.9rem;
+        }
+
+        /* Specials Grid */
+        .specials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .special-item-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .special-item-card:hover {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .special-item-image {
+            height: 120px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .special-item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .special-item-image .no-image-placeholder {
+            color: #f59e0b;
+            font-size: 2.5rem;
+        }
+        .special-item-content {
+            padding: 1rem;
+        }
+        .special-item-content h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0 0 0.5rem 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .special-item-content p {
+            color: #64748b;
+            font-size: 0.85rem;
+            margin: 0 0 0.75rem 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+        .special-item-price {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #059669;
+        }
+        .special-item-actions {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        .btn-icon {
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: all 0.2s ease;
+        }
+        .btn-icon.btn-edit {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+        .btn-icon.btn-edit:hover {
+            background: #bae6fd;
+        }
+        .btn-icon.btn-delete {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        .btn-icon.btn-delete:hover {
+            background: #fecaca;
+        }
+
+        /* No Specials Message */
+        .no-specials-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            text-align: center;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 2px dashed #cbd5e1;
+        }
+        .no-specials-message i {
+            font-size: 3rem;
+            color: #94a3b8;
+            margin-bottom: 1rem;
+        }
+        .no-specials-message p {
+            color: #64748b;
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+        }
+
+        /* Carousel Indicator in Preview */
+        .preview-carousel-indicator {
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            text-align: center;
+            margin: 0.5rem auto;
+            width: fit-content;
         }
 
         /* Wallet Alert Styles */
@@ -953,6 +1106,873 @@
                 opacity: 0;
             }
         }
+
+        /* ========================================
+           REVENUE REPORTS - MODERN UI STYLES
+           ======================================== */
+        .revenue-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .revenue-card {
+            position: relative;
+            border-radius: 20px;
+            padding: 1.5rem;
+            overflow: hidden;
+            color: white;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .revenue-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .revenue-card-bg {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .revenue-card-bg svg {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .revenue-card-today {
+            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+        }
+
+        .revenue-card-yesterday {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%);
+        }
+
+        .revenue-card-month {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+        }
+
+        .revenue-card-total {
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 50%, #be185d 100%);
+        }
+
+        .revenue-card-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .revenue-card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .revenue-card-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .revenue-card-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .revenue-card-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            line-height: 1.2;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .revenue-card-date {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-top: 0.25rem;
+        }
+
+        .revenue-card-footer {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            opacity: 0.85;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Revenue Chart Section */
+        .revenue-chart-section {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .chart-title h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chart-title h3 i {
+            color: #6366f1;
+        }
+
+        .chart-subtitle {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+            display: block;
+        }
+
+        .btn-refresh-chart {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            color: #475569;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-refresh-chart:hover {
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+            transform: translateY(-2px);
+        }
+
+        .chart-container {
+            padding: 1.5rem;
+            min-height: 200px;
+        }
+
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 180px;
+            padding: 0 0.5rem;
+        }
+
+        .chart-bar-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 0;
+        }
+
+        .chart-bar {
+            width: 100%;
+            max-width: 50px;
+            background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+            border-radius: 8px 8px 0 0;
+            min-height: 10px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .chart-bar:hover {
+            background: linear-gradient(180deg, #818cf8 0%, #6366f1 100%);
+            transform: scaleY(1.02);
+        }
+
+        .chart-bar-tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 0.4rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        .chart-bar-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #1e293b;
+        }
+
+        .chart-bar:hover .chart-bar-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .chart-bar-label {
+            font-size: 0.65rem;
+            color: #64748b;
+            font-weight: 500;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .chart-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            color: #64748b;
+            gap: 0.75rem;
+        }
+
+        .chart-loading i {
+            font-size: 1.5rem;
+            color: #6366f1;
+        }
+
+        .chart-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            color: #94a3b8;
+            gap: 0.5rem;
+        }
+
+        .chart-empty i {
+            font-size: 2.5rem;
+        }
+
+        /* Revenue Table Card */
+        .revenue-table-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .revenue-table-card .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+        }
+
+        .table-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .table-title i {
+            font-size: 1.25rem;
+            opacity: 0.9;
+        }
+
+        .table-title h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .table-title span {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            display: block;
+            margin-top: 0.2rem;
+        }
+
+        .table-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .table-content {
+            overflow-x: auto;
+        }
+
+        .revenue-data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .revenue-data-table thead {
+            background: #f8fafc;
+        }
+
+        .revenue-data-table th {
+            padding: 1rem 1.25rem;
+            text-align: left;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .revenue-data-table th i {
+            margin-right: 0.5rem;
+            color: #6366f1;
+        }
+
+        .revenue-data-table th:nth-child(2),
+        .revenue-data-table th:nth-child(3),
+        .revenue-data-table th:nth-child(4) {
+            text-align: center;
+        }
+
+        .revenue-data-table tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        .revenue-data-table tbody tr:hover {
+            background: #f0f9ff;
+        }
+
+        .revenue-data-table td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #e5e7eb;
+            color: #334155;
+            font-size: 0.95rem;
+        }
+
+        .revenue-data-table td:nth-child(2),
+        .revenue-data-table td:nth-child(3),
+        .revenue-data-table td:nth-child(4) {
+            text-align: center;
+        }
+
+        .revenue-data-table .date-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .date-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4f46e5;
+            font-size: 0.9rem;
+        }
+
+        .orders-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            background: #dbeafe;
+            color: #1d4ed8;
+            padding: 0.4rem 0.85rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .revenue-amount {
+            font-weight: 700;
+            color: #059669;
+            font-size: 1rem;
+        }
+
+        .avg-amount {
+            color: #6366f1;
+            font-weight: 600;
+        }
+
+        .table-loading {
+            text-align: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+
+        .table-loading i {
+            margin-right: 0.5rem;
+        }
+
+        .table-empty {
+            text-align: center;
+            padding: 3rem;
+            color: #94a3b8;
+        }
+
+        .table-empty i {
+            font-size: 2.5rem;
+            display: block;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .revenue-cards-container {
+                grid-template-columns: 1fr;
+            }
+
+            .revenue-card {
+                min-height: 140px;
+            }
+
+            .revenue-card-value {
+                font-size: 1.5rem;
+            }
+
+            .chart-bars {
+                gap: 4px;
+            }
+
+            .chart-bar-label {
+                font-size: 0.55rem;
+            }
+
+            .revenue-table-card .table-header {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: flex-start;
+            }
+
+            .revenue-data-table th,
+            .revenue-data-table td {
+                padding: 0.75rem 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* ========================================
+           DASHBOARD CARDS - PREMIUM GRADIENT DESIGN
+           ======================================== */
+        .dashboard-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .dashboard-card {
+            position: relative;
+            border-radius: 24px;
+            padding: 1.75rem;
+            overflow: hidden;
+            color: white;
+            min-height: 175px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12), 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2), 0 10px 25px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+            color: white;
+        }
+
+        .dashboard-card-bg {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .dashboard-card-bg svg {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Card Color Variants - Vibrant Gradients */
+        .dashboard-card-revenue {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 40%, #15803d 100%);
+            box-shadow: 0 15px 35px rgba(34, 197, 94, 0.25), 0 5px 15px rgba(34, 197, 94, 0.15);
+        }
+        .dashboard-card-revenue:hover {
+            box-shadow: 0 25px 50px rgba(34, 197, 94, 0.35), 0 10px 25px rgba(34, 197, 94, 0.2);
+        }
+
+        .dashboard-card-orders {
+            background: linear-gradient(135deg, #818cf8 0%, #6366f1 40%, #4f46e5 100%);
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.25), 0 5px 15px rgba(99, 102, 241, 0.15);
+        }
+        .dashboard-card-orders:hover {
+            box-shadow: 0 25px 50px rgba(99, 102, 241, 0.35), 0 10px 25px rgba(99, 102, 241, 0.2);
+        }
+
+        .dashboard-card-waiters {
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 40%, #2563eb 100%);
+            box-shadow: 0 15px 35px rgba(59, 130, 246, 0.25), 0 5px 15px rgba(59, 130, 246, 0.15);
+        }
+        .dashboard-card-waiters:hover {
+            box-shadow: 0 25px 50px rgba(59, 130, 246, 0.35), 0 10px 25px rgba(59, 130, 246, 0.2);
+        }
+
+        .dashboard-card-tips {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 40%, #d97706 100%);
+            box-shadow: 0 15px 35px rgba(245, 158, 11, 0.25), 0 5px 15px rgba(245, 158, 11, 0.15);
+        }
+        .dashboard-card-tips:hover {
+            box-shadow: 0 25px 50px rgba(245, 158, 11, 0.35), 0 10px 25px rgba(245, 158, 11, 0.2);
+        }
+
+        .dashboard-card-verify {
+            background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 40%, #7c3aed 100%);
+            box-shadow: 0 15px 35px rgba(139, 92, 246, 0.25), 0 5px 15px rgba(139, 92, 246, 0.15);
+        }
+        .dashboard-card-verify:hover {
+            box-shadow: 0 25px 50px rgba(139, 92, 246, 0.35), 0 10px 25px rgba(139, 92, 246, 0.2);
+        }
+
+        .dashboard-card-tables {
+            background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 40%, #0891b2 100%);
+            box-shadow: 0 15px 35px rgba(6, 182, 212, 0.25), 0 5px 15px rgba(6, 182, 212, 0.15);
+        }
+        .dashboard-card-tables:hover {
+            box-shadow: 0 25px 50px rgba(6, 182, 212, 0.35), 0 10px 25px rgba(6, 182, 212, 0.2);
+        }
+
+        .dashboard-card-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.25rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .dashboard-card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover .dashboard-card-icon {
+            transform: scale(1.1) rotate(5deg);
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .dashboard-card-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .dashboard-card-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            opacity: 0.92;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .dashboard-card-value {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1.15;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            letter-spacing: -0.02em;
+        }
+
+        .dashboard-card-footer {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            opacity: 0.9;
+            padding-top: 0.875rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover .dashboard-card-footer {
+            opacity: 1;
+            padding-left: 0.5rem;
+        }
+
+        .dashboard-card-footer i {
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-card:hover .dashboard-card-footer i {
+            transform: translateX(3px);
+        }
+
+        /* Wallet Cards */
+        .wallet-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .wallet-card {
+            position: relative;
+            border-radius: 24px;
+            padding: 1.75rem;
+            overflow: hidden;
+            color: white;
+            min-height: 175px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .wallet-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .wallet-card-bg {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .wallet-card-bg svg {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .wallet-card-balance {
+            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+        }
+
+        .wallet-card-verification {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+        }
+
+        .wallet-card-order {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+        }
+
+        .wallet-card-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .wallet-card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .wallet-card-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .wallet-card-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .wallet-card-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            line-height: 1.2;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .wallet-card-footer {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            opacity: 0.85;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-cards-container,
+            .wallet-cards-container {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-card,
+            .wallet-card {
+                min-height: 140px;
+            }
+
+            .dashboard-card-value,
+            .wallet-card-value {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Toggle Switch Styles */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e2e8f0;
+            transition: 0.3s;
+            border-radius: 28px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .toggle-switch input:focus + .toggle-slider {
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
     </style>
 </head>
 <body>
@@ -1021,8 +2041,9 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-brand">
-            <i class="fas fa-hotel"></i>
-            <span>HotelEase</span>
+            <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                 alt="VisiScure Order" 
+                 class="brand-logo">
         </div>
         <nav class="sidebar-menu">
             <div class="menu-label">Main Menu</div>
@@ -1033,6 +2054,10 @@
             <a href="#" class="menu-item" onclick="showSection('waiters')">
                 <i class="fas fa-user-tie"></i>
                 <span>Waiters</span>
+            </a>
+            <a href="#" class="menu-item" onclick="showSection('waiter-tips')">
+                <i class="fas fa-hand-holding-heart"></i>
+                <span>Waiter Tips</span>
             </a>
             {% if food_enabled %}
             <div class="menu-divider"></div>
@@ -1082,28 +2107,50 @@
     <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <h1>Manager Dashboard</h1>
+            <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                 alt="VisiScure Order" 
+                 class="project-logo">
+        </div>
+        <div class="header-center">
+            <div class="header-brand">
+                {% if hotel_logo and logo_file_exists(hotel_logo) %}
+                    <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel_logo) }}" 
+                         alt="{{ hotel_name }} Logo" 
+                         class="hotel-logo">
+                {% else %}
+                    <div class="hotel-logo-placeholder">
+                        <i class="fas fa-building"></i>
+                    </div>
+                {% endif %}
+                <div class="header-title">
+                    <span class="hotel-name">{{ hotel_name or 'VisiScure Order' }}</span>
+                    <span class="dashboard-title">Manager Dashboard</span>
+                </div>
+            </div>
         </div>
         <div class="header-right">
-            <!-- Wallet Balance Display -->
-            <div class="header-wallet-balance" id="header-wallet-balance">
-                <span class="wallet-amount">₹0.00</span>
-            </div>
-            <div class="header-divider"></div>
-            <div class="profile-dropdown">
-                <div class="profile-btn" onclick="toggleDropdown()">
-                    <div class="profile-avatar">
-                        {{ manager_name[:1]|upper if manager_name else 'M' }}
-                    </div>
-                    <div class="profile-info">
-                        <div class="profile-name">{{ manager_name }}</div>
-                        <div class="profile-role">Hotel Manager</div>
-                    </div>
-                    <i class="fas fa-chevron-down" style="color: var(--gray); font-size: 0.8rem;"></i>
+            <div class="header-info">
+                <!-- Wallet Balance Display -->
+                <div class="header-wallet-balance" id="header-wallet-balance" onclick="showSection('wallet-balance')">
+                    <i class="fas fa-wallet"></i>
+                    <span class="wallet-amount">₹0.00</span>
                 </div>
-                <div class="dropdown-menu" id="dropdownMenu">
-                    <a href="#" onclick="showSection('settings')"><i class="fas fa-user"></i> Profile Settings</a>
-                    <a href="/" class="danger" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                <div class="header-divider"></div>
+                <div class="profile-dropdown">
+                    <div class="profile-btn" onclick="toggleDropdown()">
+                        <div class="profile-avatar">
+                            {{ manager_name[:1]|upper if manager_name else 'M' }}
+                        </div>
+                        <div class="profile-info">
+                            <div class="profile-name">{{ manager_name }}</div>
+                            <div class="profile-role">Hotel Manager</div>
+                        </div>
+                        <i class="fas fa-chevron-down profile-chevron"></i>
+                    </div>
+                    <div class="dropdown-menu" id="dropdownMenu">
+                        <a href="#" onclick="showSection('settings')"><i class="fas fa-user"></i> Profile Settings</a>
+                        <a href="/" class="danger" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1113,77 +2160,165 @@
     <main class="main-content">
         <!-- Dashboard Section -->
         <div id="dashboard" class="content-section active">
-            <div class="page-header">
-                <h1>👋 Welcome back, {{ manager_name }}!</h1>
-                <p>Here's what's happening with your hotel today.</p>
+            <div class="page-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h1 style="background: linear-gradient(135deg, #0f172a 0%, #334155 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">👋 Welcome back, {{ manager_name }}!</h1>
+                    <p style="font-size: 1.05rem; margin-top: 0.25rem;">Here's what's happening with your hotel today.</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); padding: 0.5rem 1rem; border-radius: 12px; font-size: 0.85rem; color: #0369a1; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-calendar-day"></i>
+                        <span id="currentDate">{{ current_date }}</span>
+                    </span>
+                </div>
             </div>
 
-            <!-- Stats Cards -->
-            <div class="stats-grid">
-                {% if kyc_enabled %}
-                <a href="#" onclick="showSection('verification'); return false;" class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-icon green">
-                            <i class="fas fa-clipboard-check"></i>
-                        </div>
+            <!-- Stats Cards - Modern Gradient Design -->
+            <div class="dashboard-cards-container">
+                <!-- Revenue Card -->
+                <a href="#" onclick="showSection('reports'); return false;" class="dashboard-card dashboard-card-revenue">
+                    <div class="dashboard-card-bg">
+                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="150" cy="50" r="80" fill="rgba(255,255,255,0.1)"/>
+                            <circle cx="180" cy="150" r="60" fill="rgba(255,255,255,0.05)"/>
+                        </svg>
                     </div>
-                    <div class="stat-value">{{ stats.verifications.today if stats else 0 }}</div>
-                    <div class="stat-label">Today's Verifications</div>
-                </a>
-                {% endif %}
-
-                {% if food_enabled %}
-                <a href="#" onclick="showSection('table-orders'); setTimeout(() => showTableSubSection('view-orders'), 100); return false;" class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-icon purple">
-                            <i class="fas fa-receipt"></i>
-                        </div>
-                    </div>
-                    <div class="stat-value">{{ stats.orders.today if stats else 0 }}</div>
-                    <div class="stat-label">Today's Orders</div>
-                </a>
-                {% endif %}
-
-                <a href="#" onclick="showSection('waiters'); return false;" class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-icon blue">
-                            <i class="fas fa-user-tie"></i>
-                        </div>
-                    </div>
-                    <div class="stat-value">{{ waiters_count if waiters_count else 0 }}</div>
-                    <div class="stat-label">Active Waiters</div>
-                </a>
-
-                <a href="#" onclick="showSection('reports'); return false;" class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-icon pink">
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-icon">
                             <i class="fas fa-indian-rupee-sign"></i>
                         </div>
+                        <div class="dashboard-card-info">
+                            <span class="dashboard-card-label">Today's Revenue</span>
+                            <span class="dashboard-card-value">₹{{ "%.2f"|format(stats.revenue.today) if stats else '0.00' }}</span>
+                        </div>
                     </div>
-                    <div class="stat-value">₹{{ "%.2f"|format(stats.revenue.today) if stats else '0.00' }}</div>
-                    <div class="stat-label">Today's Revenue</div>
+                    <div class="dashboard-card-footer">
+                        <i class="fas fa-chart-line"></i>
+                        <span>View Reports</span>
+                    </div>
                 </a>
 
                 {% if food_enabled %}
-                <a href="#" onclick="showSection('table-orders'); setTimeout(() => showTableSubSection('manage-tables'), 100); return false;" class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-icon cyan">
-                            <i class="fas fa-chair"></i>
+                <!-- Orders Card -->
+                <a href="#" onclick="showSection('table-orders'); setTimeout(() => showTableSubSection('view-orders'), 100); return false;" class="dashboard-card dashboard-card-orders">
+                    <div class="dashboard-card-bg">
+                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="30" cy="170" r="70" fill="rgba(255,255,255,0.1)"/>
+                            <circle cx="160" cy="30" r="50" fill="rgba(255,255,255,0.05)"/>
+                        </svg>
+                    </div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-icon">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                        <div class="dashboard-card-info">
+                            <span class="dashboard-card-label">Today's Orders</span>
+                            <span class="dashboard-card-value">{{ stats.orders.today if stats else 0 }}</span>
                         </div>
                     </div>
-                    <div class="stat-value">{{ stats.tables.total if stats else 0 }}</div>
-                    <div class="stat-label">Total Tables</div>
+                    <div class="dashboard-card-footer">
+                        <i class="fas fa-eye"></i>
+                        <span>View Orders</span>
+                    </div>
                 </a>
-                
-                <div class="stat-card" id="tips-stat-card">
-                    <div class="stat-header">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                {% endif %}
+
+                <!-- Waiters Card -->
+                <a href="#" onclick="showSection('waiters'); return false;" class="dashboard-card dashboard-card-waiters">
+                    <div class="dashboard-card-bg">
+                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="100" cy="180" r="90" fill="rgba(255,255,255,0.1)"/>
+                            <circle cx="20" cy="40" r="40" fill="rgba(255,255,255,0.05)"/>
+                        </svg>
+                    </div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-icon">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="dashboard-card-info">
+                            <span class="dashboard-card-label">Active Waiters</span>
+                            <span class="dashboard-card-value">{{ waiters_count if waiters_count else 0 }}</span>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-footer">
+                        <i class="fas fa-users"></i>
+                        <span>Manage Team</span>
+                    </div>
+                </a>
+
+                {% if food_enabled %}
+                <!-- Tips Card -->
+                <a href="#" onclick="showSection('waiter-tips'); return false;" class="dashboard-card dashboard-card-tips" id="tips-stat-card">
+                    <div class="dashboard-card-bg">
+                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="180" cy="100" r="100" fill="rgba(255,255,255,0.1)"/>
+                            <circle cx="50" cy="180" r="60" fill="rgba(255,255,255,0.05)"/>
+                        </svg>
+                    </div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-icon">
                             <i class="fas fa-hand-holding-heart"></i>
                         </div>
+                        <div class="dashboard-card-info">
+                            <span class="dashboard-card-label">Today's Tips</span>
+                            <span class="dashboard-card-value" id="today-tips-value">₹0.00</span>
+                        </div>
                     </div>
-                    <div class="stat-value" id="today-tips-value">₹0.00</div>
-                    <div class="stat-label">Today's Tips</div>
-                </div>
+                    <div class="dashboard-card-footer">
+                        <i class="fas fa-gift"></i>
+                        <span>Waiter Tips</span>
+                    </div>
+                </a>
+                {% endif %}
+
+                {% if kyc_enabled %}
+                <!-- Verifications Card -->
+                <a href="#" onclick="showSection('verification'); return false;" class="dashboard-card dashboard-card-verify">
+                    <div class="dashboard-card-bg">
+                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="150" cy="150" r="80" fill="rgba(255,255,255,0.1)"/>
+                            <circle cx="30" cy="50" r="50" fill="rgba(255,255,255,0.05)"/>
+                        </svg>
+                    </div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-icon">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <div class="dashboard-card-info">
+                            <span class="dashboard-card-label">Today's Verifications</span>
+                            <span class="dashboard-card-value">{{ stats.verifications.today if stats else 0 }}</span>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-footer">
+                        <i class="fas fa-shield-check"></i>
+                        <span>View Requests</span>
+                    </div>
+                </a>
+                {% endif %}
+
+                {% if food_enabled %}
+                <!-- Tables Card -->
+                <a href="#" onclick="showSection('table-orders'); setTimeout(() => showTableSubSection('manage-tables'), 100); return false;" class="dashboard-card dashboard-card-tables">
+                    <div class="dashboard-card-bg">
+                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="50" cy="100" r="80" fill="rgba(255,255,255,0.1)"/>
+                            <circle cx="170" cy="170" r="50" fill="rgba(255,255,255,0.05)"/>
+                        </svg>
+                    </div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-icon">
+                            <i class="fas fa-chair"></i>
+                        </div>
+                        <div class="dashboard-card-info">
+                            <span class="dashboard-card-label">Total Tables</span>
+                            <span class="dashboard-card-value">{{ stats.tables.total if stats else 0 }}</span>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-footer">
+                        <i class="fas fa-th-large"></i>
+                        <span>Manage Tables</span>
+                    </div>
+                </a>
                 {% endif %}
             </div>
 
@@ -1361,6 +2496,59 @@
             </div>
         </div>
 
+        <!-- Waiter Tips Section -->
+        <div id="waiter-tips" class="content-section">
+            <div class="page-header">
+                <h1><i class="fas fa-hand-holding-heart"></i> Waiter Tips</h1>
+                <p>View and manage tip distribution across all waiters</p>
+            </div>
+            
+            <!-- Tip Visibility Toggle Card -->
+            <div class="table-card" style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 1rem; color: #1f2937;">
+                            <i class="fas fa-eye" style="color: #6366f1; margin-right: 0.5rem;"></i>
+                            Show Tips to Waiters
+                        </h3>
+                        <p style="color: #6b7280; font-size: 0.85rem; margin: 0.25rem 0 0 0;">
+                            When enabled, waiters can see their tip amounts on their dashboard
+                        </p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="tip-visibility-toggle" onchange="toggleTipVisibility(this.checked)" {% if show_waiter_tips %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="table-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3><i class="fas fa-coins"></i> Waiter-Wise Tip Summary</h3>
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <select id="tip-period-filter" onchange="loadWaiterTips()" style="padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; cursor: pointer;">
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                        </select>
+                        <button onclick="loadWaiterTips()" class="btn-secondary btn-sm">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">
+                    <i class="fas fa-info-circle"></i> View tip breakdown by waiter. Only paid bills with tips are included.
+                </p>
+                <div id="waiter-tips-list">
+                    <div class="empty-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading waiter tips...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
             {% if food_enabled %}
             <!-- Kitchen Management Section -->
             <div id="kitchen-management" class="content-section">
@@ -1373,23 +2561,15 @@
                 <div class="form-card" style="margin-bottom: 2rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h3><i class="fas fa-plus-circle"></i> Add New Kitchen</h3>
-                        <a href="/kitchen/login" target="_blank" class="btn-secondary btn-sm">
-                            <i class="fas fa-sign-in-alt"></i> Kitchen Login
-                        </a>
+                        <button onclick="openKitchenQRModal()" class="btn-secondary btn-sm">
+                            <i class="fas fa-qrcode"></i> Kitchen Login QR
+                        </button>
                     </div>
                     <div id="kitchen-form-message" class="message"></div>
                     <form id="add-kitchen-form" onsubmit="handleAddKitchen(event)" class="table-form">
                         <div class="form-group">
                             <label for="kitchen-name">Kitchen Name <span style="color: red;">*</span></label>
                             <input type="text" id="kitchen-name" required placeholder="e.g., Veg Kitchen, Bar Section">
-                        </div>
-                        <div class="form-group">
-                            <label for="kitchen-categories">Select Categories <span style="color: red;">*</span></label>
-                            <div id="kitchen-categories-checkboxes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
-                                <div style="color: #64748b; text-align: center; padding: 1rem;">
-                                    <i class="fas fa-spinner fa-spin"></i> Loading categories...
-                                </div>
-                            </div>
                         </div>
                         <button type="submit" class="btn-primary">
                             <i class="fas fa-plus"></i> Create Kitchen
@@ -1414,6 +2594,45 @@
                 </div>
             </div>
 
+            <!-- Kitchen Login QR Modal -->
+            <div class="modal-overlay" id="kitchen-qr-modal" style="display: none;">
+                <div class="modal-content" style="max-width: 420px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-qrcode"></i> Kitchen Login QR Code</h3>
+                        <button class="modal-close" onclick="closeKitchenQRModal()">&times;</button>
+                    </div>
+                    <div class="modal-body" style="padding: 1.5rem; text-align: center;">
+                        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem;">
+                            Scan this QR code to access the kitchen login page
+                        </p>
+                        
+                        <!-- QR Code Display -->
+                        <div id="kitchen-qr-display" style="background: #f8fafc; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                            <div id="kitchen-qr-code"></div>
+                        </div>
+                        
+                        <!-- Login URL Display -->
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem; color: #374151;">
+                                Kitchen Login URL:
+                            </label>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="text" id="kitchen-login-url" readonly 
+                                       style="flex: 1; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; background: #f8fafc; font-family: monospace;">
+                                <button type="button" onclick="copyKitchenLoginUrl(event)" 
+                                        class="btn-secondary" style="padding: 0.75rem 1rem; white-space: nowrap;">
+                                    <i class="fas fa-copy"></i> Copy Link
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <button type="button" onclick="downloadKitchenQR()" class="btn-primary" style="width: 100%; margin-top: 1rem;">
+                            <i class="fas fa-download"></i> Download QR Code
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div id="table-orders" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-qrcode"></i> Table Orders & Bills</h1>
@@ -1430,9 +2649,6 @@
                     </button>
                     <button class="sub-nav-btn" onclick="showTableSubSection('manage-tables')">
                         <i class="fas fa-table-cells"></i> Manage Tables
-                    </button>
-                    <button class="sub-nav-btn" onclick="showTableSubSection('waiter-tips')">
-                        <i class="fas fa-hand-holding-heart"></i> Waiter Tips
                     </button>
                 </div>
                 
@@ -1501,35 +2717,6 @@
                             <div class="empty-state">
                                 <i class="fas fa-spinner fa-spin"></i>
                                 <p>Loading tables...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Waiter Tips Sub-section -->
-                <div id="waiter-tips" class="sub-section">
-                    <div class="table-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h3><i class="fas fa-hand-holding-heart"></i> Waiter-Wise Tip Summary</h3>
-                            <div style="display: flex; gap: 0.75rem; align-items: center;">
-                                <select id="tip-period-filter" onchange="loadWaiterTips()" style="padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; cursor: pointer;">
-                                    <option value="all">All Time</option>
-                                    <option value="today">Today</option>
-                                    <option value="week">This Week</option>
-                                    <option value="month">This Month</option>
-                                </select>
-                                <button onclick="loadWaiterTips()" class="btn-secondary btn-sm">
-                                    <i class="fas fa-sync-alt"></i> Refresh
-                                </button>
-                            </div>
-                        </div>
-                        <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">
-                            <i class="fas fa-info-circle"></i> View tip breakdown by waiter. Only paid bills with tips are included.
-                        </p>
-                        <div id="waiter-tips-list">
-                            <div class="empty-state">
-                                <i class="fas fa-spinner fa-spin"></i>
-                                <p>Loading waiter tips...</p>
                             </div>
                         </div>
                     </div>
@@ -1610,11 +2797,6 @@
                             </div>
                             
                             <div class="form-group">
-                                <label for="dish-price">Price (₹) *</label>
-                                <input type="number" id="dish-price" name="price" step="0.01" min="0.01" required>
-                            </div>
-                            
-                            <div class="form-group">
                                 <label for="dish-quantity">Quantity</label>
                                 <input type="text" id="dish-quantity" name="quantity" placeholder="e.g., 100ml, 250gm, 1 plate, 2 pcs">
                                 <small>You can enter text like "100ml", "250gm", "1 plate", "2 pcs", etc.</small>
@@ -1623,6 +2805,30 @@
                             <div class="form-group">
                                 <label for="dish-description">Description</label>
                                 <textarea id="dish-description" name="description" rows="3" placeholder="Optional description of the dish"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="dish-price">Price (₹) *</label>
+                                <input type="number" id="dish-price" name="price" step="0.01" min="0.01" required>
+                            </div>
+                            
+                            <div style="display: flex; gap: 1rem;">
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="dish-cgst">CGST %</label>
+                                    <input type="number" id="dish-cgst" name="cgst" step="0.1" min="0" max="100" value="2.5" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                                </div>
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="dish-sgst">SGST %</label>
+                                    <input type="number" id="dish-sgst" name="sgst" step="0.1" min="0" max="100" value="2.5" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="dish-kitchen">Assign Kitchen</label>
+                                <select id="dish-kitchen" name="kitchen_id" class="form-select" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; background-color: white;">
+                                    <option value="">-- Select Kitchen (Optional) --</option>
+                                </select>
+                                <small style="color: #718096; font-size: 0.8rem;">Select which kitchen should prepare this dish</small>
                             </div>
                             
                             <div class="form-group">
@@ -1694,53 +2900,45 @@
             <div id="daily-special" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-star"></i> Today's Special Menu</h1>
-                    <p>Set and manage today's special dish for your guests. This will be shown as a popup when guests scan the table QR code.</p>
+                    <p>Add multiple special dishes for today. These will be shown as a carousel when guests scan the table QR code.</p>
                 </div>
 
                 <div class="special-section-layout">
-                    <!-- Left Column - Form -->
+                    <!-- Left Column - List & Form -->
                     <div class="form-card daily-special-card">
                         <div class="daily-special-header">
                             <div class="special-date-badge">
                                 <i class="fas fa-calendar-day"></i>
                                 <span id="special-today-date"></span>
                             </div>
+                            <button type="button" class="btn-primary btn-add-special" id="add-special-btn" onclick="showAddSpecialForm()">
+                                <i class="fas fa-plus"></i> Add Special
+                            </button>
                         </div>
 
-                        <!-- Current Special Display -->
-                        <div id="current-special-container" style="display: none;">
-                            <h3><i class="fas fa-check-circle" style="color: #10b981;"></i> Current Special Menu</h3>
-                            <div class="current-special-card">
-                                <div class="special-card-content">
-                                    <div class="special-image-preview" id="display-special-image-container" style="display: none;">
-                                        <img id="display-special-image" src="" alt="Special Menu">
-                                    </div>
-                                    <div class="special-info">
-                                        <h4 id="display-special-name"></h4>
-                                        <p id="display-special-description"></p>
-                                        <div class="special-price">
-                                            <span id="display-special-price"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="special-actions">
-                                    <button type="button" class="btn-secondary" onclick="editDailySpecial()">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                                    <button type="button" class="btn-danger" onclick="deleteDailySpecial()">
-                                        <i class="fas fa-trash"></i> Remove
-                                    </button>
-                                </div>
+                        <!-- Existing Specials Grid -->
+                        <div id="specials-list-container">
+                            <h3><i class="fas fa-list"></i> Today's Specials</h3>
+                            <div id="specials-grid" class="specials-grid">
+                                <!-- Specials will be loaded dynamically -->
+                            </div>
+                            <div id="no-specials-message" class="no-specials-message" style="display: none;">
+                                <i class="fas fa-utensils"></i>
+                                <p>No specials added for today</p>
+                                <button type="button" class="btn-primary" onclick="showAddSpecialForm()">
+                                    <i class="fas fa-plus"></i> Add Your First Special
+                                </button>
                             </div>
                         </div>
 
                         <!-- Add/Edit Special Form -->
-                        <div id="special-form-container">
-                            <h3 id="special-form-title"><i class="fas fa-plus-circle"></i> Add Today's Special</h3>
+                        <div id="special-form-container" style="display: none;">
+                            <h3 id="special-form-title"><i class="fas fa-plus-circle"></i> Add New Special</h3>
                             <div id="special-message" class="message"></div>
                             <form id="daily-special-form" onsubmit="handleDailySpecialSubmit(event)" enctype="multipart/form-data">
+                                <input type="hidden" id="editing-special-id" value="">
                                 <div class="form-group">
-                                    <label for="special-name">Special Menu Name <span class="required">*</span></label>
+                                    <label for="special-name">Dish Name <span class="required">*</span></label>
                                     <input type="text" id="special-name" required placeholder="e.g., Chef's Special Biryani" oninput="updatePamphletPreview()">
                                 </div>
                                 
@@ -1774,9 +2972,9 @@
                                 
                                 <div class="form-actions">
                                     <button type="submit" class="btn-primary" id="special-submit-btn">
-                                        <i class="fas fa-save"></i> Save Today's Special
+                                        <i class="fas fa-save"></i> Save Special
                                     </button>
-                                    <button type="button" class="btn-secondary" id="special-cancel-btn" onclick="cancelEditSpecial()" style="display: none;">
+                                    <button type="button" class="btn-secondary" id="special-cancel-btn" onclick="cancelSpecialForm()">
                                         <i class="fas fa-times"></i> Cancel
                                     </button>
                                 </div>
@@ -1787,10 +2985,10 @@
                         <div class="special-info-section">
                             <h4><i class="fas fa-info-circle"></i> How it works</h4>
                             <ul>
-                                <li><i class="fas fa-check"></i> The special menu will automatically be shown to guests when they scan the table QR code</li>
-                                <li><i class="fas fa-check"></i> It appears as an attractive pamphlet-style popup with your food image</li>
-                                <li><i class="fas fa-check"></i> The special is only valid for today and will reset at midnight</li>
-                                <li><i class="fas fa-check"></i> You can change the special anytime during the day</li>
+                                <li><i class="fas fa-check"></i> Add multiple specials - they will appear as a carousel to guests</li>
+                                <li><i class="fas fa-check"></i> Guests can swipe through all specials when scanning the QR code</li>
+                                <li><i class="fas fa-check"></i> All specials are only valid for today and will reset at midnight</li>
+                                <li><i class="fas fa-check"></i> You can add, edit or remove specials anytime during the day</li>
                             </ul>
                         </div>
                     </div>
@@ -1849,6 +3047,11 @@
                                 <!-- Footer -->
                                 <div class="preview-footer">
                                     <i class="fas fa-clock"></i> Limited time - Today only!
+                                </div>
+                                
+                                <!-- Carousel indicator (for multiple specials) -->
+                                <div class="preview-carousel-indicator" id="preview-carousel-indicator" style="display: none;">
+                                    <span id="preview-special-count">1 of 1</span>
                                 </div>
                             </div>
                         </div>
@@ -1912,12 +3115,172 @@
             <div id="reports" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-chart-line"></i> Reports & Analytics</h1>
-                    <p>View detailed reports and analytics</p>
+                    <p>View detailed revenue reports and analytics</p>
                 </div>
-                <div class="coming-soon">
-                    <i class="fas fa-chart-pie"></i>
-                    <h3>Reports & Analytics</h3>
-                    <p>Advanced analytics and reporting coming soon...</p>
+
+                <!-- Revenue Summary Cards - Modern Design -->
+                <div class="revenue-cards-container">
+                    <!-- Today's Revenue Card -->
+                    <div class="revenue-card revenue-card-today">
+                        <div class="revenue-card-bg">
+                            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="150" cy="50" r="80" fill="rgba(255,255,255,0.1)"/>
+                                <circle cx="180" cy="150" r="60" fill="rgba(255,255,255,0.05)"/>
+                            </svg>
+                        </div>
+                        <div class="revenue-card-content">
+                            <div class="revenue-card-icon">
+                                <i class="fas fa-sun"></i>
+                            </div>
+                            <div class="revenue-card-info">
+                                <span class="revenue-card-label">Today's Revenue</span>
+                                <span class="revenue-card-value" id="report-today-revenue">₹0.00</span>
+                                <span class="revenue-card-date" id="report-today-date"></span>
+                            </div>
+                        </div>
+                        <div class="revenue-card-footer">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Live tracking</span>
+                        </div>
+                    </div>
+
+                    <!-- Yesterday's Revenue Card -->
+                    <div class="revenue-card revenue-card-yesterday">
+                        <div class="revenue-card-bg">
+                            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="30" cy="170" r="70" fill="rgba(255,255,255,0.1)"/>
+                                <circle cx="160" cy="30" r="50" fill="rgba(255,255,255,0.05)"/>
+                            </svg>
+                        </div>
+                        <div class="revenue-card-content">
+                            <div class="revenue-card-icon">
+                                <i class="fas fa-history"></i>
+                            </div>
+                            <div class="revenue-card-info">
+                                <span class="revenue-card-label">Yesterday's Revenue</span>
+                                <span class="revenue-card-value" id="report-yesterday-revenue">₹0.00</span>
+                                <span class="revenue-card-date" id="report-yesterday-date"></span>
+                            </div>
+                        </div>
+                        <div class="revenue-card-footer">
+                            <i class="fas fa-calendar-check"></i>
+                            <span>Completed</span>
+                        </div>
+                    </div>
+
+                    <!-- Last Month Revenue Card -->
+                    <div class="revenue-card revenue-card-month">
+                        <div class="revenue-card-bg">
+                            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="100" cy="180" r="90" fill="rgba(255,255,255,0.1)"/>
+                                <circle cx="20" cy="40" r="40" fill="rgba(255,255,255,0.05)"/>
+                            </svg>
+                        </div>
+                        <div class="revenue-card-content">
+                            <div class="revenue-card-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="revenue-card-info">
+                                <span class="revenue-card-label">Last Month Revenue</span>
+                                <span class="revenue-card-value" id="report-lastmonth-revenue">₹0.00</span>
+                                <span class="revenue-card-date" id="report-lastmonth-name"></span>
+                            </div>
+                        </div>
+                        <div class="revenue-card-footer">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span>Monthly report</span>
+                        </div>
+                    </div>
+
+                    <!-- Total Revenue Card -->
+                    <div class="revenue-card revenue-card-total">
+                        <div class="revenue-card-bg">
+                            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="180" cy="100" r="100" fill="rgba(255,255,255,0.1)"/>
+                                <circle cx="50" cy="180" r="60" fill="rgba(255,255,255,0.05)"/>
+                            </svg>
+                        </div>
+                        <div class="revenue-card-content">
+                            <div class="revenue-card-icon">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <div class="revenue-card-info">
+                                <span class="revenue-card-label">Total Revenue</span>
+                                <span class="revenue-card-value" id="report-total-revenue">₹0.00</span>
+                                <span class="revenue-card-date">All time earnings</span>
+                            </div>
+                        </div>
+                        <div class="revenue-card-footer">
+                            <i class="fas fa-crown"></i>
+                            <span>Lifetime</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Revenue Chart Section -->
+                <div class="revenue-chart-section">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <h3><i class="fas fa-chart-area"></i> Revenue Trend</h3>
+                            <span class="chart-subtitle">Last 30 days performance</span>
+                        </div>
+                        <button onclick="loadRevenueReports()" class="btn-refresh-chart" title="Refresh">
+                            <i class="fas fa-sync-alt" id="revenueRefreshIcon"></i>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
+                    <div class="chart-container" id="revenue-chart-container">
+                        <div class="chart-bars" id="revenue-chart-bars">
+                            <!-- Chart bars will be dynamically generated -->
+                            <div class="chart-loading">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <span>Loading chart data...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daily Revenue Table - Enhanced -->
+                <div class="revenue-table-card">
+                    <div class="table-header">
+                        <div class="table-title">
+                            <i class="fas fa-table"></i>
+                            <div>
+                                <h3>Daily Revenue Details</h3>
+                                <span>Detailed breakdown of daily earnings</span>
+                            </div>
+                        </div>
+                        <div class="table-badge">
+                            <i class="fas fa-calendar"></i> Last 30 Days
+                        </div>
+                    </div>
+                    <div class="table-content">
+                        <table class="revenue-data-table" id="daily-revenue-table">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <i class="fas fa-calendar-day"></i> Date
+                                    </th>
+                                    <th>
+                                        <i class="fas fa-shopping-bag"></i> Orders
+                                    </th>
+                                    <th>
+                                        <i class="fas fa-rupee-sign"></i> Revenue
+                                    </th>
+                                    <th>
+                                        <i class="fas fa-chart-pie"></i> Avg/Order
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="daily-revenue-tbody">
+                                <tr>
+                                    <td colspan="4" class="table-loading">
+                                        <i class="fas fa-spinner fa-spin"></i> Loading revenue data...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -1928,39 +3291,78 @@
                     <p>Manage your hotel wallet balance and view transaction history</p>
                 </div>
 
-                <!-- Wallet Overview Cards -->
-                <div class="stats-grid" style="margin-bottom: 2rem;">
-                    <div class="stat-card" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
-                        <div class="stat-header">
-                            <div class="stat-icon" style="background: rgba(255,255,255,0.2);">
+                <!-- Wallet Overview Cards - Modern Design -->
+                <div class="wallet-cards-container">
+                    <!-- Available Balance Card -->
+                    <div class="wallet-card wallet-card-balance">
+                        <div class="wallet-card-bg">
+                            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="150" cy="50" r="80" fill="rgba(255,255,255,0.1)"/>
+                                <circle cx="180" cy="150" r="60" fill="rgba(255,255,255,0.05)"/>
+                            </svg>
+                        </div>
+                        <div class="wallet-card-content">
+                            <div class="wallet-card-icon">
                                 <i class="fas fa-wallet"></i>
                             </div>
+                            <div class="wallet-card-info">
+                                <span class="wallet-card-label">Available Balance</span>
+                                <span class="wallet-card-value" id="wallet-balance-display">₹0.00</span>
+                            </div>
                         </div>
-                        <div class="stat-value" id="wallet-balance-display">₹0.00</div>
-                        <div class="stat-label" style="color: rgba(255,255,255,0.9);">Available Balance</div>
+                        <div class="wallet-card-footer">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Current Balance</span>
+                        </div>
                     </div>
 
                     {% if kyc_enabled %}
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div class="stat-icon purple">
+                    <!-- Verification Charge Card -->
+                    <div class="wallet-card wallet-card-verification">
+                        <div class="wallet-card-bg">
+                            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="30" cy="170" r="70" fill="rgba(255,255,255,0.1)"/>
+                                <circle cx="160" cy="30" r="50" fill="rgba(255,255,255,0.05)"/>
+                            </svg>
+                        </div>
+                        <div class="wallet-card-content">
+                            <div class="wallet-card-icon">
                                 <i class="fas fa-id-card"></i>
                             </div>
+                            <div class="wallet-card-info">
+                                <span class="wallet-card-label">Per Verification Charge</span>
+                                <span class="wallet-card-value" id="verification-charge-display">₹0.00</span>
+                            </div>
                         </div>
-                        <div class="stat-value" id="verification-charge-display">₹0.00</div>
-                        <div class="stat-label">Per Verification Charge</div>
+                        <div class="wallet-card-footer">
+                            <i class="fas fa-shield-check"></i>
+                            <span>KYC Verification</span>
+                        </div>
                     </div>
                     {% endif %}
 
                     {% if food_enabled %}
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div class="stat-icon orange">
+                    <!-- Order Charge Card -->
+                    <div class="wallet-card wallet-card-order">
+                        <div class="wallet-card-bg">
+                            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="100" cy="180" r="90" fill="rgba(255,255,255,0.1)"/>
+                                <circle cx="20" cy="40" r="40" fill="rgba(255,255,255,0.05)"/>
+                            </svg>
+                        </div>
+                        <div class="wallet-card-content">
+                            <div class="wallet-card-icon">
                                 <i class="fas fa-utensils"></i>
                             </div>
+                            <div class="wallet-card-info">
+                                <span class="wallet-card-label">Per Order Charge</span>
+                                <span class="wallet-card-value" id="order-charge-display">₹0.00</span>
+                            </div>
                         </div>
-                        <div class="stat-value" id="order-charge-display">₹0.00</div>
-                        <div class="stat-label">Per Order Charge</div>
+                        <div class="wallet-card-footer">
+                            <i class="fas fa-receipt"></i>
+                            <span>Food Orders</span>
+                        </div>
                     </div>
                     {% endif %}
                 </div>
@@ -1971,18 +3373,31 @@
                         <h3><i class="fas fa-plus-circle"></i> Add Balance</h3>
                     </div>
                     <div class="card-body">
-                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 2fr auto; gap: 1rem; align-items: end;">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label for="manager-add-amount">Amount (₹) <span style="color: red;">*</span></label>
-                                <input type="number" id="manager-add-amount" min="1" step="0.01" placeholder="Enter amount" required>
+                        <div id="razorpay-enabled-section" style="display: none;">
+                            <div class="form-row" style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="manager-add-amount">Amount (₹) <span style="color: red;">*</span></label>
+                                    <input type="number" id="manager-add-amount" min="1" step="1" placeholder="Enter amount to add" required>
+                                </div>
+                                <button class="btn btn-success" onclick="initiateRazorpayPayment()" id="razorpay-pay-btn">
+                                    <i class="fas fa-credit-card"></i> Pay via Razorpay
+                                </button>
                             </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label for="manager-add-utr">UTR Number <span style="color: red;">*</span></label>
-                                <input type="text" id="manager-add-utr" placeholder="Enter UTR/Transaction Reference Number" required>
+                            <p style="margin-top: 0.75rem; font-size: 0.85rem; color: var(--gray);">
+                                <i class="fas fa-shield-alt" style="color: var(--success);"></i> 
+                                Secure payment via UPI, Card, NetBanking, or Wallet
+                            </p>
+                        </div>
+                        <div id="razorpay-disabled-section" style="display: none;">
+                            <div class="alert alert-warning" style="margin: 0;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Online payment is currently not available. Please contact admin to add balance.
                             </div>
-                            <button class="btn btn-success" onclick="managerAddBalance()">
-                                <i class="fas fa-plus"></i> Add Balance
-                            </button>
+                        </div>
+                        <div id="razorpay-loading-section">
+                            <div class="loading-spinner">
+                                <i class="fas fa-spinner fa-spin"></i> Loading payment options...
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2077,37 +3492,20 @@
                         </div>
                     </div>
                     
-                    <!-- GST Settings Card -->
+                    <!-- Dish-level Tax Info Card -->
                     <div class="settings-card">
                         <div class="settings-card-header">
-                            <i class="fas fa-percent"></i>
-                            <h3>Tax Settings</h3>
+                            <i class="fas fa-receipt"></i>
+                            <h3>Tax Configuration</h3>
                         </div>
                         <div class="settings-card-body">
-                            <div id="gst-alert" class="settings-alert" style="display: none;"></div>
-                            <form id="gst-settings-form" onsubmit="updateGSTSettings(event)">
-                                <div class="form-group">
-                                    <label for="gst-percentage">GST Percentage (%)</label>
-                                    <input type="number" id="gst-percentage" name="gst_percentage" required 
-                                           placeholder="Enter GST percentage" 
-                                           min="0" max="28" step="0.01"
-                                           style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.95rem;">
-                                    <small style="color: #6b7280; font-size: 0.85rem; margin-top: 0.5rem; display: block;">
-                                        <i class="fas fa-info-circle"></i> Enter GST percentage (0-28%). This will apply to all new bills.
-                                    </small>
-                                </div>
-                                <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 0.875rem; margin-bottom: 1rem;">
-                                    <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
-                                        <i class="fas fa-exclamation-triangle" style="color: #f59e0b; margin-top: 0.2rem;"></i>
-                                        <div style="font-size: 0.85rem; color: #92400e;">
-                                            <strong>Important:</strong> Changing GST will only affect new bills. Existing bills will retain their original GST percentage.
-                                        </div>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn-primary" id="gst-settings-btn">
-                                    <i class="fas fa-save"></i> Save GST Settings
-                                </button>
-                            </form>
+                            <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">
+                                <i class="fas fa-info-circle"></i> Taxes (CGST % and SGST %) are now configured per dish. 
+                                Edit any dish in Menu Management to set its tax rates.
+                            </p>
+                            <p style="color: #059669; font-size: 0.85rem;">
+                                <i class="fas fa-check-circle"></i> Default tax rate: 2.5% CGST + 2.5% SGST = 5% GST
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -2304,17 +3702,22 @@
                 loadVerificationData();
             } else if (sectionId === 'menu') {
                 loadMenuCategories();
+                loadMenuKitchens();
                 loadMenuDishes(1); // Load starters by default
             } else if (sectionId === 'table-orders') {
                 loadOrdersData(); // Load View Orders by default (first tab)
             } else if (sectionId === 'waiters') {
                 loadWaitersList();
                 // Table assignments and checkboxes loaded on-demand when user clicks buttons
+            } else if (sectionId === 'waiter-tips') {
+                loadWaiterTips();
             } else if (sectionId === 'settings') {
-                loadGSTSettings(); // Load GST settings when settings page is shown
+                // Tax settings are now per-dish, configured in Menu Management
             } else if (sectionId === 'kitchen-management') {
                 loadCategories();
                 loadKitchens();
+            } else if (sectionId === 'reports') {
+                loadRevenueReports();
             }
         }
         
@@ -2419,90 +3822,7 @@
         }
         
         // =========================
-        // GST SETTINGS FUNCTIONS
-        // =========================
-        
-        function showGSTAlert(message, type) {
-            const alert = document.getElementById('gst-alert');
-            alert.className = `settings-alert alert-${type}`;
-            alert.textContent = message;
-            alert.style.display = 'block';
-            
-            // Auto-hide success messages after 5 seconds
-            if (type === 'success') {
-                setTimeout(() => {
-                    alert.style.display = 'none';
-                }, 5000);
-            }
-        }
-        
-        function loadGSTSettings() {
-            fetch('/hotel-manager/api/gst-settings')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('gst-percentage').value = data.gst_percentage || 5.0;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading GST settings:', error);
-                });
-        }
-        
-        function updateGSTSettings(event) {
-            event.preventDefault();
-            
-            const gstPercentage = document.getElementById('gst-percentage').value;
-            const btn = document.getElementById('gst-settings-btn');
-            
-            // Client-side validation
-            if (!gstPercentage) {
-                showGSTAlert('GST percentage is required!', 'error');
-                return;
-            }
-            
-            const gstFloat = parseFloat(gstPercentage);
-            if (isNaN(gstFloat) || gstFloat < 0) {
-                showGSTAlert('GST percentage cannot be negative!', 'error');
-                return;
-            }
-            
-            if (gstFloat > 28) {
-                showGSTAlert('GST percentage cannot exceed 28%!', 'error');
-                return;
-            }
-            
-            // Disable button and show loading
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            
-            fetch('/hotel-manager/api/gst-settings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    gst_percentage: gstFloat
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save"></i> Save GST Settings';
-                
-                if (data.success) {
-                    showGSTAlert(data.message || 'GST settings updated successfully.', 'success');
-                } else {
-                    showGSTAlert(data.message || 'Failed to update GST settings', 'error');
-                }
-            })
-            .catch(error => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save"></i> Save GST Settings';
-                console.error('Error:', error);
-                showGSTAlert('An error occurred. Please try again.', 'error');
-            });
-        }
+        // Note: Category tax settings removed - taxes are now configured per dish in Menu Management
         
         // Close dropdown when clicking outside
         window.onclick = function(event) {
@@ -3522,6 +4842,7 @@
         let currentCategoryId = 1;
         let isEditMode = false;
         let menuCategories = {1: 'Starters', 2: 'Main Course', 3: 'Desserts'};
+        let menuKitchens = [];
         let currentImageIndex = 0;
         let currentImages = [];
 
@@ -3534,6 +4855,33 @@
             setTimeout(() => {
                 alert.style.display = 'none';
             }, 4000);
+        }
+
+        function loadMenuKitchens() {
+            fetch('/api/kitchens')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        menuKitchens = data.kitchens;
+                        updateMenuKitchenDropdown();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading kitchens:', error);
+                });
+        }
+
+        function updateMenuKitchenDropdown() {
+            const select = document.getElementById('dish-kitchen');
+            if (!select) return;
+            select.innerHTML = '<option value="">-- Select Kitchen (Optional) --</option>';
+            
+            menuKitchens.forEach(kitchen => {
+                const option = document.createElement('option');
+                option.value = kitchen.id;
+                option.textContent = kitchen.name;
+                select.appendChild(option);
+            });
         }
 
         function loadMenuCategories() {
@@ -3692,6 +5040,9 @@
             document.getElementById('dish-form').reset();
             document.getElementById('dish-id').value = '';
             document.getElementById('category-id').value = currentCategoryId;
+            document.getElementById('dish-kitchen').value = '';
+            document.getElementById('dish-cgst').value = '2.5';
+            document.getElementById('dish-sgst').value = '2.5';
             
             // Reset existing images info and enable file input
             const existingInfoDiv = document.getElementById('existing-images-info');
@@ -3784,6 +5135,9 @@
                         document.getElementById('dish-price').value = dish.price;
                         document.getElementById('dish-quantity').value = dish.quantity;
                         document.getElementById('dish-description').value = dish.description || '';
+                        document.getElementById('dish-kitchen').value = dish.kitchen_id || '';
+                        document.getElementById('dish-cgst').value = dish.cgst || 2.5;
+                        document.getElementById('dish-sgst').value = dish.sgst || 2.5;
                         document.getElementById('dish-images').removeAttribute('required');
                         
                         // Filter valid images (exclude empty strings, null, undefined) and DEDUPLICATE
@@ -4310,8 +5664,6 @@
                 loadOrdersData();
             } else if (subSectionId === 'active-bills') {
                 loadActiveBills();
-            } else if (subSectionId === 'waiter-tips') {
-                loadWaiterTips();
             }
         }
         
@@ -4350,7 +5702,7 @@
             
             let billsHTML = `
                 <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
+                <table style="width: 100%; border-collapse: collapse; min-width: 900px;">
                     <thead>
                         <tr style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white;">
                             <th style="padding: 1rem; text-align: left; font-weight: 600;">Bill #</th>
@@ -4359,6 +5711,7 @@
                             <th style="padding: 1rem; text-align: right; font-weight: 600;">Total Amount</th>
                             <th style="padding: 1rem; text-align: center; font-weight: 600;">Bill Status</th>
                             <th style="padding: 1rem; text-align: center; font-weight: 600;">Payment</th>
+                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Method</th>
                             <th style="padding: 1rem; text-align: left; font-weight: 600;">Created</th>
                             <th style="padding: 1rem; text-align: center; font-weight: 600;">Actions</th>
                         </tr>
@@ -4371,8 +5724,23 @@
                 const guestName = bill.guest_name || 'Guest';
                 const billStatus = bill.bill_status || 'OPEN';
                 const paymentStatus = bill.payment_status || 'PENDING';
+                const paymentMethod = bill.payment_method || '-';
                 const isPaid = paymentStatus === 'PAID';
                 const isOpen = billStatus === 'OPEN';
+                
+                // Payment method styling
+                let methodStyle = '';
+                let methodIcon = '';
+                if (paymentMethod === 'UPI') {
+                    methodStyle = 'background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #5b21b6;';
+                    methodIcon = '<i class="fas fa-qrcode" style="margin-right: 0.25rem;"></i>';
+                } else if (paymentMethod === 'CASH' || paymentMethod === 'Cash') {
+                    methodStyle = 'background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46;';
+                    methodIcon = '<i class="fas fa-money-bill-wave" style="margin-right: 0.25rem;"></i>';
+                } else {
+                    methodStyle = 'background: #f3f4f6; color: #6b7280;';
+                    methodIcon = '';
+                }
                 
                 billsHTML += `
                     <tr style="border-bottom: 1px solid #e2e8f0; background: ${rowBg};" onmouseover="this.style.background='#ecfdf5'" onmouseout="this.style.background='${rowBg}'">
@@ -4396,6 +5764,11 @@
                         <td style="padding: 1rem; text-align: center;">
                             <span style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; ${isPaid ? 'background: #d1fae5; color: #065f46;' : 'background: #fef3c7; color: #92400e;'}">
                                 <i class="fas ${isPaid ? 'fa-check-circle' : 'fa-clock'}" style="margin-right: 0.25rem;"></i>${paymentStatus}
+                            </span>
+                        </td>
+                        <td style="padding: 1rem; text-align: center;">
+                            <span style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; ${methodStyle}">
+                                ${methodIcon}${paymentMethod === '-' ? '-' : paymentMethod}
                             </span>
                         </td>
                         <td style="padding: 1rem; color: #6b7280; font-size: 0.85rem;">
@@ -4592,6 +5965,68 @@
             container.innerHTML = html;
         }
         
+        // Tip Visibility Control Functions
+        function loadTipVisibilitySetting() {
+            console.log('[TIP_VISIBILITY] Loading setting...');
+            fetch('/hotel-manager/api/tip-visibility')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('[TIP_VISIBILITY] Response:', data);
+                    if (data.success) {
+                        const toggle = document.getElementById('tip-visibility-toggle');
+                        if (toggle) {
+                            toggle.checked = data.show_waiter_tips;
+                            console.log('[TIP_VISIBILITY] Toggle set to:', data.show_waiter_tips);
+                        } else {
+                            console.warn('[TIP_VISIBILITY] Toggle element not found');
+                        }
+                    } else {
+                        console.error('[TIP_VISIBILITY] API returned success=false:', data);
+                    }
+                })
+                .catch(error => {
+                    console.error('[TIP_VISIBILITY] Error loading setting:', error);
+                });
+        }
+        
+        function toggleTipVisibility(isEnabled) {
+            console.log('[TIP_VISIBILITY] Toggling to:', isEnabled);
+            fetch('/hotel-manager/api/toggle-tip-visibility', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ show_waiter_tips: isEnabled })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('[TIP_VISIBILITY] Toggle response:', data);
+                if (data.success) {
+                    const status = isEnabled ? 'visible' : 'hidden';
+                    showNotification(`Tips are now ${status} to waiters`, 'success');
+                } else {
+                    showNotification('Failed to update setting', 'error');
+                    // Revert toggle
+                    document.getElementById('tip-visibility-toggle').checked = !isEnabled;
+                }
+            })
+            .catch(error => {
+                console.error('[TIP_VISIBILITY] Error toggling:', error);
+                showNotification('Error updating setting', 'error');
+                // Revert toggle
+                document.getElementById('tip-visibility-toggle').checked = !isEnabled;
+            });
+        }
+        
+        // Load tip visibility setting when waiter-tips section is shown
+        (function() {
+            const originalShowSection = showSection;
+            showSection = function(sectionId) {
+                originalShowSection(sectionId);
+                if (sectionId === 'waiter-tips') {
+                    loadTipVisibilitySetting();
+                }
+            };
+        })();
+        
         function loadTablesData() {
             fetch('/orders/api/tables')
                 .then(response => response.json())
@@ -4722,7 +6157,7 @@
             
             let ordersHTML = `
                 <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
+                <table style="width: 100%; border-collapse: collapse; min-width: 900px;">
                     <thead>
                         <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                             <th style="padding: 1rem; text-align: left; font-weight: 600;">Order #</th>
@@ -4730,6 +6165,7 @@
                             <th style="padding: 1rem; text-align: right; font-weight: 600;">Total</th>
                             <th style="padding: 1rem; text-align: center; font-weight: 600;">Order Status</th>
                             <th style="padding: 1rem; text-align: center; font-weight: 600;">Payment Status</th>
+                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Method</th>
                             <th style="padding: 1rem; text-align: left; font-weight: 600;">Time</th>
                             <th style="padding: 1rem; text-align: center; font-weight: 600;">Actions</th>
                             <th style="padding: 1rem; text-align: center; font-weight: 600;">Bill</th>
@@ -4742,10 +6178,25 @@
                 const orderTime = formatDateTime(order.created_at);
                 const orderStatusClass = order.order_status === 'COMPLETED' ? 'paid' : (order.order_status === 'PREPARING' ? 'busy' : 'pending');
                 const paymentStatus = order.payment_status || 'PENDING';
+                const paymentMethod = order.payment_method || '-';
                 const paymentClass = paymentStatus === 'PAID' ? 'paid' : 'pending';
                 const guestName = order.guest_name || 'Guest';
                 const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
                 const itemCount = order.items ? order.items.length : 0;
+                
+                // Payment method styling
+                let methodStyle = '';
+                let methodIcon = '';
+                if (paymentMethod === 'UPI') {
+                    methodStyle = 'background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #5b21b6;';
+                    methodIcon = '<i class="fas fa-qrcode" style="margin-right: 0.25rem;"></i>';
+                } else if (paymentMethod === 'CASH' || paymentMethod === 'Cash') {
+                    methodStyle = 'background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46;';
+                    methodIcon = '<i class="fas fa-money-bill-wave" style="margin-right: 0.25rem;"></i>';
+                } else {
+                    methodStyle = 'background: #f3f4f6; color: #6b7280;';
+                    methodIcon = '';
+                }
                 
                 ordersHTML += `
                     <tr style="border-bottom: 1px solid #e2e8f0; background: ${rowBg};" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='${rowBg}'">
@@ -4770,6 +6221,11 @@
                         <td style="padding: 1rem; text-align: center;">
                             <span class="status-badge status-${paymentClass}" style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; ${paymentStatus === 'PAID' ? 'background: #d1fae5; color: #065f46;' : 'background: #fef3c7; color: #92400e;'}">
                                 <i class="fas ${paymentStatus === 'PAID' ? 'fa-check-circle' : 'fa-clock'}" style="margin-right: 0.25rem;"></i>${paymentStatus}
+                            </span>
+                        </td>
+                        <td style="padding: 1rem; text-align: center;">
+                            <span style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; ${methodStyle}">
+                                ${methodIcon}${paymentMethod === '-' ? '-' : paymentMethod}
                             </span>
                         </td>
                         <td style="padding: 1rem; color: #6b7280; font-size: 0.85rem;">
@@ -4868,16 +6324,39 @@
             
             const guestName = bill.guest_name || 'Guest';
             const paymentStatus = bill.payment_status || 'PENDING';
+            const paymentMethod = bill.payment_method || '';
             const isPaid = paymentStatus === 'PAID';
             
-            const itemsHTML = bill.items.map(item => `
+            // Payment method styling
+            let methodBg = '', methodColor = '', methodIcon = '';
+            if (paymentMethod === 'UPI') {
+                methodBg = 'background: linear-gradient(135deg, #ede9fe, #ddd6fe);';
+                methodColor = 'color: #5b21b6;';
+                methodIcon = '<i class="fas fa-qrcode" style="margin-right: 0.5rem;"></i>';
+            } else if (paymentMethod === 'CASH' || paymentMethod === 'Cash') {
+                methodBg = 'background: linear-gradient(135deg, #d1fae5, #a7f3d0);';
+                methodColor = 'color: #065f46;';
+                methodIcon = '<i class="fas fa-money-bill-wave" style="margin-right: 0.5rem;"></i>';
+            }
+            
+            const itemsHTML = bill.items.map(item => {
+                // Get per-item tax amounts (enriched by backend)
+                const itemCgst = item.cgst_amount || 0;
+                const itemSgst = item.sgst_amount || 0;
+                const itemTotal = item.total_with_tax || (item.price * item.quantity + itemCgst + itemSgst);
+                const cgstPct = item.cgst_percentage || 0;
+                const sgstPct = item.sgst_percentage || 0;
+                
+                return `
                 <tr>
-                    <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">${item.name}</td>
-                    <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0; text-align: center;">${item.quantity}</td>
-                    <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0; text-align: right;">₹${parseFloat(item.price).toFixed(2)}</td>
-                    <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">₹${(item.price * item.quantity).toFixed(2)}</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0;">${item.name}</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center;">${item.quantity}</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: right;">₹${parseFloat(item.price).toFixed(2)}</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: right; color: #059669; font-size: 0.85rem;">${cgstPct}% (₹${parseFloat(itemCgst).toFixed(2)})</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: right; color: #059669; font-size: 0.85rem;">${sgstPct}% (₹${parseFloat(itemSgst).toFixed(2)})</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">₹${parseFloat(itemTotal).toFixed(2)}</td>
                 </tr>
-            `).join('');
+            `}).join('');
             
             modal.innerHTML = `
                 <div class="bill-modal-content">
@@ -4887,6 +6366,13 @@
                     </div>
                     <div class="bill-modal-body">
                         <div class="bill-header-info" style="text-align: center; padding-bottom: 1rem; border-bottom: 2px dashed #e2e8f0; margin-bottom: 1rem;">
+                            ${bill.hotel_logo ? `
+                                <div style="margin-bottom: 1rem;">
+                                    <img src="/static/uploads/hotel_logos/${bill.hotel_logo}" 
+                                         alt="${bill.hotel_name || 'Hotel'} Logo" 
+                                         style="max-height: 80px; max-width: 200px; object-fit: contain; background: white; padding: 0.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                                </div>
+                            ` : ''}
                             <h3 style="font-size: 1.5rem; color: #1f2937; margin-bottom: 0.25rem;">${bill.hotel_name || 'Restaurant'}</h3>
                             <p style="color: #6b7280; font-size: 0.9rem;">${bill.hotel_address || ''}</p>
                         </div>
@@ -4916,10 +6402,12 @@
                         <table class="bill-items-table" style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr style="background: #f1f5f9;">
-                                    <th style="padding: 0.75rem; text-align: left; font-size: 0.8rem; color: #64748b;">Item</th>
-                                    <th style="padding: 0.75rem; text-align: center; font-size: 0.8rem; color: #64748b;">Qty</th>
-                                    <th style="padding: 0.75rem; text-align: right; font-size: 0.8rem; color: #64748b;">Price</th>
-                                    <th style="padding: 0.75rem; text-align: right; font-size: 0.8rem; color: #64748b;">Total</th>
+                                    <th style="padding: 0.6rem; text-align: left; font-size: 0.75rem; color: #64748b;">Item</th>
+                                    <th style="padding: 0.6rem; text-align: center; font-size: 0.75rem; color: #64748b;">Qty</th>
+                                    <th style="padding: 0.6rem; text-align: right; font-size: 0.75rem; color: #64748b;">Price</th>
+                                    <th style="padding: 0.6rem; text-align: right; font-size: 0.75rem; color: #64748b;">CGST</th>
+                                    <th style="padding: 0.6rem; text-align: right; font-size: 0.75rem; color: #64748b;">SGST</th>
+                                    <th style="padding: 0.6rem; text-align: right; font-size: 0.75rem; color: #64748b;">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -4931,8 +6419,16 @@
                                 <span>Subtotal:</span>
                                 <span>₹${parseFloat(bill.subtotal).toFixed(2)}</span>
                             </div>
-                            <div class="bill-total-row" style="display: flex; justify-content: space-between; padding: 0.5rem 0; color: #6b7280;">
-                                <span>Tax (${bill.tax_rate || 0}%):</span>
+                            <div class="bill-total-row" style="display: flex; justify-content: space-between; padding: 0.4rem 0; color: #059669; border-top: 1px dashed #e2e8f0; margin-top: 0.25rem; padding-top: 0.5rem;">
+                                <span>Total CGST:</span>
+                                <span>₹${parseFloat(bill.cgst_amount || 0).toFixed(2)}</span>
+                            </div>
+                            <div class="bill-total-row" style="display: flex; justify-content: space-between; padding: 0.4rem 0; color: #059669;">
+                                <span>Total SGST:</span>
+                                <span>₹${parseFloat(bill.sgst_amount || 0).toFixed(2)}</span>
+                            </div>
+                            <div class="bill-total-row" style="display: flex; justify-content: space-between; padding: 0.4rem 0; color: #6b7280;">
+                                <span>Total Tax:</span>
                                 <span>₹${parseFloat(bill.tax_amount || 0).toFixed(2)}</span>
                             </div>
                             ${bill.tip_amount && parseFloat(bill.tip_amount) > 0 ? `
@@ -4950,6 +6446,12 @@
                             <i class="fas ${isPaid ? 'fa-check-circle' : 'fa-clock'}" style="margin-right: 0.5rem;"></i>
                             Payment Status: ${paymentStatus}
                         </div>
+                        ${isPaid && paymentMethod ? `
+                        <div style="margin-top: 0.75rem; padding: 1rem; border-radius: 10px; text-align: center; font-weight: 600; ${methodBg} ${methodColor}">
+                            ${methodIcon}
+                            Payment Method: ${paymentMethod === 'UPI' ? 'UPI (Online)' : paymentMethod}
+                        </div>
+                        ` : ''}
                     </div>
                     <div class="bill-modal-footer">
                         <button onclick="printBill()" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fas fa-print"></i> Print Bill</button>
@@ -5110,8 +6612,169 @@
             });
         }
         
+        // ========== REVENUE REPORTS FUNCTIONS ==========
+        function loadRevenueReports() {
+            const refreshIcon = document.getElementById('revenueRefreshIcon');
+            if (refreshIcon) {
+                refreshIcon.classList.add('fa-spin');
+            }
+            
+            fetch('/hotel-manager/api/revenue-reports')
+                .then(response => response.json())
+                .then(data => {
+                    if (refreshIcon) {
+                        refreshIcon.classList.remove('fa-spin');
+                    }
+                    
+                    if (data.success) {
+                        // Update summary cards
+                        document.getElementById('report-today-revenue').textContent = '₹' + data.summary.today.toFixed(2);
+                        document.getElementById('report-yesterday-revenue').textContent = '₹' + data.summary.yesterday.toFixed(2);
+                        document.getElementById('report-lastmonth-revenue').textContent = '₹' + data.summary.last_month.toFixed(2);
+                        document.getElementById('report-total-revenue').textContent = '₹' + data.summary.total.toFixed(2);
+                        
+                        // Update date labels
+                        const today = new Date();
+                        const yesterday = new Date(today);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const lastMonth = new Date(today);
+                        lastMonth.setMonth(lastMonth.getMonth() - 1);
+                        
+                        const todayDateEl = document.getElementById('report-today-date');
+                        if (todayDateEl) {
+                            todayDateEl.textContent = today.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
+                        }
+                        
+                        const yesterdayDateEl = document.getElementById('report-yesterday-date');
+                        if (yesterdayDateEl) {
+                            yesterdayDateEl.textContent = yesterday.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                        }
+                        
+                        const lastMonthNameEl = document.getElementById('report-lastmonth-name');
+                        if (lastMonthNameEl) {
+                            lastMonthNameEl.textContent = lastMonth.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+                        }
+                        
+                        // Update chart and table
+                        renderRevenueChart(data.daily_revenue);
+                        renderDailyRevenueTable(data.daily_revenue);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading revenue reports:', error);
+                    if (refreshIcon) {
+                        refreshIcon.classList.remove('fa-spin');
+                    }
+                });
+        }
+        
+        function renderRevenueChart(dailyData) {
+            const chartContainer = document.getElementById('revenue-chart-bars');
+            
+            if (!dailyData || dailyData.length === 0) {
+                chartContainer.innerHTML = `
+                    <div class="chart-empty">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>No revenue data to display</span>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Get max revenue for scaling
+            const maxRevenue = Math.max(...dailyData.map(d => d.revenue));
+            
+            // Take last 14 days for the chart (reversed for chronological order)
+            const chartData = dailyData.slice(0, 14).reverse();
+            
+            let html = '';
+            chartData.forEach(row => {
+                const dateObj = new Date(row.date);
+                const dayLabel = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+                const barHeight = maxRevenue > 0 ? Math.max((row.revenue / maxRevenue) * 150, 10) : 10;
+                
+                html += `
+                    <div class="chart-bar-wrapper">
+                        <div class="chart-bar" style="height: ${barHeight}px;">
+                            <div class="chart-bar-tooltip">₹${row.revenue.toFixed(0)}</div>
+                        </div>
+                        <span class="chart-bar-label">${dayLabel}</span>
+                    </div>
+                `;
+            });
+            
+            chartContainer.innerHTML = html;
+        }
+        
+        function renderDailyRevenueTable(dailyData) {
+            const tbody = document.getElementById('daily-revenue-tbody');
+            
+            if (!dailyData || dailyData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="table-empty">
+                            <i class="fas fa-inbox"></i>
+                            <span>No completed orders found</span>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            let html = '';
+            dailyData.forEach(row => {
+                const dateObj = new Date(row.date);
+                const formattedDate = dateObj.toLocaleDateString('en-IN', {
+                    weekday: 'short',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+                const dayNum = dateObj.getDate();
+                const avgPerOrder = row.total_orders > 0 ? (row.revenue / row.total_orders).toFixed(0) : 0;
+                
+                html += `
+                    <tr>
+                        <td>
+                            <div class="date-cell">
+                                <div class="date-icon">
+                                    <i class="fas fa-calendar-day"></i>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; color: #1e293b;">${formattedDate}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="orders-badge">
+                                <i class="fas fa-shopping-bag"></i>
+                                ${row.total_orders} orders
+                            </span>
+                        </td>
+                        <td>
+                            <span class="revenue-amount">₹${row.revenue.toFixed(2)}</span>
+                        </td>
+                        <td>
+                            <span class="avg-amount">₹${avgPerOrder}</span>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+        
+        // Load revenue reports when Reports section is shown
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial load if reports section is visible
+            const reportsSection = document.getElementById('reports');
+            if (reportsSection && reportsSection.classList.contains('active')) {
+                loadRevenueReports();
+            }
+        });
+        
         // ========== WALLET FUNCTIONS ==========
-        const hotelId = {{ hotel_id if hotel_id else 'null' }};
+        var hotelId = JSON.parse('{{ hotel_id|default("null")|tojson }}');
         
         function loadWalletData() {
             if (!hotelId) return;
@@ -5160,18 +6823,24 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.transactions.length > 0) {
-                    let html = '<table class="data-table"><thead><tr><th>Sr No</th><th>Date</th><th>Type</th><th>Amount</th><th>UTR No</th><th>Balance After</th></tr></thead><tbody>';
+                    let html = '<table class="data-table"><thead><tr><th>Sr No</th><th>Date</th><th>Type</th><th>Amount</th><th>Payment Ref</th><th>Balance After</th></tr></thead><tbody>';
                     data.transactions.forEach((t, index) => {
                         const typeClass = t.transaction_type === 'CREDIT' ? 'text-success' : 'text-danger';
                         const typeIcon = t.transaction_type === 'CREDIT' ? 'fa-arrow-up' : 'fa-arrow-down';
-                        const utrDisplay = t.utr_number || '-';
+                        // Show Razorpay payment ID or UTR number
+                        let paymentRef = '-';
+                        if (t.razorpay_payment_id) {
+                            paymentRef = '<i class="fas fa-credit-card" title="Razorpay"></i> ' + t.razorpay_payment_id.substring(0, 12) + '...';
+                        } else if (t.utr_number) {
+                            paymentRef = t.utr_number;
+                        }
                         html += `
                             <tr>
                                 <td>${index + 1}</td>
                                 <td>${formatDateTime(t.created_at)}</td>
                                 <td><span class="${typeClass}"><i class="fas ${typeIcon}"></i> ${t.reference_type}</span></td>
                                 <td class="${typeClass}">₹${t.amount.toFixed(2)}</td>
-                                <td>${utrDisplay}</td>
+                                <td>${paymentRef}</td>
                                 <td>₹${t.balance_after.toFixed(2)}</td>
                             </tr>
                         `;
@@ -5189,68 +6858,209 @@
         }
         
         function managerAddBalance() {
+            // Deprecated - replaced by Razorpay integration
+            alert('Please use the Razorpay payment option to add balance');
+        }
+        
+        // Razorpay configuration
+        let razorpayKeyId = null;
+        let razorpayEnabled = false;
+        
+        function initRazorpayConfig() {
+            fetch('/wallet/api/razorpay/config')
+            .then(response => response.json())
+            .then(data => {
+                razorpayEnabled = data.enabled;
+                razorpayKeyId = data.key_id;
+                
+                // Show/hide appropriate sections
+                document.getElementById('razorpay-loading-section').style.display = 'none';
+                if (razorpayEnabled) {
+                    document.getElementById('razorpay-enabled-section').style.display = 'block';
+                    document.getElementById('razorpay-disabled-section').style.display = 'none';
+                } else {
+                    document.getElementById('razorpay-enabled-section').style.display = 'none';
+                    document.getElementById('razorpay-disabled-section').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading Razorpay config:', error);
+                document.getElementById('razorpay-loading-section').style.display = 'none';
+                document.getElementById('razorpay-disabled-section').style.display = 'block';
+            });
+        }
+        
+        function initiateRazorpayPayment() {
             if (!hotelId) {
                 alert('Hotel not configured');
                 return;
             }
             
+            if (!razorpayEnabled) {
+                alert('Online payment is not available');
+                return;
+            }
+            
             const amount = parseFloat(document.getElementById('manager-add-amount').value);
-            const utrNumber = document.getElementById('manager-add-utr').value.trim();
             
             if (!amount || amount <= 0) {
                 alert('Please enter a valid amount');
                 return;
             }
             
-            if (!utrNumber) {
-                alert('Please enter UTR Number');
+            if (amount < 1) {
+                alert('Minimum amount is ₹1');
                 return;
             }
             
-            fetch('/wallet/api/add-balance', {
+            // Disable button while processing
+            const payBtn = document.getElementById('razorpay-pay-btn');
+            payBtn.disabled = true;
+            payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            
+            // Create Razorpay order
+            fetch('/wallet/api/razorpay/create-order', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     hotel_id: hotelId,
-                    amount: amount,
-                    utr_number: utrNumber
+                    amount: amount
                 })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message + ' New balance: ₹' + data.new_balance.toFixed(2));
-                    document.getElementById('manager-add-amount').value = '';
-                    document.getElementById('manager-add-utr').value = '';
-                    loadWalletData();
-                    loadWalletTransactions();
+                    openRazorpayCheckout(data.order_id, data.amount, data.key_id);
                 } else {
-                    alert('Error: ' + (data.message || 'Failed to add balance'));
+                    alert('Error: ' + (data.message || 'Failed to create order'));
+                    resetPayButton();
                 }
             })
             .catch(error => {
-                console.error('Error adding balance:', error);
-                alert('Error adding balance');
+                console.error('Error creating order:', error);
+                alert('Error initiating payment');
+                resetPayButton();
             });
         }
         
+        function openRazorpayCheckout(orderId, amount, keyId) {
+            const options = {
+                key: keyId,
+                amount: amount * 100, // Amount in paise
+                currency: 'INR',
+                name: 'VisiScure Order',
+                description: 'Wallet Recharge - ₹' + amount,
+                image: '/static/images/logo.png',
+                order_id: orderId,
+                handler: function(response) {
+                    // Payment successful, verify on server
+                    verifyRazorpayPayment(response, amount);
+                },
+                prefill: {
+                    name: '{{ manager_name | default("Manager", true) }}',
+                    email: '',
+                    contact: ''
+                },
+                theme: {
+                    color: '#3b82f6'
+                },
+                modal: {
+                    ondismiss: function() {
+                        resetPayButton();
+                    }
+                }
+            };
+            
+            const rzp = new Razorpay(options);
+            rzp.on('payment.failed', function(response) {
+                alert('Payment failed: ' + response.error.description);
+                resetPayButton();
+            });
+            rzp.open();
+        }
+        
+        function verifyRazorpayPayment(response, amount) {
+            fetch('/wallet/api/razorpay/verify-payment', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    hotel_id: hotelId,
+                    amount: amount,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_signature: response.razorpay_signature
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccessMessage('Payment successful! ₹' + amount + ' added to wallet. New balance: ₹' + data.new_balance.toFixed(2));
+                    document.getElementById('manager-add-amount').value = '';
+                    loadWalletData();
+                    loadWalletTransactions();
+                } else {
+                    alert('Error: ' + (data.message || 'Payment verification failed'));
+                }
+                resetPayButton();
+            })
+            .catch(error => {
+                console.error('Error verifying payment:', error);
+                alert('Error verifying payment. Please contact support if amount was deducted.');
+                resetPayButton();
+            });
+        }
+        
+        function resetPayButton() {
+            const payBtn = document.getElementById('razorpay-pay-btn');
+            if (payBtn) {
+                payBtn.disabled = false;
+                payBtn.innerHTML = '<i class="fas fa-credit-card"></i> Pay via Razorpay';
+            }
+        }
+        
+        function showSuccessMessage(message) {
+            // Create a nice success notification
+            const notification = document.createElement('div');
+            notification.className = 'alert-success';
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem; background: #059669; color: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10000; animation: slideIn 0.3s ease;';
+            notification.innerHTML = '<i class="fas fa-check-circle"></i> ' + message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+        
+        // Initialize Razorpay config on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initRazorpayConfig();
+        });
+        
         // Load wallet data when wallet section is shown
-        const originalShowSection = showSection;
-        showSection = function(sectionId) {
-            originalShowSection(sectionId);
-            if (sectionId === 'wallet') {
-                loadWalletData();
-                loadWalletTransactions();
-            }
-            if (sectionId === 'daily-special') {
-                loadDailySpecial();
-            }
-        };
+        (function() {
+            const prevShowSection = showSection;
+            showSection = function(sectionId) {
+                prevShowSection(sectionId);
+                if (sectionId === 'wallet') {
+                    loadWalletData();
+                    loadWalletTransactions();
+                }
+                if (sectionId === 'daily-special') {
+                    loadDailySpecial();
+                }
+            };
+        })();
         
         // Load wallet data on page load for dashboard alert
         document.addEventListener('DOMContentLoaded', function() {
             loadWalletData();
             loadTipStatistics();
+            
+            // Load tip visibility setting with a slight delay to ensure DOM is ready
+            setTimeout(function() {
+                loadTipVisibilitySetting();
+            }, 100);
         });
         
         // Load tip statistics for dashboard
@@ -5269,8 +7079,8 @@
         }
 
         // ========== DAILY SPECIAL MENU FUNCTIONS ==========
-        let currentSpecialData = null;
-        let isEditingSpecial = false;
+        let allSpecials = [];
+        let editingSpecialId = null;
 
         function loadDailySpecial() {
             // Set today's date
@@ -5278,92 +7088,135 @@
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             document.getElementById('special-today-date').textContent = today.toLocaleDateString('en-US', options);
 
-            // Fetch current special
+            // Fetch all today's specials
             fetch('/hotel-manager/api/daily-special')
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success && data.special) {
-                        currentSpecialData = data.special;
-                        displayCurrentSpecial(data.special);
+                    if (data.success && data.specials && data.specials.length > 0) {
+                        allSpecials = data.specials;
+                        displaySpecialsGrid(data.specials);
                     } else {
-                        currentSpecialData = null;
-                        hideCurrentSpecial();
+                        allSpecials = [];
+                        displayNoSpecials();
                     }
                 })
                 .catch(error => {
-                    console.error('Error loading daily special:', error);
-                    currentSpecialData = null;
-                    hideCurrentSpecial();
+                    console.error('Error loading daily specials:', error);
+                    allSpecials = [];
+                    displayNoSpecials();
                 });
         }
 
-        function displayCurrentSpecial(special) {
-            document.getElementById('display-special-name').textContent = special.menu_name;
-            document.getElementById('display-special-description').textContent = special.description || 'No description added';
-            document.getElementById('display-special-price').textContent = '₹' + parseFloat(special.price).toFixed(2);
+        function displaySpecialsGrid(specials) {
+            const grid = document.getElementById('specials-grid');
+            const noMsg = document.getElementById('no-specials-message');
             
-            // Handle image display
-            const imageContainer = document.getElementById('display-special-image-container');
-            const imageElement = document.getElementById('display-special-image');
-            if (special.image_path) {
-                imageElement.src = special.image_path;
-                imageContainer.style.display = 'block';
+            noMsg.style.display = 'none';
+            grid.innerHTML = '';
+            
+            specials.forEach((special, index) => {
+                const card = document.createElement('div');
+                card.className = 'special-item-card';
+                card.innerHTML = `
+                    <div class="special-item-image">
+                        ${special.image_path 
+                            ? `<img src="${special.image_path}" alt="${special.dish_name || special.menu_name}">` 
+                            : `<div class="no-image-placeholder"><i class="fas fa-utensils"></i></div>`}
+                    </div>
+                    <div class="special-item-content">
+                        <h4>${special.dish_name || special.menu_name}</h4>
+                        <p>${special.description || 'No description'}</p>
+                        <div class="special-item-price">₹${parseFloat(special.price).toFixed(2)}</div>
+                    </div>
+                    <div class="special-item-actions">
+                        <button type="button" class="btn-icon btn-edit" onclick="editSpecial(${special.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn-icon btn-delete" onclick="deleteSpecial(${special.id})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            
+            // Update carousel indicator preview
+            const indicator = document.getElementById('preview-carousel-indicator');
+            const countSpan = document.getElementById('preview-special-count');
+            if (specials.length > 1) {
+                indicator.style.display = 'block';
+                countSpan.textContent = `1 of ${specials.length}`;
             } else {
-                imageContainer.style.display = 'none';
+                indicator.style.display = 'none';
             }
             
-            document.getElementById('current-special-container').style.display = 'block';
-            document.getElementById('special-form-container').style.display = 'none';
-            
-            // Update live preview with current special data
-            updatePamphletPreviewFromData(special);
+            // Show first special in preview
+            if (specials.length > 0) {
+                updatePamphletPreviewFromData(specials[0]);
+            }
         }
 
-        function hideCurrentSpecial() {
-            document.getElementById('current-special-container').style.display = 'none';
-            document.getElementById('special-form-container').style.display = 'block';
-            document.getElementById('special-form-title').innerHTML = '<i class="fas fa-plus-circle"></i> Add Today\'s Special';
-            document.getElementById('special-submit-btn').innerHTML = '<i class="fas fa-save"></i> Save Today\'s Special';
-            document.getElementById('special-cancel-btn').style.display = 'none';
-            clearSpecialForm();
-            isEditingSpecial = false;
+        function displayNoSpecials() {
+            const grid = document.getElementById('specials-grid');
+            const noMsg = document.getElementById('no-specials-message');
             
-            // Reset preview to placeholder state
+            grid.innerHTML = '';
+            noMsg.style.display = 'flex';
+            document.getElementById('preview-carousel-indicator').style.display = 'none';
             resetPamphletPreview();
         }
 
-        function editDailySpecial() {
-            if (!currentSpecialData) return;
+        function showAddSpecialForm() {
+            editingSpecialId = null;
+            document.getElementById('editing-special-id').value = '';
+            clearSpecialForm();
+            document.getElementById('special-form-container').style.display = 'block';
+            document.getElementById('special-form-title').innerHTML = '<i class="fas fa-plus-circle"></i> Add New Special';
+            document.getElementById('special-submit-btn').innerHTML = '<i class="fas fa-save"></i> Save Special';
+            document.getElementById('add-special-btn').style.display = 'none';
+            resetPamphletPreview();
+        }
+
+        function editSpecial(specialId) {
+            const special = allSpecials.find(s => s.id === specialId);
+            if (!special) return;
             
-            isEditingSpecial = true;
-            document.getElementById('special-name').value = currentSpecialData.menu_name;
-            document.getElementById('special-description').value = currentSpecialData.description || '';
-            document.getElementById('special-price').value = currentSpecialData.price;
+            editingSpecialId = specialId;
+            document.getElementById('editing-special-id').value = specialId;
+            document.getElementById('special-name').value = special.dish_name || special.menu_name || '';
+            document.getElementById('special-description').value = special.description || '';
+            document.getElementById('special-price').value = special.price;
             
             // Show existing image preview if available
-            if (currentSpecialData.image_path) {
-                document.getElementById('preview-img').src = currentSpecialData.image_path;
+            if (special.image_path) {
+                document.getElementById('preview-img').src = special.image_path;
                 document.getElementById('special-image-preview').style.display = 'block';
                 document.getElementById('upload-placeholder').style.display = 'none';
+            } else {
+                document.getElementById('special-image-preview').style.display = 'none';
+                document.getElementById('upload-placeholder').style.display = 'block';
             }
             
-            document.getElementById('current-special-container').style.display = 'none';
             document.getElementById('special-form-container').style.display = 'block';
-            document.getElementById('special-form-title').innerHTML = '<i class="fas fa-edit"></i> Edit Today\'s Special';
+            document.getElementById('special-form-title').innerHTML = '<i class="fas fa-edit"></i> Edit Special';
             document.getElementById('special-submit-btn').innerHTML = '<i class="fas fa-save"></i> Update Special';
-            document.getElementById('special-cancel-btn').style.display = 'inline-flex';
+            document.getElementById('add-special-btn').style.display = 'none';
             
-            // Update preview to reflect edit mode
             updatePamphletPreview();
         }
 
-        function cancelEditSpecial() {
-            if (currentSpecialData) {
-                displayCurrentSpecial(currentSpecialData);
+        function cancelSpecialForm() {
+            editingSpecialId = null;
+            document.getElementById('editing-special-id').value = '';
+            document.getElementById('special-form-container').style.display = 'none';
+            document.getElementById('add-special-btn').style.display = 'inline-flex';
+            clearSpecialForm();
+            
+            if (allSpecials.length > 0) {
+                updatePamphletPreviewFromData(allSpecials[0]);
             } else {
-                hideCurrentSpecial();
+                resetPamphletPreview();
             }
-            isEditingSpecial = false;
         }
 
         function clearSpecialForm() {
@@ -5425,13 +7278,14 @@
         function handleDailySpecialSubmit(event) {
             event.preventDefault();
             
+            const specialId = document.getElementById('editing-special-id').value;
             const menuName = document.getElementById('special-name').value.trim();
             const description = document.getElementById('special-description').value.trim();
             const price = parseFloat(document.getElementById('special-price').value);
             const imageInput = document.getElementById('special-image');
             
             if (!menuName) {
-                showSpecialMessage('Please enter a menu name', 'error');
+                showSpecialMessage('Please enter a dish name', 'error');
                 return;
             }
             if (!price || price <= 0) {
@@ -5445,7 +7299,11 @@
             
             // Use FormData to handle file upload
             const formData = new FormData();
+            if (specialId) {
+                formData.append('id', specialId);
+            }
             formData.append('menu_name', menuName);
+            formData.append('dish_name', menuName);
             formData.append('description', description);
             formData.append('price', price);
             
@@ -5460,10 +7318,11 @@
             .then(response => response.json())
             .then(data => {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-save"></i> ' + (isEditingSpecial ? 'Update Special' : 'Save Today\'s Special');
+                submitBtn.innerHTML = '<i class="fas fa-save"></i> ' + (editingSpecialId ? 'Update Special' : 'Save Special');
                 
                 if (data.success) {
                     showSpecialMessage(data.message, 'success');
+                    cancelSpecialForm();
                     loadDailySpecial();
                 } else {
                     showSpecialMessage(data.message || 'Error saving special', 'error');
@@ -5472,33 +7331,32 @@
             .catch(error => {
                 console.error('Error saving special:', error);
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-save"></i> ' + (isEditingSpecial ? 'Update Special' : 'Save Today\'s Special');
-                showSpecialMessage('Error saving special menu', 'error');
+                submitBtn.innerHTML = '<i class="fas fa-save"></i> ' + (editingSpecialId ? 'Update Special' : 'Save Special');
+                showSpecialMessage('Error saving special dish', 'error');
             });
         }
 
-        function deleteDailySpecial() {
-            if (!confirm('Are you sure you want to remove today\'s special menu?')) {
+        function deleteSpecial(specialId) {
+            if (!confirm('Are you sure you want to remove this special dish?')) {
                 return;
             }
             
-            fetch('/hotel-manager/api/daily-special', {
+            fetch(`/hotel-manager/api/daily-special/${specialId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    currentSpecialData = null;
-                    hideCurrentSpecial();
                     showSpecialMessage(data.message, 'success');
+                    loadDailySpecial();
                 } else {
                     showSpecialMessage(data.message || 'Error removing special', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error deleting special:', error);
-                showSpecialMessage('Error removing special menu', 'error');
+                showSpecialMessage('Error removing special dish', 'error');
             });
         }
 
@@ -5521,14 +7379,9 @@
             const previewNoImageSection = document.getElementById('preview-no-image-section');
             const previewHeroImg = document.getElementById('preview-hero-img');
             
-            if (previewImg && previewImg.src && previewImg.style.display !== 'none' && document.getElementById('special-image-preview').style.display !== 'none') {
+            if (previewImg && previewImg.src && document.getElementById('special-image-preview').style.display !== 'none') {
                 previewHeroImg.src = previewImg.src;
                 previewImageDataUrl = previewImg.src;
-                previewHeroSection.style.display = 'block';
-                previewNoImageSection.style.display = 'none';
-            } else if (currentSpecialData && currentSpecialData.image_path && !isEditingSpecial) {
-                previewHeroImg.src = currentSpecialData.image_path;
-                previewImageDataUrl = currentSpecialData.image_path;
                 previewHeroSection.style.display = 'block';
                 previewNoImageSection.style.display = 'none';
             } else {
@@ -5539,7 +7392,7 @@
         }
 
         function updatePamphletPreviewFromData(special) {
-            document.getElementById('preview-title').textContent = special.menu_name || 'Menu Name';
+            document.getElementById('preview-title').textContent = special.dish_name || special.menu_name || 'Menu Name';
             document.getElementById('preview-description').textContent = special.description || 'No description';
             document.getElementById('preview-price').textContent = '₹' + parseFloat(special.price).toFixed(2);
             
@@ -5924,18 +7777,9 @@
             
             const sectionName = document.getElementById('kitchen-name').value.trim();
             
-            // Get selected categories
-            const checkboxes = document.querySelectorAll('input[name="kitchen-category"]:checked');
-            const categoryIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-            
             // Validation
             if (!sectionName) {
                 showKitchenFormMessage('Kitchen name is required!', 'error');
-                return;
-            }
-            
-            if (categoryIds.length === 0) {
-                showKitchenFormMessage('Please select at least one category!', 'error');
                 return;
             }
             
@@ -5944,8 +7788,7 @@
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    section_name: sectionName,
-                    category_ids: categoryIds
+                    section_name: sectionName
                 })
             })
             .then(response => response.json())
@@ -5955,8 +7798,6 @@
                     const kitchenId = data.kitchen_unique_id || 'N/A';
                     showKitchenFormMessage(`Kitchen created successfully! Kitchen ID: ${kitchenId}`, 'success');
                     document.getElementById('add-kitchen-form').reset();
-                    // Uncheck all checkboxes
-                    document.querySelectorAll('input[name="kitchen-category"]').forEach(cb => cb.checked = false);
                     loadKitchens();
                 } else {
                     showKitchenFormMessage('Error: ' + data.message, 'error');
@@ -5978,11 +7819,6 @@
                         
                         // Populate form
                         document.getElementById('kitchen-name').value = kitchen.section_name;
-                        
-                        // Check assigned categories
-                        document.querySelectorAll('input[name="kitchen-category"]').forEach(cb => {
-                            cb.checked = kitchen.category_ids.includes(parseInt(cb.value));
-                        });
                         
                         // Change form to edit mode
                         editingKitchenId = kitchenId;
@@ -6022,24 +7858,14 @@
             
             const sectionName = document.getElementById('kitchen-name').value.trim();
             
-            // Get selected categories
-            const checkboxes = document.querySelectorAll('input[name="kitchen-category"]:checked');
-            const categoryIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-            
             // Validation
             if (!sectionName) {
                 showKitchenFormMessage('Kitchen name is required!', 'error');
                 return;
             }
             
-            if (categoryIds.length === 0) {
-                showKitchenFormMessage('Please select at least one category!', 'error');
-                return;
-            }
-            
             const payload = {
-                section_name: sectionName,
-                category_ids: categoryIds
+                section_name: sectionName
             };
             
             // Submit
@@ -6141,6 +7967,94 @@
                 }, 3000);
             }
         }
+
+        // Kitchen Login QR Modal Functions
+        let kitchenQRCode = null;
+
+        function openKitchenQRModal() {
+            const modal = document.getElementById('kitchen-qr-modal');
+            const qrContainer = document.getElementById('kitchen-qr-code');
+            const urlInput = document.getElementById('kitchen-login-url');
+            
+            // Generate kitchen login URL
+            const kitchenLoginUrl = window.location.origin + '/kitchen/login';
+            urlInput.value = kitchenLoginUrl;
+            
+            // Clear previous QR code
+            qrContainer.innerHTML = '';
+            
+            // Generate new QR code
+            kitchenQRCode = new QRCode(qrContainer, {
+                text: kitchenLoginUrl,
+                width: 220,
+                height: 220,
+                colorDark: '#1e293b',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            // Show modal
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeKitchenQRModal() {
+            const modal = document.getElementById('kitchen-qr-modal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function copyKitchenLoginUrl(event) {
+            const urlInput = document.getElementById('kitchen-login-url');
+            urlInput.select();
+            urlInput.setSelectionRange(0, 99999); // For mobile devices
+            
+            navigator.clipboard.writeText(urlInput.value).then(() => {
+                // Show success feedback
+                const btn = event.target.closest('button');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.style.background = '';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy URL. Please copy manually.');
+            });
+        }
+
+        function downloadKitchenQR() {
+            const qrContainer = document.getElementById('kitchen-qr-code');
+            const canvas = qrContainer.querySelector('canvas');
+            
+            if (!canvas) {
+                alert('QR code not generated yet');
+                return;
+            }
+            
+            // Convert canvas to blob and download
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'kitchen-login-qr-code.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            });
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('kitchen-qr-modal');
+            if (e.target === modal) {
+                closeKitchenQRModal();
+            }
+        });
 
     </script>
 </body>

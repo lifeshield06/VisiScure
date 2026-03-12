@@ -28,7 +28,7 @@ body {
     --bg-light: #f8fafc;
     --white: #ffffff;
     --sidebar-width: 280px;
-    --header-height: 70px;
+    --header-height: 75px;
     --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1);
     --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -56,32 +56,48 @@ body {
 }
 
 .sidebar-brand {
-    padding: 1rem;
+    padding: 1.5rem 1rem;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 12px;
     margin: 0;
-    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    background: #ffffff;
     border-radius: 0;
-    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     height: var(--header-height);
     position: fixed;
     top: 0;
     left: 0;
     width: var(--sidebar-width);
     z-index: 1001;
-    border-bottom: 2px solid #c7ddff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.sidebar-brand .brand-logo {
+    height: 80px;
+    width: auto;
+    max-width: 85%;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+.sidebar-brand .brand-text {
+    display: none;
 }
 
 .sidebar-brand i {
-    font-size: 1.75rem;
-    color: white;
+    font-size: 2rem;
+    color: #06b6d4;
+    flex-shrink: 0;
 }
 
 .sidebar-brand span {
-    font-size: 1.9rem;
+    font-size: 1.3rem;
     font-weight: bold;
-    color: white;
+    color: #1e293b;
+    line-height: 1.2;
+    white-space: nowrap;
 }
 
 .sidebar-menu {
@@ -138,15 +154,87 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    height: var(--header-height);
+    height: 75px;
     background: #eaf4ff;
     border-bottom: 2px solid #c7ddff;
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    display: grid;
+    grid-template-columns: 200px 1fr auto;
+    align-items: center;
+    padding: 0 2rem;
+    z-index: 999;
+    gap: 2rem;
+}
+
+/* Left Section - Project Logo */
+.header-left {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0 2rem 0 var(--sidebar-width);
-    z-index: 999;
+    justify-content: flex-start;
+}
+
+.project-logo {
+    height: 38px;
+    width: auto;
+    object-fit: contain;
+}
+
+/* Center Section - Hotel Logo + Name */
+.header-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.hotel-logo {
+    height: 50px;
+    width: auto;
+    max-width: 120px;
+    object-fit: contain;
+    background: white;
+    padding: 8px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.hotel-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #059669;
+    line-height: 1;
+}
+
+.dashboard-title {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #64748b;
+    line-height: 1;
+}
+
+/* Right Section - Wallet + Profile */
+.header-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.header-info {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
 }
 
 .header-left h1 {
@@ -156,10 +244,33 @@ body {
     margin-left: 18px;
 }
 
-.header-right {
+/* Header Wallet Balance */
+.header-wallet-balance {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+}
+
+.header-wallet-balance i {
+    color: white;
+    font-size: 1rem;
+}
+
+.header-wallet-balance .wallet-amount {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: white;
+    letter-spacing: 0.5px;
+}
+
+.header-divider {
+    width: 1px;
+    height: 32px;
+    background: #e2e8f0;
 }
 
 .header-icon {
@@ -292,8 +403,20 @@ body {
     background: #f4f7fb;
 }
 
-/* Content Wrapper for all pages */
-.main-content > * {
+/* Page Header Styling */
+.page-header {
+    margin-bottom: 2rem;
+}
+
+.page-header h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin: 0;
+}
+
+/* Card Styling for specific components */
+.card {
     background: #ffffff;
     border-radius: 14px;
     padding: 2rem;
@@ -375,9 +498,99 @@ body {
 }
 
 /* ===========================================
-   STATS CARDS
+   ADMIN STATS CARDS - GRADIENT DESIGN
    =========================================== */
 
+.admin-cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.admin-card {
+    position: relative;
+    border-radius: 16px;
+    padding: 1.5rem;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.admin-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.admin-card-hotels {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.admin-card-managers {
+    background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);
+}
+
+.admin-card-verifications {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.admin-card-today {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.admin-card-pending {
+    background: linear-gradient(135deg, #ff9a44 0%, #fc6076 100%);
+}
+
+.admin-card .card-bg-icon {
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    opacity: 0.15;
+}
+
+.admin-card .card-bg-icon svg {
+    width: 140px;
+    height: 140px;
+}
+
+.admin-card .card-icon-wrapper {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.admin-card .card-icon-wrapper i {
+    font-size: 1.5rem;
+    color: #fff;
+}
+
+.admin-card .card-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.admin-card .card-label {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+/* Legacy stat-card support */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -998,7 +1211,30 @@ body {
 
     .header {
         left: 0;
-        padding: 0 2rem;
+        padding: 0 1rem;
+        grid-template-columns: 1fr auto;
+        gap: 1rem;
+    }
+
+    .header-left {
+        display: none;
+    }
+
+    .header-center {
+        justify-content: flex-start;
+    }
+
+    .hotel-logo {
+        height: 40px;
+        max-width: 80px;
+    }
+
+    .hotel-name {
+        font-size: 0.95rem;
+    }
+
+    .dashboard-title {
+        font-size: 0.75rem;
     }
 
     .main-content {
@@ -1010,18 +1246,8 @@ body {
         grid-template-columns: 1fr;
     }
 
-    .content-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .form-container {
-        padding: 1.5rem;
-    }
-
-    .data-table {
-        display: block;
-        overflow-x: auto;
+    .admin-cards-container {
+        grid-template-columns: 1fr;
     }
 
     .header-left h1 {
@@ -1030,6 +1256,14 @@ body {
 
     .profile-info {
         display: none;
+    }
+
+    .header-wallet-balance {
+        padding: 0.4rem 0.8rem;
+    }
+
+    .header-wallet-balance .wallet-amount {
+        font-size: 0.95rem;
     }
 }
 

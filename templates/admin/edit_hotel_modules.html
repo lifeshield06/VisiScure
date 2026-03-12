@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Hotel Modules - HotelEase Admin</title>
+    <title>Edit Hotel Modules - VisiScure Order Admin</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
@@ -12,8 +15,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-brand">
-            <i class="fas fa-hotel"></i>
-            <span>HotelEase</span>
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="VisiScure Order" class="brand-logo">
         </div>
         <nav class="sidebar-menu">
             <div class="menu-label">Main Menu</div>
@@ -22,7 +24,7 @@
                 <span>Dashboard</span>
             </a>
             
-            <div class="menu-label">Hotel Management</div>
+            <div class="menu-label">Restaurant Management</div>
             <a href="{{ url_for('admin.create_hotel') }}" class="menu-item">
                 <i class="fas fa-plus-circle"></i>
                 <span>Create Hotel</span>
@@ -102,16 +104,57 @@
 
         <div class="form-container">
             <div style="display: flex; align-items: center; gap: 1rem; padding: 1.5rem; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-radius: var(--radius); margin-bottom: 2rem; color: white;">
+                {% if hotel[3] and logo_file_exists(hotel[3]) %}
+                <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel[3]) }}" 
+                     alt="{{ hotel[0] }} Logo" 
+                     style="width: 50px; height: 50px; border-radius: 12px; object-fit: contain; background: white; padding: 4px;">
+                {% else %}
                 <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;">
                     <i class="fas fa-hotel" style="font-size: 1.5rem;"></i>
                 </div>
+                {% endif %}
                 <div>
                     <h3 style="font-size: 1.25rem; font-weight: 600;">{{ hotel[0] }}</h3>
-                    <p style="opacity: 0.9; font-size: 0.9rem;">Configure available modules</p>
+                    <p style="opacity: 0.9; font-size: 0.9rem;">Configure hotel settings and modules</p>
                 </div>
             </div>
 
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
+                <!-- Logo Upload Section -->
+                <h3 class="section-title"><i class="fas fa-image" style="margin-right: 0.5rem; color: var(--primary);"></i>Hotel Logo</h3>
+                <p class="section-subtitle">Upload or update the hotel logo (PNG, JPG, GIF, SVG)</p>
+
+                <div class="module-card" style="margin-bottom: 2rem;">
+                    <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                        {% if hotel[3] and logo_file_exists(hotel[3]) %}
+                        <div style="text-align: center;">
+                            <p style="font-size: 0.85rem; color: var(--gray); margin-bottom: 0.5rem;">Current Logo</p>
+                            <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel[3]) }}" 
+                                 alt="Current Logo" 
+                                 style="max-height: 80px; max-width: 200px; object-fit: contain; border: 2px solid #e5e7eb; border-radius: 8px; padding: 8px; background: white;">
+                        </div>
+                        {% else %}
+                        <div style="text-align: center;">
+                            <p style="font-size: 0.85rem; color: var(--gray); margin-bottom: 0.5rem;">No Logo Set</p>
+                            <div style="width: 80px; height: 80px; border: 2px dashed #e5e7eb; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: #f9fafb;">
+                                <i class="fas fa-image" style="font-size: 2rem; color: #cbd5e1;"></i>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="hotel_logo" style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--dark);">
+                                <i class="fas fa-upload" style="margin-right: 0.5rem; color: var(--primary);"></i>
+                                Upload New Logo
+                            </label>
+                            <input type="file" name="hotel_logo" id="hotel_logo" accept="image/*" 
+                                   style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer;">
+                            <p style="font-size: 0.75rem; color: var(--gray); margin-top: 0.5rem;">
+                                Max size: 2MB. Recommended: 200x200px or larger square image.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <h3 class="section-title"><i class="fas fa-toggle-on" style="margin-right: 0.5rem; color: var(--primary);"></i>Available Modules</h3>
                 <p class="section-subtitle">Enable or disable modules for this hotel</p>
 
@@ -137,7 +180,7 @@
 
                 <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                     <button type="submit" class="btn btn-primary btn-large">
-                        <i class="fas fa-save"></i> Update Modules
+                        <i class="fas fa-save"></i> Save Changes
                     </button>
                     <a href="{{ url_for('admin.all_hotels') }}" class="btn btn-secondary btn-large">
                         Cancel

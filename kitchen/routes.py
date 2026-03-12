@@ -58,13 +58,34 @@ def dashboard():
     """Kitchen dashboard - requires authentication"""
     kitchen_id = session.get('kitchen_id')
     kitchen_name = session.get('kitchen_name')
+    hotel_id = session.get('kitchen_hotel_id')
     
     if not kitchen_id:
         return redirect(url_for('kitchen.login_page'))
     
-    return render_template('kitchen_auth_dashboard.html',
+    # Fetch hotel info including logo
+    hotel_name = None
+    hotel_logo = None
+    
+    if hotel_id:
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor()
+            cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
+            result = cursor.fetchone()
+            if result:
+                hotel_name = result[0]
+                hotel_logo = result[1]
+            cursor.close()
+            connection.close()
+        except Exception as e:
+            print(f"[KITCHEN_DASHBOARD] Error fetching hotel info: {e}")
+    
+    return render_template('kitchen_auth_dashboard_v2.html',
                          kitchen_id=kitchen_id,
-                         kitchen_name=kitchen_name)
+                         kitchen_name=kitchen_name,
+                         hotel_name=hotel_name,
+                         hotel_logo=hotel_logo)
 
 @kitchen_bp.route('/api/orders', methods=['GET'])
 def get_kitchen_orders():
@@ -78,34 +99,7 @@ def get_kitchen_orders():
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
         
-        # Get assigned categories for this kitchen
-        cursor.execute("""
-            SELECT category_id
-            FROM kitchen_category_mapping
-            WHERE kitchen_section_id = %s
-        """, (kitchen_id,))
-        
-        assigned_categories = [row['category_id'] for row in cursor.fetchall()]
-        
-        if not assigned_categories:
-            cursor.close()
-            connection.close()
-            return jsonify({
-                "success": True,
-                "orders_by_category": {},
-                "stats": {"active": 0, "preparing": 0, "ready": 0}
-            })
-        
-        # Get category names
-        placeholders = ','.join(['%s'] * len(assigned_categories))
-        cursor.execute(f"""
-            SELECT id, name FROM menu_categories
-            WHERE id IN ({placeholders})
-        """, assigned_categories)
-        
-        categories = {cat['id']: cat['name'] for cat in cursor.fetchall()}
-        
-        # Get order items for this kitchen ONLY (not COMPLETED)
+        # Get order items directly assigned to this kitchen (using dish's kitchen_id)
         cursor.execute("""
             SELECT 
                 oi.id as item_id,
@@ -117,10 +111,12 @@ def get_kitchen_orders():
                 oi.created_at,
                 o.table_id,
                 o.guest_name,
-                t.table_number
+                t.table_number,
+                mc.name as category_name
             FROM order_items oi
             JOIN table_orders o ON oi.order_id = o.id
             JOIN tables t ON o.table_id = t.id
+            LEFT JOIN menu_categories mc ON oi.category_id = mc.id
             WHERE oi.kitchen_section_id = %s
               AND oi.item_status != 'COMPLETED'
             ORDER BY oi.created_at ASC
@@ -136,8 +132,7 @@ def get_kitchen_orders():
         stats = {'active': 0, 'preparing': 0, 'ready': 0}
         
         for item in items:
-            category_id = item['category_id']
-            category_name = categories.get(category_id, 'Uncategorized')
+            category_name = item.get('category_name') or 'Uncategorized'
             
             # Count stats
             if item['item_status'] == 'ACTIVE':
@@ -244,6 +239,37 @@ def update_item_status():
                     WHERE id = %s
                 """, (order_id,))
                 connection.commit()
+                
+                # Deduct wallet charge when order is COMPLETED
+                cursor.execute("""
+                    SELECT o.hotel_id, o.charge_deducted, t.hotel_id as table_hotel_id
+                    FROM table_orders o
+                    LEFT JOIN tables t ON o.table_id = t.id
+                    WHERE o.id = %s
+                """, (order_id,))
+                order_data = cursor.fetchone()
+                
+                if order_data:
+                    hotel_id = order_data[0] or order_data[2]  # order.hotel_id or table.hotel_id
+                    charge_deducted = order_data[1]
+                    
+                    if hotel_id and not charge_deducted:
+                        from wallet.models import HotelWallet
+                        
+                        # Check balance first
+                        balance_check = HotelWallet.check_balance_for_order(hotel_id)
+                        if balance_check.get('sufficient', True):
+                            deduct_result = HotelWallet.deduct_for_order(hotel_id, order_id)
+                            if deduct_result.get('success'):
+                                cursor.execute("""
+                                    UPDATE table_orders SET charge_deducted = TRUE WHERE id = %s
+                                """, (order_id,))
+                                connection.commit()
+                                print(f"[KITCHEN_COMPLETE] Wallet deducted for order {order_id}")
+                            else:
+                                print(f"[KITCHEN_COMPLETE] Wallet deduction failed: {deduct_result.get('message')}")
+                        else:
+                            print(f"[KITCHEN_COMPLETE] Insufficient balance for order {order_id}")
         
         cursor.close()
         connection.close()

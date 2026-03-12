@@ -77,8 +77,27 @@
                 </div>
                 
                 <div class="form-group">
+                    <label for="dish-kitchen">Assign Kitchen</label>
+                    <select id="dish-kitchen" name="kitchen_id" class="form-select">
+                        <option value="">-- Select Kitchen (Optional) --</option>
+                    </select>
+                    <small>Select which kitchen should prepare this dish</small>
+                </div>
+                
+                <div class="form-group">
                     <label for="dish-price">Price (₹) *</label>
                     <input type="number" id="dish-price" name="price" step="0.01" min="0.01" required>
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="dish-cgst">CGST %</label>
+                        <input type="number" id="dish-cgst" name="cgst" step="0.1" min="0" max="100" value="2.5">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="dish-sgst">SGST %</label>
+                        <input type="number" id="dish-sgst" name="sgst" step="0.1" min="0" max="100" value="2.5">
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -159,11 +178,13 @@
         let currentCategoryId = 1;
         let isEditMode = false;
         let categories = {1: 'Starters', 2: 'Main Course', 3: 'Desserts', 4: 'aa bereges'};
+        let kitchens = [];
         let currentImageIndex = 0;
         let currentImages = [];
 
         document.addEventListener('DOMContentLoaded', function() {
             loadCategories();
+            loadKitchens();
             loadDishes(1);
         });
 
@@ -176,6 +197,33 @@
             setTimeout(() => {
                 alert.style.display = 'none';
             }, 4000);
+        }
+
+        function loadKitchens() {
+            fetch('/api/kitchens')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        kitchens = data.kitchens;
+                        updateKitchenDropdown();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading kitchens:', error);
+                });
+        }
+
+        function updateKitchenDropdown() {
+            const select = document.getElementById('dish-kitchen');
+            // Keep the first option (placeholder)
+            select.innerHTML = '<option value="">-- Select Kitchen (Optional) --</option>';
+            
+            kitchens.forEach(kitchen => {
+                const option = document.createElement('option');
+                option.value = kitchen.id;
+                option.textContent = kitchen.name;
+                select.appendChild(option);
+            });
         }
 
         function loadCategories() {
@@ -312,6 +360,9 @@
             document.getElementById('dish-form').reset();
             document.getElementById('dish-id').value = '';
             document.getElementById('category-id').value = currentCategoryId;
+            document.getElementById('dish-kitchen').value = '';
+            document.getElementById('dish-cgst').value = '2.5';
+            document.getElementById('dish-sgst').value = '2.5';
             updateImageSelectionInfo([]);
             document.getElementById('dish-modal').style.display = 'flex';
         }
@@ -390,6 +441,9 @@
                         document.getElementById('dish-price').value = dish.price;
                         document.getElementById('dish-quantity').value = dish.quantity;
                         document.getElementById('dish-description').value = dish.description || '';
+                        document.getElementById('dish-kitchen').value = dish.kitchen_id || '';
+                        document.getElementById('dish-cgst').value = dish.cgst || 2.5;
+                        document.getElementById('dish-sgst').value = dish.sgst || 2.5;
                         document.getElementById('dish-images').removeAttribute('required');
                         updateImageSelectionInfo([]);
                         document.getElementById('dish-modal').style.display = 'flex';

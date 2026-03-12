@@ -962,3 +962,64 @@ body {
     font-size: 1rem;
     border-radius: 10px;
 }
+
+/* ================= HOTEL LOGO RESPONSIVE SIZING ================= */
+.hotel-logo {
+    object-fit: contain;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Size-specific classes for different page types */
+.hotel-logo.dashboard-size {
+    height: 50px;
+    width: auto;
+    max-width: 150px;
+}
+
+.hotel-logo.menu-size {
+    height: 70px;
+    width: auto;
+    max-width: 200px;
+}
+
+.hotel-logo.invoice-size {
+    height: 60px;
+    width: auto;
+    max-width: 180px;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .hotel-logo.dashboard-size {
+        height: 40px;
+        max-width: 120px;
+    }
+    
+    .hotel-logo.menu-size {
+        height: 50px;
+        max-width: 150px;
+    }
+    
+    .hotel-logo.invoice-size {
+        height: 45px;
+        max-width: 140px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hotel-logo.dashboard-size {
+        height: 35px;
+        max-width: 100px;
+    }
+    
+    .hotel-logo.menu-size {
+        height: 40px;
+        max-width: 120px;
+    }
+    
+    .hotel-logo.invoice-size {
+        height: 35px;
+        max-width: 110px;
+    }
+}

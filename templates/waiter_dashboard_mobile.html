@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Waiter Dashboard - HotelEase</title>
+    <title>Waiter Dashboard - VisiScure Order</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,7 +22,13 @@
         <!-- Compact Top Bar -->
         <header class="app-header">
             <div class="header-left">
+                {% if hotel_logo and logo_file_exists(hotel_logo) %}
+                <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel_logo) }}" 
+                     alt="{{ hotel_name }} Logo" 
+                     class="header-hotel-logo">
+                {% else %}
                 <div class="waiter-avatar">{{ waiter_name[:1]|upper if waiter_name else 'W' }}</div>
+                {% endif %}
                 <div class="waiter-info">
                     <span class="waiter-name">{{ waiter_name }}</span>
                     <span class="hotel-name">{{ hotel_name }}</span>
@@ -58,7 +69,7 @@
                     <span id="tablesCount">{{ tables|length }}</span>
                     <label>Tables</label>
                 </div>
-                <div class="stat-pill" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
+                <div id="tips-stat-pill" class="stat-pill tips-card-hidden" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
                     <i class="fas fa-hand-holding-heart"></i>
                     <span id="todayTipsCount">₹0</span>
                     <label>Today's Tips</label>
@@ -91,7 +102,23 @@
                 </div>
             </section>
 
+            <!-- Waiter Call Assistance Requests Section -->
+            <div class="assistance-banner" id="assistance-banner" style="display: none;">
+                <div class="banner-content">
+                    <i class="fas fa-bell"></i>
+                    <span id="banner-message">🔔 TABLE CALLING WAITER</span>
+                </div>
+            </div>
 
+            <section class="card-section" id="assistance-requests-section" style="display: none;">
+                <div class="section-header">
+                    <h2><i class="fas fa-hand-paper"></i> Table Assistance Requests</h2>
+                    <span class="badge badge-danger" id="assistance-count">0</span>
+                </div>
+                <div class="assistance-requests-container" id="assistance-requests">
+                    <!-- Assistance requests will be loaded via JavaScript -->
+                </div>
+            </section>
 
             <!-- Active Orders Section -->
             <section class="card-section" id="active-orders">
@@ -171,11 +198,6 @@
                             </div>
                         </div>
                     </div>
-                    <button class="action-btn full-width" onclick="showChangePassword()">
-                        <i class="fas fa-key"></i> Change Password
-                    </button>
-                </div>
-            </section>
 
         </main>
 
@@ -245,38 +267,6 @@
             </div>
             <div class="bill-footer" id="billFooter">
                 <!-- Dynamic buttons -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Change Password Modal -->
-    <div class="modal-overlay" id="passwordModal">
-        <div class="modal-sheet">
-            <div class="modal-handle"></div>
-            <div class="modal-header">
-                <h3><i class="fas fa-key"></i> Change Password</h3>
-                <button class="close-btn" onclick="closePasswordModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="passwordForm" onsubmit="changePassword(event)">
-                    <div class="form-group">
-                        <label>Current Password</label>
-                        <input type="password" id="currentPassword" required placeholder="Enter current password">
-                    </div>
-                    <div class="form-group">
-                        <label>New Password</label>
-                        <input type="password" id="newPassword" required placeholder="Enter new password">
-                    </div>
-                    <div class="form-group">
-                        <label>Confirm Password</label>
-                        <input type="password" id="confirmPassword" required placeholder="Confirm new password">
-                    </div>
-                    <button type="submit" class="action-btn primary full-width">
-                        <i class="fas fa-save"></i> Update Password
-                    </button>
-                </form>
             </div>
         </div>
     </div>
@@ -393,15 +383,48 @@
         async function loadTipStatistics() {
             try {
                 const waiterId = {{ waiter_id }};
+                const tipStatPill = document.getElementById('tips-stat-pill');
+                
+                console.log('[TIPS DEBUG] Loading tips for waiter:', waiterId);
+                
                 const response = await fetch(`/orders/api/tip-statistics/waiter/${waiterId}?period=today`);
                 const data = await response.json();
                 
-                if (data.success && data.statistics) {
-                    const totalTips = data.statistics.total_tips || 0;
-                    document.getElementById('todayTipsCount').textContent = `₹${Math.round(totalTips)}`;
+                console.log('[TIPS DEBUG] API Response:', data);
+                
+                if (data.success) {
+                    // Check if tips should be visible to waiters
+                    if (data.tips_visible === false) {
+                        // Hide the tip card
+                        console.log('[TIPS DEBUG] Hiding tips card - tips_visible is false');
+                        if (tipStatPill) {
+                            tipStatPill.classList.add('tips-card-hidden');
+                        }
+                    } else {
+                        // Show tips - tips_visible is true
+                        console.log('[TIPS DEBUG] Showing tips card - tips_visible is true');
+                        if (tipStatPill) {
+                            tipStatPill.classList.remove('tips-card-hidden');
+                        }
+                        if (data.statistics) {
+                            const totalTips = data.statistics.total_tips || 0;
+                            document.getElementById('todayTipsCount').textContent = `₹${Math.round(totalTips)}`;
+                        }
+                    }
+                } else {
+                    // API failed - keep hidden
+                    console.log('[TIPS DEBUG] API failed, keeping tips hidden');
+                    if (tipStatPill) {
+                        tipStatPill.classList.add('tips-card-hidden');
+                    }
                 }
             } catch (error) {
-                console.error('Error loading tip statistics:', error);
+                console.error('[TIPS DEBUG] Error loading tip statistics:', error);
+                // On error - keep hidden
+                const tipStatPill = document.getElementById('tips-stat-pill');
+                if (tipStatPill) {
+                    tipStatPill.classList.add('tips-card-hidden');
+                }
             }
         }
 
@@ -645,51 +668,6 @@
             document.getElementById('billModal').style.display = 'none';
         }
 
-        function showChangePassword() {
-            document.getElementById('passwordModal').classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closePasswordModal() {
-            document.getElementById('passwordModal').classList.remove('show');
-            document.body.style.overflow = '';
-            document.getElementById('passwordForm').reset();
-        }
-
-        // ============================================
-        // PASSWORD CHANGE
-        // ============================================
-        async function changePassword(e) {
-            e.preventDefault();
-            
-            const currentPassword = document.getElementById('currentPassword').value;
-            const newPassword = document.getElementById('newPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            
-            if (newPassword !== confirmPassword) {
-                showToast('Passwords do not match', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/waiter/change-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ old_password: currentPassword, new_password: newPassword })
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    showToast('Password changed successfully', 'success');
-                    closePasswordModal();
-                } else {
-                    showToast(data.message || 'Failed to change password', 'error');
-                }
-            } catch (error) {
-                showToast('Error changing password', 'error');
-            }
-        }
-
         // ============================================
         // REFRESH & AUTO-REFRESH
         // ============================================
@@ -763,6 +741,339 @@
                     document.body.style.overflow = '';
                 }
             });
+        });
+
+        // ============================================
+        // WAITER CALL SYSTEM - Polling and UI
+        // ============================================
+        
+        let pollingInterval = null;
+        let previousRequestIds = new Set();
+        let voiceMessage = 'Table {table} is calling waiter'; // Default message
+        let speechSynthesisAvailable = false;
+        let userInteracted = false;
+
+        // Enable audio on user interaction (to bypass autoplay restrictions)
+        function enableAudioOnInteraction() {
+            if (!userInteracted) {
+                userInteracted = true;
+                console.log('[WAITER_CALL] User interaction detected - audio enabled');
+                
+                // Test speech synthesis
+                if (speechSynthesisAvailable) {
+                    speechSynthesis.cancel();
+                    const testUtterance = new SpeechSynthesisUtterance('');
+                    speechSynthesis.speak(testUtterance);
+                }
+            }
+        }
+
+        // Add event listeners for user interaction
+        document.addEventListener('click', enableAudioOnInteraction, { once: true });
+        document.addEventListener('touchstart', enableAudioOnInteraction, { once: true });
+        document.addEventListener('keydown', enableAudioOnInteraction, { once: true });
+
+        // Check if speech synthesis is available
+        function checkSpeechSynthesis() {
+            if ('speechSynthesis' in window) {
+                speechSynthesisAvailable = true;
+                console.log('[WAITER_CALL] Speech synthesis is available');
+                
+                // Load voices (some browsers need this)
+                if (speechSynthesis.getVoices().length === 0) {
+                    speechSynthesis.addEventListener('voiceschanged', function() {
+                        console.log('[WAITER_CALL] Voices loaded:', speechSynthesis.getVoices().length);
+                    });
+                } else {
+                    console.log('[WAITER_CALL] Voices already loaded:', speechSynthesis.getVoices().length);
+                }
+            } else {
+                console.warn('[WAITER_CALL] Speech synthesis not available in this browser');
+            }
+        }
+
+        // Fetch voice message from server
+        async function fetchVoiceMessage() {
+            try {
+                const response = await fetch('/waiter/api/waiter-calls/voice-message');
+                const data = await response.json();
+                
+                if (data.success && data.voice_message) {
+                    voiceMessage = data.voice_message;
+                    console.log('[WAITER_CALL] Voice message loaded:', voiceMessage);
+                }
+            } catch (error) {
+                console.error('[WAITER_CALL] Error fetching voice message:', error);
+            }
+        }
+
+        // Speak voice message using Web Speech API
+        function speakVoiceMessage(tableNumber) {
+            if (!speechSynthesisAvailable) {
+                console.log('[WAITER_CALL] Speech synthesis not available - skipping voice alert');
+                return;
+            }
+            
+            // Replace {table} with actual table number
+            const message = voiceMessage.replace(/{table}/g, tableNumber);
+            
+            // Cancel any ongoing speech first
+            speechSynthesis.cancel();
+            
+            // Small delay to ensure cancel completes
+            setTimeout(() => {
+                try {
+                    // Create speech utterance
+                    const utterance = new SpeechSynthesisUtterance(message);
+                    utterance.lang = 'en-US';
+                    utterance.rate = 0.9; // Slightly slower for clarity
+                    utterance.pitch = 1.0;
+                    utterance.volume = 1.0;
+                    
+                    // Try to use a clear voice if available
+                    const voices = speechSynthesis.getVoices();
+                    if (voices.length > 0) {
+                        const preferredVoice = voices.find(voice => 
+                            voice.name.toLowerCase().includes('female') || 
+                            voice.name.toLowerCase().includes('samantha') ||
+                            voice.name.toLowerCase().includes('zira') ||
+                            voice.name.toLowerCase().includes('google')
+                        );
+                        
+                        if (preferredVoice) {
+                            utterance.voice = preferredVoice;
+                            console.log('[WAITER_CALL] Using voice:', preferredVoice.name);
+                        } else {
+                            utterance.voice = voices[0];
+                            console.log('[WAITER_CALL] Using default voice:', voices[0].name);
+                        }
+                    }
+                    
+                    utterance.onstart = function() {
+                        console.log('[WAITER_CALL] Speaking:', message);
+                    };
+                    
+                    utterance.onend = function() {
+                        console.log('[WAITER_CALL] Speech completed');
+                    };
+                    
+                    utterance.onerror = function(event) {
+                        console.error('[WAITER_CALL] Speech error:', event.error);
+                        // Retry once if it fails
+                        if (event.error === 'interrupted' || event.error === 'canceled') {
+                            console.log('[WAITER_CALL] Retrying speech...');
+                            setTimeout(() => speechSynthesis.speak(utterance), 500);
+                        }
+                    };
+                    
+                    // Speak the message
+                    speechSynthesis.speak(utterance);
+                } catch (error) {
+                    console.error('[WAITER_CALL] Error creating speech:', error);
+                }
+            }, 100);
+        }
+
+        // Start polling for waiter calls
+        function startWaiterCallPolling() {
+            checkSpeechSynthesis();
+            fetchVoiceMessage();
+            pollWaiterCalls(); // Poll immediately
+            pollingInterval = setInterval(pollWaiterCalls, 5000); // Then every 5 seconds
+        }
+
+        // Stop polling
+        function stopWaiterCallPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        // Poll for pending waiter calls
+        async function pollWaiterCalls() {
+            try {
+                console.log('[WAITER_CALL] Polling for pending requests...');
+                const response = await fetch('/waiter/api/waiter-calls/pending');
+                const data = await response.json();
+                
+                console.log('[WAITER_CALL] Poll response:', data);
+                
+                if (data.success && data.requests) {
+                    console.log(`[WAITER_CALL] Found ${data.requests.length} pending request(s)`);
+                    const currentRequestIds = new Set(data.requests.map(r => r.id));
+                    
+                    // Check for new requests
+                    const newRequests = data.requests.filter(r => !previousRequestIds.has(r.id));
+                    
+                    if (newRequests.length > 0) {
+                        console.log(`[WAITER_CALL] ${newRequests.length} NEW request(s) detected!`);
+                        newRequests.forEach(request => {
+                            console.log('[WAITER_CALL] New request:', request);
+                            showPopupNotification(request);
+                            speakVoiceMessage(request.table_number); // Voice announcement only
+                        });
+                    }
+                    
+                    previousRequestIds = currentRequestIds;
+                    updateAssistanceRequestsUI(data.requests);
+                    updateBanner(data.requests);
+                } else if (!data.success && data.message && data.message.includes('Unauthorized')) {
+                    console.error('[WAITER_CALL] Unauthorized - waiter not logged in');
+                    stopWaiterCallPolling();
+                }
+            } catch (error) {
+                console.error('[WAITER_CALL] Error polling waiter calls:', error);
+            }
+        }
+
+        // Show popup notification
+        function showPopupNotification(request) {
+            const popup = document.createElement('div');
+            popup.className = 'waiter-call-popup';
+            popup.innerHTML = `
+                <div class="popup-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="popup-content">
+                    <h4>🔔 Table ${request.table_number} is calling you</h4>
+                    ${request.guest_name ? `<p>Guest: ${request.guest_name}</p>` : ''}
+                </div>
+            `;
+            
+            document.body.appendChild(popup);
+            setTimeout(() => popup.classList.add('show'), 100);
+            setTimeout(() => {
+                popup.classList.remove('show');
+                setTimeout(() => popup.remove(), 300);
+            }, 5000);
+        }
+
+        // Update assistance requests UI
+        function updateAssistanceRequestsUI(requests) {
+            const section = document.getElementById('assistance-requests-section');
+            const container = document.getElementById('assistance-requests');
+            const countBadge = document.getElementById('assistance-count');
+            
+            if (requests.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            countBadge.textContent = requests.length;
+            
+            container.innerHTML = requests.map(request => {
+                const elapsed = getElapsedTime(request.created_at);
+                return `
+                    <div class="assistance-request-item">
+                        <div class="request-info">
+                            <div class="request-table">
+                                <i class="fas fa-chair"></i>
+                                <strong>Table ${request.table_number}</strong>
+                            </div>
+                            ${request.guest_name ? `<div class="request-guest">${request.guest_name}</div>` : ''}
+                            <div class="request-time">
+                                <i class="fas fa-clock"></i>
+                                ${elapsed}
+                            </div>
+                        </div>
+                        <div class="request-actions">
+                            <button class="btn btn-primary btn-sm" onclick="acknowledgeRequest(${request.id})">
+                                <i class="fas fa-check"></i> Acknowledge
+                            </button>
+                            <button class="btn btn-success btn-sm" onclick="completeRequest(${request.id})">
+                                <i class="fas fa-check-double"></i> Complete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update banner
+        function updateBanner(requests) {
+            const banner = document.getElementById('assistance-banner');
+            const message = document.getElementById('banner-message');
+            
+            if (requests.length === 0) {
+                banner.style.display = 'none';
+                return;
+            }
+            
+            const oldestRequest = requests[0];
+            message.textContent = `🔔 TABLE ${oldestRequest.table_number} CALLING WAITER`;
+            banner.style.display = 'flex';
+        }
+
+        // Acknowledge request
+        async function acknowledgeRequest(requestId) {
+            try {
+                const response = await fetch('/waiter/api/waiter-calls/acknowledge', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ request_id: requestId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Request acknowledged!', 'success');
+                    pollWaiterCalls();
+                } else {
+                    showToast(data.message || 'Failed to acknowledge request', 'error');
+                }
+            } catch (error) {
+                console.error('Error acknowledging request:', error);
+                showToast('Error acknowledging request', 'error');
+            }
+        }
+
+        // Complete request
+        async function completeRequest(requestId) {
+            try {
+                const response = await fetch('/waiter/api/waiter-calls/complete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ request_id: requestId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Request completed!', 'success');
+                    pollWaiterCalls();
+                } else {
+                    showToast(data.message || 'Failed to complete request', 'error');
+                }
+            } catch (error) {
+                console.error('Error completing request:', error);
+                showToast('Error completing request', 'error');
+            }
+        }
+
+        // Get elapsed time
+        function getElapsedTime(createdAt) {
+            const now = new Date();
+            const created = new Date(createdAt);
+            const diffMs = now - created;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins === 1) return '1 minute ago';
+            if (diffMins < 60) return `${diffMins} minutes ago`;
+            
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours === 1) return '1 hour ago';
+            return `${diffHours} hours ago`;
+        }
+
+        // Start waiter call polling on page load
+        startWaiterCallPolling();
+
+        // Stop polling when page is unloaded
+        window.addEventListener('beforeunload', function() {
+            stopWaiterCallPolling();
         });
     </script>
 </body>

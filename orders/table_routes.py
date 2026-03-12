@@ -96,8 +96,37 @@ def table_menu(table_id):
     table_busy = False
     if open_bill and open_bill.get('guest_name') and open_bill.get('guest_name').strip():
         table_busy = True
+    
+    # Fetch hotel logo, name, and UPI payment info
+    hotel_id = table.get('hotel_id')
+    hotel_name = None
+    hotel_logo = None
+    upi_id = None
+    upi_qr_image = None
+    
+    if hotel_id:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT hotel_name, logo, upi_id, upi_qr_image FROM hotels WHERE id = %s", (hotel_id,))
+            result = cursor.fetchone()
+            if result:
+                hotel_name = result[0]
+                hotel_logo = result[1]
+                upi_id = result[2]
+                upi_qr_image = result[3]
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"Error fetching hotel data: {e}")
 
-    return render_template('table_menu.html', table=table, table_busy=table_busy)
+    return render_template('table_menu.html', 
+                         table=table, 
+                         table_busy=table_busy,
+                         hotel_name=hotel_name,
+                         hotel_logo=hotel_logo,
+                         upi_id=upi_id,
+                         upi_qr_image=upi_qr_image)
 
 @orders_bp.route('/api/check-guest-access', methods=['POST'])
 def check_guest_access():
@@ -268,6 +297,37 @@ def update_item_status():
                     WHERE id = %s
                 """, (order_id,))
                 connection.commit()
+                
+                # Deduct wallet charge when order is COMPLETED
+                cursor.execute("""
+                    SELECT o.hotel_id, o.charge_deducted, t.hotel_id as table_hotel_id
+                    FROM table_orders o
+                    LEFT JOIN tables t ON o.table_id = t.id
+                    WHERE o.id = %s
+                """, (order_id,))
+                order_data = cursor.fetchone()
+                
+                if order_data:
+                    hotel_id = order_data[0] or order_data[2]  # order.hotel_id or table.hotel_id
+                    charge_deducted = order_data[1]
+                    
+                    if hotel_id and not charge_deducted:
+                        from wallet.models import HotelWallet
+                        
+                        # Check balance first
+                        balance_check = HotelWallet.check_balance_for_order(hotel_id)
+                        if balance_check.get('sufficient', True):
+                            deduct_result = HotelWallet.deduct_for_order(hotel_id, order_id)
+                            if deduct_result.get('success'):
+                                cursor.execute("""
+                                    UPDATE table_orders SET charge_deducted = TRUE WHERE id = %s
+                                """, (order_id,))
+                                connection.commit()
+                                print(f"[ITEM_STATUS] Wallet deducted for order {order_id}: ₹{deduct_result.get('deducted', 0)}")
+                            else:
+                                print(f"[ITEM_STATUS] Wallet deduction failed: {deduct_result.get('message')}")
+                        else:
+                            print(f"[ITEM_STATUS] Insufficient balance for order {order_id}")
         
         cursor.close()
         connection.close()
@@ -560,9 +620,43 @@ def get_waiter_tip_statistics(waiter_id):
     """Get tip statistics for waiter (Waiter Dashboard)"""
     try:
         period = request.args.get('period', 'today')  # today, week, month, all
+        hotel_id = session.get('waiter_hotel_id')
+        
+        print(f"[TIP_STATS] waiter_id={waiter_id}, hotel_id={hotel_id}")
+        
+        # Check if tips should be shown to waiters from hotels table
+        if hotel_id:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute("""
+                SELECT COALESCE(show_waiter_tips, 1) as show_waiter_tips
+                FROM hotels
+                WHERE id = %s
+            """, (hotel_id,))
+            visibility_result = cursor.fetchone()
+            cursor.close()
+            connection.close()
+            
+            print(f"[TIP_STATS] visibility_result={visibility_result}")
+            
+            # Convert to boolean - handle both boolean and int (0/1) values
+            show_tips_raw = visibility_result['show_waiter_tips'] if visibility_result else 1
+            show_tips = bool(show_tips_raw) if show_tips_raw is not None else True
+            
+            print(f"[TIP_STATS] show_tips_raw={show_tips_raw}, show_tips={show_tips}")
+            
+            if not show_tips:
+                return jsonify({
+                    "success": True,
+                    "tips_visible": False,
+                    "statistics": {
+                        "total_tips": 0,
+                        "tip_count": 0
+                    }
+                })
         
         stats = Bill.get_tip_statistics_for_waiter(waiter_id, period)
-        return jsonify({"success": True, "statistics": stats})
+        return jsonify({"success": True, "tips_visible": True, "statistics": stats})
     except Exception as e:
         print(f"Error getting waiter tip statistics: {e}")
         return jsonify({"success": False, "message": "Server error"})
@@ -723,48 +817,9 @@ def mark_payment_done():
             connection.close()
             return jsonify({"success": False, "message": "Hotel ID not found"})
         
-        # Check if charge already deducted (safety check)
-        if order.get('charge_deducted'):
-            print(f"[MARK_PAYMENT_DONE] Charge already deducted for order {order_id}, skipping wallet deduction")
-        else:
-            # Deduct per-order charge from wallet
-            print(f"[MARK_PAYMENT_DONE] Attempting wallet deduction for order {order_id}, hotel {hotel_id}")
-            
-            from wallet.models import HotelWallet
-            deduction_result = HotelWallet.deduct_for_order(hotel_id, order_id)
-            
-            if not deduction_result.get('success'):
-                cursor.close()
-                connection.close()
-                
-                # Check if it's insufficient balance
-                if deduction_result.get('insufficient_balance'):
-                    return jsonify({
-                        "success": False, 
-                        "message": deduction_result.get('message', 'Insufficient wallet balance'),
-                        "insufficient_balance": True
-                    })
-                
-                # Other wallet errors (allow to proceed if charge is 0 or wallet not configured)
-                if 'No charge configured' in deduction_result.get('message', ''):
-                    print(f"[MARK_PAYMENT_DONE] No charge configured, proceeding without deduction")
-                else:
-                    return jsonify({
-                        "success": False, 
-                        "message": f"Wallet error: {deduction_result.get('message')}"
-                    })
-            else:
-                deducted_amount = deduction_result.get('deducted', 0)
-                print(f"[MARK_PAYMENT_DONE] Wallet deduction successful: ₹{deducted_amount}")
-                
-                # Mark charge as deducted
-                cursor.execute("""
-                    UPDATE table_orders
-                    SET charge_deducted = TRUE
-                    WHERE id = %s
-                """, (order_id,))
-                
-                print(f"[MARK_PAYMENT_DONE] Marked charge_deducted = TRUE for order {order_id}")
+        # Wallet deduction happens when order is COMPLETED, not when payment is marked
+        # No wallet deduction here - settlement happens on order completion
+        print(f"[MARK_PAYMENT_DONE] Marking payment for order {order_id} (wallet settlement already done on completion)")
         
         # Update order payment status
         cursor.execute("""
@@ -1332,18 +1387,117 @@ def kitchen_dashboard(section_id):
         
         section = cursor.fetchone()
         
+        if not section:
+            cursor.close()
+            connection.close()
+            return "Kitchen section not found", 404
+        
+        # Fetch hotel logo and name
+        hotel_id = section.get('hotel_id')
+        hotel_name = None
+        hotel_logo = None
+        if hotel_id:
+            cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
+            result = cursor.fetchone()
+            if result:
+                hotel_name = result['hotel_name']
+                hotel_logo = result['logo']
+        
         cursor.close()
         connection.close()
         
-        if not section:
-            return "Kitchen section not found", 404
-        
-        return render_template('kitchen_dashboard.html',
+        return render_template('kitchen_dashboard_mobile.html',
                              section_id=section_id,
-                             section_name=section['section_name'])
+                             section_name=section['section_name'],
+                             hotel_name=hotel_name,
+                             hotel_logo=hotel_logo)
         
     except Exception as e:
         print(f"[KITCHEN_DASHBOARD ERROR] {e}")
         import traceback
         traceback.print_exc()
         return "Error loading kitchen dashboard", 500
+
+
+# ============== Payment Info Routes ==============
+
+@orders_bp.route('/api/get-payment-info', methods=['GET'])
+def get_payment_info():
+    """Get hotel UPI payment information for payment display"""
+    try:
+        hotel_id = request.args.get('hotel_id', type=int)
+        
+        if not hotel_id:
+            return jsonify({
+                "success": False,
+                "message": "Hotel ID is required"
+            })
+        
+        # Fetch hotel payment info
+        payment_info = get_hotel_payment_info(hotel_id)
+        
+        if not payment_info:
+            return jsonify({
+                "success": False,
+                "message": "Hotel not found"
+            })
+        
+        return jsonify(payment_info)
+        
+    except Exception as e:
+        print(f"[PAYMENT_INFO ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": "Server error"
+        })
+
+
+def get_hotel_payment_info(hotel_id: int) -> dict:
+    """
+    Fetch hotel UPI configuration for payment display.
+    
+    Args:
+        hotel_id: ID of the hotel
+        
+    Returns:
+        Dictionary with keys: upi_id, upi_qr_image, hotel_name, success
+        Returns empty dict with success=False on error
+    """
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT upi_id, upi_qr_image, hotel_name
+            FROM hotels
+            WHERE id = %s
+        """, (hotel_id,))
+        
+        result = cursor.fetchone()
+        
+        cursor.close()
+        connection.close()
+        
+        if not result:
+            return {
+                "success": False,
+                "message": "Hotel not found"
+            }
+        
+        return {
+            "success": True,
+            "upi_id": result.get('upi_id'),
+            "upi_qr_image": result.get('upi_qr_image'),
+            "hotel_name": result.get('hotel_name')
+        }
+        
+    except Exception as e:
+        print(f"[GET_HOTEL_PAYMENT_INFO ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": "Server error"
+        }

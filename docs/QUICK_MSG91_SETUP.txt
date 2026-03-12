@@ -1,0 +1,162 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║                   MSG91 API KEY SETUP - QUICK GUIDE                  ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────┐
+│ STEP 1: GET MSG91 ACCOUNT                                            │
+└──────────────────────────────────────────────────────────────────────┘
+
+1. Visit: https://control.msg91.com/signup/
+2. Sign up with email and mobile
+3. Verify email (check inbox)
+4. Verify mobile (enter OTP)
+5. Complete profile
+
+┌──────────────────────────────────────────────────────────────────────┐
+│ STEP 2: GET AUTH KEY                                                 │
+└──────────────────────────────────────────────────────────────────────┘
+
+1. Login: https://control.msg91.com/
+2. Click Profile Icon (top right)
+3. Go to: Settings → API Keys
+4. Copy your Auth Key
+   
+   Example: abc123xyz456def789ghi012jkl345mno678
+   
+   ⚠️  KEEP THIS KEY SECRET!
+
+┌──────────────────────────────────────────────────────────────────────┐
+│ STEP 3: ADD CREDITS                                                  │
+└──────────────────────────────────────────────────────────────────────┘
+
+1. Go to: Wallet
+2. Click "Recharge"
+3. Add ₹100 (minimum recommended)
+4. Complete payment
+5. Verify credits added
+
+┌──────────────────────────────────────────────────────────────────────┐
+│ STEP 4: UPDATE .ENV FILE                                             │
+└──────────────────────────────────────────────────────────────────────┘
+
+Open: Hotel/.env
+
+Update these lines:
+
+   SMS_ENABLED=true
+   MSG91_AUTH_KEY=paste_your_auth_key_here
+   MSG91_SENDER_ID=TIPTOP
+
+Save the file!
+
+┌──────────────────────────────────────────────────────────────────────┐
+│ STEP 5: RESTART SERVER                                               │
+└──────────────────────────────────────────────────────────────────────┘
+
+In terminal:
+   1. Press Ctrl+C (stop server)
+   2. Run: python app.py (start server)
+
+┌──────────────────────────────────────────────────────────────────────┐
+│ STEP 6: TEST                                                         │
+└──────────────────────────────────────────────────────────────────────┘
+
+Method 1: Test Script
+   python Hotel/scripts/sms/send_test_sms.py
+
+Method 2: Web Form
+   1. Open: http://127.0.0.1:5000/guest-verification/form/10?hotel_id=9
+   2. Enter mobile number
+   3. Click "Send OTP"
+   4. Check phone for SMS
+   5. Enter OTP
+   6. Click "Verify"
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                         EXAMPLE .ENV FILE                            ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+# Enable SMS
+SMS_ENABLED=true
+
+# Your MSG91 Auth Key (replace with actual key)
+MSG91_AUTH_KEY=abc123xyz456def789ghi012jkl345mno678
+
+# Optional Template ID (leave empty if not using DLT)
+MSG91_TEMPLATE_ID=
+
+# Sender ID (6 characters)
+MSG91_SENDER_ID=TIPTOP
+
+# OTP Settings
+OTP_EXPIRY_MINUTES=5
+OTP_MAX_ATTEMPTS=3
+OTP_RESEND_COOLDOWN_SECONDS=30
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                         TROUBLESHOOTING                              ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+❌ "SMS service not configured"
+   → Add MSG91_AUTH_KEY to .env
+   → Restart server
+
+❌ "Invalid authkey"
+   → Check Auth Key is correct
+   → Copy from MSG91 dashboard
+   → Update .env
+   → Restart server
+
+❌ "Insufficient balance"
+   → Add credits to MSG91 wallet
+   → Minimum ₹100 recommended
+
+❌ OTP not received
+   → Check MSG91 credits
+   → Check phone number is correct
+   → Check SMS_ENABLED=true
+   → Check MSG91 dashboard logs
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                         IMPORTANT LINKS                              ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+📝 Sign Up:        https://control.msg91.com/signup/
+🔑 Dashboard:      https://control.msg91.com/
+📚 Documentation:  https://docs.msg91.com/
+💰 Pricing:        https://msg91.com/pricing
+📞 Support:        support@msg91.com
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                         COST INFORMATION                             ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+OTP SMS:        ₹0.10 - ₹0.20 per SMS
+Min Recharge:   ₹100
+1000 OTPs:      ₹100 - ₹200
+10,000 OTPs:    ₹1,000 - ₹2,000
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                         VERIFICATION                                 ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+Run this to verify setup:
+   python Hotel/scripts/sms/verify_production_setup.py
+
+Expected output:
+   ✓ SMS_ENABLED: True
+   ✓ MSG91_AUTH_KEY: abc123...xyz789
+   ✓ MSG91_SENDER_ID: TIPTOP
+   ✅ PRODUCTION SMS IS CONFIGURED!
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                         NEED MORE HELP?                              ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+📖 Detailed Guide:  Hotel/MSG91_SETUP_STEPS.md
+📖 Integration:     Hotel/docs/MSG91_INTEGRATION_README.md
+📖 OTP Setup:       Hotel/OTP_SETUP_GUIDE.md
+
+═══════════════════════════════════════════════════════════════════════
+                    Last Updated: March 2026
+═══════════════════════════════════════════════════════════════════════

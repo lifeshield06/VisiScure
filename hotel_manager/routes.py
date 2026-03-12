@@ -167,16 +167,27 @@ def dashboard():
                 session['hotel_id'] = hotel_id
                 session['kyc_enabled'] = bool(result[1]) if result[1] is not None else False
                 session['food_enabled'] = bool(result[2]) if result[2] is not None else False
-                
-                # Also fetch hotel name
-                cursor.execute("SELECT hotel_name FROM hotels WHERE id = %s", (hotel_id,))
-                hotel_result = cursor.fetchone()
-                if hotel_result:
-                    session['hotel_name'] = hotel_result[0]
             cursor.close()
             conn.close()
         except Exception as e:
             print(f"Error fetching hotel_id: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    # Always fetch fresh hotel data (name and logo) on every dashboard load
+    if hotel_id:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
+            hotel_result = cursor.fetchone()
+            if hotel_result:
+                session['hotel_name'] = hotel_result[0]
+                session['hotel_logo'] = hotel_result[1]
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"Error fetching hotel data: {e}")
             import traceback
             traceback.print_exc()
     
@@ -189,6 +200,7 @@ def dashboard():
     kyc_enabled = session.get('kyc_enabled', False)
     food_enabled = session.get('food_enabled', False)
     hotel_name = session.get('hotel_name', '')
+    hotel_logo = session.get('hotel_logo', None)
     
     # Get waiters for this hotel
     waiters = Waiter.get_waiters_by_hotel(hotel_id)
@@ -221,6 +233,7 @@ def dashboard():
                          manager_name=manager_name,
                          hotel_id=hotel_id,
                          hotel_name=hotel_name,
+                         hotel_logo=hotel_logo,
                          kyc_enabled=kyc_enabled,
                          food_enabled=food_enabled,
                          waiters_count=waiters_count,
@@ -601,7 +614,7 @@ def all_managers():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>All Managers - HotelEase</title>
+        <title>All Managers - VisiScure Order</title>
         <style>
             * {{ margin: 0; padding: 0; box-sizing: border-box; }}
             body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; }}
@@ -639,7 +652,7 @@ def all_managers():
     </head>
     <body>
         <nav class="navbar">
-            <h1>🏨 HotelEase - Manager Credentials</h1>
+            <h1>🍽️ VisiScure Order - Manager Credentials</h1>
         </nav>
         
         <div class="container">
@@ -654,7 +667,7 @@ def all_managers():
         </div>
         
         <footer class="footer">
-            <p>&copy; 2026 HotelEase - All Rights Reserved</p>
+            <p>&copy; 2026 VisiScure Order - All Rights Reserved</p>
         </footer>
     </body>
     </html>
@@ -674,43 +687,50 @@ def allowed_special_file(filename):
 
 @hotel_manager_bp.route('/api/daily-special', methods=['GET'])
 def get_daily_special():
-    """Get today's special menu for the manager's hotel"""
+    """Get all today's specials for the manager's hotel"""
     hotel_id = session.get('hotel_id')
     if not hotel_id:
         return jsonify({'success': False, 'message': 'Not authorized'}), 403
     
-    special = DailySpecialMenu.get_today_special(hotel_id)
-    if special:
-        # Convert Decimal to float for JSON serialization
+    specials = DailySpecialMenu.get_today_specials(hotel_id)
+    # Convert Decimal to float for JSON serialization
+    for special in specials:
         special['price'] = float(special['price'])
         special['special_date'] = str(special['special_date'])
-        return jsonify({'success': True, 'special': special})
-    return jsonify({'success': True, 'special': None})
+        # Add menu_name for backward compatibility
+        special['menu_name'] = special.get('dish_name', '')
+    
+    # Also return single 'special' for backward compatibility
+    single_special = specials[0] if specials else None
+    
+    return jsonify({'success': True, 'specials': specials, 'special': single_special})
 
 
 @hotel_manager_bp.route('/api/daily-special', methods=['POST'])
 def save_daily_special():
-    """Add or update today's special menu"""
+    """Add a new today's special or update existing one"""
     hotel_id = session.get('hotel_id')
     if not hotel_id:
         return jsonify({'success': False, 'message': 'Not authorized'}), 403
     
     # Handle both JSON and form data
     if request.content_type and 'multipart/form-data' in request.content_type:
-        menu_name = request.form.get('menu_name', '').strip()
+        special_id = request.form.get('id')  # For updates
+        menu_name = request.form.get('menu_name', '').strip() or request.form.get('dish_name', '').strip()
         description = request.form.get('description', '').strip()
         price = request.form.get('price')
         image_file = request.files.get('image')
     else:
         data = request.json or {}
-        menu_name = data.get('menu_name', '').strip()
+        special_id = data.get('id')  # For updates
+        menu_name = data.get('menu_name', '').strip() or data.get('dish_name', '').strip()
         description = data.get('description', '').strip()
         price = data.get('price')
         image_file = None
     
     # Validation
     if not menu_name:
-        return jsonify({'success': False, 'message': 'Menu name is required!'})
+        return jsonify({'success': False, 'message': 'Dish name is required!'})
     if not price:
         return jsonify({'success': False, 'message': 'Price is required!'})
     
@@ -742,11 +762,17 @@ def save_daily_special():
         else:
             return jsonify({'success': False, 'message': 'Invalid image format. Allowed: jpg, png, webp, gif'})
     
-    result = DailySpecialMenu.add_or_update_special(hotel_id, menu_name, description, price_float, image_path)
+    # Update existing or add new
+    if special_id:
+        result = DailySpecialMenu.update_special(int(special_id), hotel_id, menu_name, description, price_float, image_path)
+        action = "updated"
+    else:
+        result = DailySpecialMenu.add_special(hotel_id, menu_name, description, price_float, image_path)
+        action = "added"
     
     # Log activity on success
     if result.get('success'):
-        log_manager_activity('menu', f"Today's Special updated: '{menu_name}' (₹{price_float})", hotel_id)
+        log_manager_activity('menu', f"Today's Special {action}: '{menu_name}' (₹{price_float})", hotel_id)
     
     return jsonify(result)
 
@@ -790,9 +816,25 @@ def upload_special_image():
     return jsonify(result)
 
 
+@hotel_manager_bp.route('/api/daily-special/<int:special_id>', methods=['DELETE'])
+def delete_specific_special(special_id):
+    """Delete a specific today's special by ID"""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+    
+    result = DailySpecialMenu.delete_special(special_id, hotel_id)
+    
+    # Log activity on success
+    if result.get('success'):
+        log_manager_activity('menu', f"Today's Special (ID: {special_id}) was removed", hotel_id)
+    
+    return jsonify(result)
+
+
 @hotel_manager_bp.route('/api/daily-special', methods=['DELETE'])
 def delete_daily_special():
-    """Delete/deactivate today's special menu"""
+    """Delete/deactivate all today's specials"""
     hotel_id = session.get('hotel_id')
     if not hotel_id:
         return jsonify({'success': False, 'message': 'Not authorized'}), 403
@@ -801,9 +843,30 @@ def delete_daily_special():
     
     # Log activity on success
     if result.get('success'):
-        log_manager_activity('menu', "Today's Special was removed", hotel_id)
+        log_manager_activity('menu', "All Today's Specials were removed", hotel_id)
     
     return jsonify(result)
+
+
+# ============== Revenue Reports Routes ==============
+
+@hotel_manager_bp.route('/api/revenue-reports', methods=['GET'])
+def get_revenue_reports():
+    """Get revenue reports data for the dashboard"""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+    
+    from hotel_manager.models import RevenueReports
+    
+    summary = RevenueReports.get_revenue_summary(hotel_id)
+    daily_data = RevenueReports.get_daily_revenue(hotel_id, days=30)
+    
+    return jsonify({
+        'success': True,
+        'summary': summary,
+        'daily_revenue': daily_data
+    })
 
 
 # ============== GST Settings Routes ==============
@@ -888,6 +951,185 @@ def update_gst_settings():
         return jsonify({'success': False, 'message': 'Server error'})
 
 
+# ============== Category Tax Settings (CGST/SGST) ==============
+
+@hotel_manager_bp.route('/api/category-tax-settings', methods=['GET'])
+def get_category_tax_settings():
+    """Get all categories with their CGST and SGST percentages"""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT id, name, 
+                   COALESCE(cgst_percentage, 2.50) as cgst_percentage, 
+                   COALESCE(sgst_percentage, 2.50) as sgst_percentage
+            FROM menu_categories 
+            WHERE hotel_id = %s 
+            ORDER BY name
+        """, (hotel_id,))
+        
+        categories = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        # Convert Decimal to float for JSON
+        for cat in categories:
+            cat['cgst_percentage'] = float(cat['cgst_percentage'])
+            cat['sgst_percentage'] = float(cat['sgst_percentage'])
+        
+        return jsonify({'success': True, 'categories': categories})
+    except Exception as e:
+        print(f"Error getting category tax settings: {e}")
+        return jsonify({'success': False, 'message': 'Server error'})
+
+
+@hotel_manager_bp.route('/api/category-tax-settings', methods=['POST'])
+def update_category_tax_settings():
+    """Update CGST and SGST percentages for a category"""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+    
+    data = request.json
+    category_id = data.get('category_id')
+    cgst_percentage = data.get('cgst_percentage')
+    sgst_percentage = data.get('sgst_percentage')
+    
+    # Validation
+    if not category_id:
+        return jsonify({'success': False, 'message': 'Category ID is required!'})
+    
+    try:
+        cgst_float = float(cgst_percentage) if cgst_percentage is not None else 2.50
+        sgst_float = float(sgst_percentage) if sgst_percentage is not None else 2.50
+        
+        if cgst_float < 0 or sgst_float < 0:
+            return jsonify({'success': False, 'message': 'Tax percentage cannot be negative!'})
+        
+        if cgst_float > 14 or sgst_float > 14:
+            return jsonify({'success': False, 'message': 'Individual tax percentage cannot exceed 14%!'})
+        
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'message': 'Invalid tax percentage format!'})
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verify category belongs to this hotel
+        cursor.execute("SELECT id, name FROM menu_categories WHERE id = %s AND hotel_id = %s", (category_id, hotel_id))
+        category = cursor.fetchone()
+        
+        if not category:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'message': 'Category not found!'})
+        
+        # Update tax percentages
+        cursor.execute(
+            "UPDATE menu_categories SET cgst_percentage = %s, sgst_percentage = %s WHERE id = %s AND hotel_id = %s",
+            (cgst_float, sgst_float, category_id, hotel_id)
+        )
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        # Log activity
+        log_manager_activity('settings', f"Tax rates updated for category '{category[1]}': CGST {cgst_float}%, SGST {sgst_float}%", hotel_id)
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Tax rates updated successfully',
+            'cgst_percentage': cgst_float,
+            'sgst_percentage': sgst_float
+        })
+    except Exception as e:
+        print(f"Error updating category tax settings: {e}")
+        return jsonify({'success': False, 'message': 'Server error'})
+
+
+# ============== Waiter Call Voice Message Settings ==============
+
+@hotel_manager_bp.route('/api/waiter-call-voice', methods=['GET'])
+def get_waiter_call_voice():
+    """Get waiter call voice message for the manager's hotel"""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("SELECT waiter_call_voice FROM hotels WHERE id = %s", (hotel_id,))
+        result = cursor.fetchone()
+        
+        cursor.close()
+        conn.close()
+        
+        if result:
+            voice_message = result.get('waiter_call_voice', 'Table {table} is calling waiter')
+            return jsonify({'success': True, 'voice_message': voice_message})
+        
+        return jsonify({'success': True, 'voice_message': 'Table {table} is calling waiter'})  # Default
+    except Exception as e:
+        print(f"Error getting waiter call voice: {e}")
+        return jsonify({'success': False, 'message': 'Server error'})
+
+
+@hotel_manager_bp.route('/api/waiter-call-voice', methods=['POST'])
+def update_waiter_call_voice():
+    """Update waiter call voice message for the manager's hotel"""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+    
+    data = request.json
+    voice_message = data.get('voice_message', '').strip()
+    
+    # Validation
+    if not voice_message:
+        return jsonify({'success': False, 'message': 'Voice message is required!'})
+    
+    if len(voice_message) > 500:
+        return jsonify({'success': False, 'message': 'Voice message is too long (max 500 characters)!'})
+    
+    if '{table}' not in voice_message:
+        return jsonify({'success': False, 'message': 'Voice message must contain {table} placeholder!'})
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Update voice message for this hotel
+        cursor.execute(
+            "UPDATE hotels SET waiter_call_voice = %s WHERE id = %s",
+            (voice_message, hotel_id)
+        )
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        # Log activity
+        log_manager_activity('settings', f"Waiter call voice message updated", hotel_id)
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Voice message updated successfully',
+            'voice_message': voice_message
+        })
+    except Exception as e:
+        print(f"Error updating waiter call voice: {e}")
+        return jsonify({'success': False, 'message': 'Server error'})
+
+
 # ============== Kitchen Management Routes ==============
 
 from kitchen.models import KitchenAuth
@@ -911,22 +1153,19 @@ def get_kitchens():
 
 @hotel_manager_bp.route('/api/create-kitchen', methods=['POST'])
 def create_kitchen():
-    """Create a new kitchen with auto-generated ID and category assignments"""
+    """Create a new kitchen with auto-generated ID"""
     hotel_id = session.get('hotel_id')
     if not hotel_id:
         return jsonify({'success': False, 'message': 'Not authorized'}), 403
     
     data = request.json
     section_name = data.get('section_name', '').strip()
-    category_ids = data.get('category_ids', [])
     
     # Validation
     if not section_name:
         return jsonify({'success': False, 'message': 'Kitchen name is required!'})
-    if not category_ids or len(category_ids) == 0:
-        return jsonify({'success': False, 'message': 'At least one category must be selected!'})
     
-    result = KitchenAuth.create_kitchen(hotel_id, section_name, category_ids)
+    result = KitchenAuth.create_kitchen(hotel_id, section_name)
     
     # Log activity on success
     if result.get('success'):
@@ -960,16 +1199,6 @@ def get_kitchen_details(kitchen_id):
             connection.close()
             return jsonify({'success': False, 'message': 'Kitchen not found'})
         
-        # Get assigned categories
-        cursor.execute("""
-            SELECT category_id
-            FROM kitchen_category_mapping
-            WHERE kitchen_section_id = %s
-        """, (kitchen_id,))
-        
-        category_ids = [row['category_id'] for row in cursor.fetchall()]
-        kitchen['category_ids'] = category_ids
-        
         # Convert datetime to string
         if kitchen.get('created_at'):
             kitchen['created_at'] = str(kitchen['created_at'])
@@ -986,20 +1215,17 @@ def get_kitchen_details(kitchen_id):
 
 @hotel_manager_bp.route('/api/kitchen/<int:kitchen_id>', methods=['PUT'])
 def update_kitchen(kitchen_id):
-    """Update kitchen details and category assignments"""
+    """Update kitchen details"""
     hotel_id = session.get('hotel_id')
     if not hotel_id:
         return jsonify({'success': False, 'message': 'Not authorized'}), 403
     
     data = request.json
     section_name = data.get('section_name', '').strip()
-    category_ids = data.get('category_ids', [])
     
     # Validation
     if not section_name:
         return jsonify({'success': False, 'message': 'Kitchen name is required!'})
-    if not category_ids or len(category_ids) == 0:
-        return jsonify({'success': False, 'message': 'At least one category must be selected!'})
     
     # Verify kitchen belongs to this hotel
     try:
@@ -1021,7 +1247,7 @@ def update_kitchen(kitchen_id):
         print(f"[UPDATE_KITCHEN ERROR] {e}")
         return jsonify({'success': False, 'message': 'Server error'})
     
-    result = KitchenAuth.update_kitchen(kitchen_id, section_name, category_ids)
+    result = KitchenAuth.update_kitchen(kitchen_id, section_name)
     
     # Log activity on success
     if result.get('success'):
@@ -1132,3 +1358,81 @@ def get_categories():
     except Exception as e:
         print(f"[GET_CATEGORIES ERROR] {e}")
         return jsonify({'success': False, 'message': 'Server error'})
+
+
+# =========================
+# TIP VISIBILITY SETTINGS
+# =========================
+
+@hotel_manager_bp.route('/api/tip-visibility', methods=['GET'])
+def get_tip_visibility():
+    """Get current tip visibility setting for the hotel"""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT COALESCE(show_waiter_tips, TRUE) as show_waiter_tips
+            FROM hotel_modules
+            WHERE hotel_id = %s
+        """, (hotel_id,))
+        
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        # Default to True if no setting found
+        show_tips = result['show_waiter_tips'] if result else True
+        
+        return jsonify({
+            'success': True,
+            'show_waiter_tips': bool(show_tips)
+        })
+        
+    except Exception as e:
+        print(f"[TIP_VISIBILITY ERROR] {e}")
+        return jsonify({'success': False, 'message': 'Server error', 'show_waiter_tips': True})
+
+
+@hotel_manager_bp.route('/api/toggle-tip-visibility', methods=['POST'])
+def toggle_tip_visibility():
+    """Toggle tip visibility setting for waiters"""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+    
+    try:
+        data = request.get_json()
+        show_tips = data.get('show_waiter_tips', True)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Update the setting
+        cursor.execute("""
+            UPDATE hotel_modules
+            SET show_waiter_tips = %s
+            WHERE hotel_id = %s
+        """, (show_tips, hotel_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        # Log the activity
+        status = "enabled" if show_tips else "disabled"
+        log_manager_activity('settings', f'Waiter tip visibility {status}', hotel_id)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Tip visibility {status} for waiters',
+            'show_waiter_tips': show_tips
+        })
+        
+    except Exception as e:
+        print(f"[TOGGLE_TIP_VISIBILITY ERROR] {e}")
+        return jsonify({'success': False, 'message': 'Failed to update setting'})

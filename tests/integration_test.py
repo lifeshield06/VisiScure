@@ -1,5 +1,5 @@
 """
-Interactive Test Script for Hotel Management System
+Interactive Test Script for Smart Restaurant Management System
 This script tests with existing data and provides detailed feedback
 """
 
@@ -41,7 +41,7 @@ def info(msg):
     print(f"  {Colors.BLUE}ℹ{Colors.RESET} {msg}")
 
 def run_tests():
-    header("Hotel Management System - Integration Tests")
+    header("Smart Restaurant Management System - Integration Tests")
     print(f"Target: {BASE_URL}")
     print(f"Timestamp: {TIMESTAMP}")
     
@@ -91,7 +91,7 @@ def run_tests():
         failed += 1
     
     # =============== CREATE TEST HOTEL ===============
-    section("Hotel Management")
+    section("Restaurant Management")
     
     hotel_data = {
         "name": f"Test Hotel {TIMESTAMP}",

@@ -19,7 +19,7 @@ body {
     background: #f8fafc;
     min-height: 100vh;
     overflow-x: hidden;
-    padding-bottom: 100px; /* Space for cart button */
+    padding-bottom: 90px; /* Space for cart button */
 }
 
 :root {
@@ -50,38 +50,101 @@ body {
 .header {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     color: white;
-    padding: 1rem;
+    padding: 1.75rem 1rem 1.5rem;
     text-align: center;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: var(--shadow-lg);
+    position: relative;
+    z-index: 99;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .header h1 {
-    font-size: clamp(1.25rem, 4vw, 1.75rem);
-    font-weight: 700;
-    margin-bottom: 0.5rem;
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    line-height: 1.2;
+    letter-spacing: 1px;
+    text-transform: uppercase;
 }
 
 .header h1 i {
     font-size: 1.25em;
 }
 
+.header-subtitle {
+    font-size: 0.875rem;
+    font-weight: 400;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+    letter-spacing: 0.5px;
+}
+
 .table-info {
     background: rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
-    padding: 0.5rem 1.25rem;
+    padding: 0.5rem 1rem;
     border-radius: 25px;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+}
+
+.hotel-logo-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.875rem;
+}
+
+.hotel-logo-header .hotel-logo {
+    max-height: 60px;
+    max-width: 180px;
+    object-fit: contain;
+    background: white;
+    padding: 0.75rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.hotel-logo-header h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin: 0;
+    line-height: 1.2;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.hotel-logo-header .header-subtitle {
+    font-size: 0.875rem;
+    font-weight: 400;
+    opacity: 0.9;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+/* Guest info badge */
+.guest-name-badge {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    padding: 0.375rem 0.875rem;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    margin-top: 0.5rem;
+}
+
+.guest-name-badge i {
+    font-size: 0.875rem;
 }
 
 /* ===========================================
@@ -91,13 +154,14 @@ body {
 .category-nav {
     background: var(--white);
     position: sticky;
-    top: 76px; /* Below header */
-    z-index: 90;
-    padding: 0.75rem 0;
-    box-shadow: var(--shadow-sm);
+    top: 0;
+    z-index: 100;
+    padding: 1rem 0;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    border-bottom: 2px solid #e2e8f0;
 }
 
 .category-nav::-webkit-scrollbar {
@@ -106,25 +170,26 @@ body {
 
 .category-tabs {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
     padding: 0 1rem;
     min-width: max-content;
 }
 
 .category-tab {
-    padding: 0.625rem 1rem;
+    padding: 0.75rem 1.25rem;
     border-radius: 25px;
     background: var(--bg-light);
     color: var(--gray);
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: 0.9375rem;
+    font-weight: 600;
     border: none;
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
-    gap: 0.375rem;
+    gap: 0.5rem;
+    min-height: 44px;
 }
 
 .category-tab:active {
@@ -134,13 +199,15 @@ body {
 .category-tab.active {
     background: var(--primary);
     color: white;
+    box-shadow: 0 3px 10px rgba(8, 145, 178, 0.35);
 }
 
 .category-tab .count {
     background: rgba(0,0,0,0.1);
     padding: 0.125rem 0.5rem;
     border-radius: 12px;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
 }
 
 .category-tab.active .count {
@@ -155,6 +222,19 @@ body {
     padding: 1rem;
     max-width: 900px;
     margin: 0 auto;
+}
+
+/* Ensure proper spacing on all screen sizes */
+@media (max-width: 767px) {
+    .menu-container {
+        padding: 1rem 0.875rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .menu-container {
+        padding: 0.875rem 0.75rem;
+    }
 }
 
 /* ===========================================
@@ -202,6 +282,23 @@ body {
     box-shadow: var(--shadow);
 }
 
+/* Mobile-specific category styling */
+@media (max-width: 767px) {
+    .category {
+        background: transparent;
+        box-shadow: none;
+        border-radius: 0;
+        margin-bottom: 1.25rem;
+    }
+    
+    .category-header {
+        background: white;
+        border-radius: 12px;
+        margin-bottom: 0.875rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+}
+
 .category-header {
     background: linear-gradient(135deg, var(--dark) 0%, #334155 100%);
     padding: 1rem 1.25rem;
@@ -236,6 +333,29 @@ body {
     padding: 0.5rem;
 }
 
+/* Mobile-specific improvements */
+@media (max-width: 767px) {
+    .menu-items {
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .menu-item {
+        background: white;
+        border-radius: 12px;
+        margin-bottom: 0.875rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .menu-item:last-child {
+        margin-bottom: 0;
+    }
+}
+
 /* ===========================================
    MENU ITEM CARDS
    =========================================== */
@@ -245,7 +365,8 @@ body {
     gap: 1rem;
     padding: 1rem;
     border-bottom: 1px solid var(--bg-light);
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
+    position: relative;
 }
 
 .menu-item:last-child {
@@ -326,12 +447,14 @@ body {
     justify-content: space-between;
     gap: 0.75rem;
     margin-top: auto;
+    flex-wrap: nowrap;
 }
 
 .item-price {
     font-size: 1.125rem;
     font-weight: 700;
     color: var(--primary);
+    white-space: nowrap;
 }
 
 /* Add Button */
@@ -476,6 +599,31 @@ body {
 }
 
 .place-order-btn i {
+    font-size: 1.125rem;
+}
+
+.view-cart-btn {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 52px;
+    box-shadow: 0 4px 15px rgba(8, 145, 178, 0.3);
+}
+
+.view-cart-btn:active {
+    transform: scale(0.98);
+}
+
+.view-cart-btn i {
     font-size: 1.125rem;
 }
 
@@ -624,15 +772,204 @@ body {
 /* Small phones (320px - 480px) */
 @media (max-width: 480px) {
     .header {
-        padding: 0.875rem;
+        padding: 1.5rem 1rem 1.25rem;
+    }
+    
+    .hotel-logo-header .hotel-logo {
+        max-height: 60px;
+        max-width: 170px;
+        padding: 0.625rem;
+    }
+    
+    .hotel-logo-header h1 {
+        font-size: 1.5rem;
+        font-weight: 800;
+        letter-spacing: 0.8px;
+    }
+    
+    .hotel-logo-header .header-subtitle {
+        font-size: 0.8125rem;
+    }
+    
+    .table-info {
+        font-size: 0.8125rem;
+        padding: 0.4rem 0.875rem;
+    }
+    
+    .guest-name-badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.75rem;
     }
     
     .category-nav {
-        top: 68px;
+        top: 0;
+        padding: 0.875rem 0;
+    }
+    
+    .category-tabs {
+        gap: 0.625rem;
+        padding: 0 1rem;
+    }
+    
+    .category-tab {
+        padding: 0.625rem 1.125rem;
+        font-size: 0.875rem;
+        min-height: 40px;
+    }
+    
+    .category-tab .count {
+        font-size: 0.75rem;
     }
     
     .menu-container {
-        padding: 0.75rem;
+        padding: 1rem 0.875rem;
+    }
+    
+    /* Clean card layout for mobile */
+    .menu-item {
+        padding: 1rem;
+        gap: 1rem;
+        background: white;
+        border-radius: 12px;
+        margin-bottom: 0.875rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+    }
+    
+    .menu-items {
+        padding: 0;
+    }
+    
+    .item-image {
+        width: 90px;
+        height: 90px;
+        border-radius: 10px;
+    }
+    
+    .item-name {
+        font-size: 0.95rem;
+        line-height: 1.3;
+        margin-bottom: 0.375rem;
+    }
+    
+    .item-description {
+        font-size: 0.8rem;
+        line-height: 1.4;
+        margin-bottom: 0.5rem;
+    }
+    
+    .item-price {
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+    
+    .add-btn {
+        padding: 0.625rem 1rem;
+        font-size: 0.85rem;
+        border-radius: 8px;
+        min-height: 40px;
+    }
+    
+    /* Floating buttons - better positioning */
+    .call-waiter-btn {
+        right: 1rem;
+        bottom: 90px;
+        padding: 0.875rem 1.125rem;
+        font-size: 0.85rem;
+        box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+    }
+    
+    .view-bill-btn {
+        right: 1rem;
+        bottom: 150px;
+        padding: 0.875rem 1.125rem;
+        font-size: 0.85rem;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+    }
+    
+    /* Cart bar - cleaner on mobile */
+    .cart-bar {
+        padding: 0.875rem 1rem;
+        box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .cart-bar-content {
+        gap: 0.875rem;
+    }
+    
+    .cart-items-count {
+        font-size: 0.8rem;
+    }
+    
+    .cart-total {
+        font-size: 1.125rem;
+    }
+    
+    .view-cart-btn {
+        padding: 0.875rem 1.5rem;
+        font-size: 0.9rem;
+    }
+    
+    /* Category sections - cleaner spacing */
+    .category {
+        margin-bottom: 1.25rem;
+        border-radius: 12px;
+    }
+    
+    .category-header {
+        padding: 0.875rem 1rem;
+    }
+    
+    .category-header h2 {
+        font-size: 1rem;
+    }
+}
+
+/* Extra small phones (320px - 360px) */
+@media (max-width: 360px) {
+    .header {
+        padding: 1.25rem 0.875rem 1rem;
+    }
+    
+    .hotel-logo-header .hotel-logo {
+        max-height: 55px;
+        max-width: 150px;
+        padding: 0.5rem;
+    }
+    
+    .hotel-logo-header h1 {
+        font-size: 1.375rem;
+        font-weight: 800;
+        letter-spacing: 0.8px;
+    }
+    
+    .hotel-logo-header .header-subtitle {
+        font-size: 0.75rem;
+    }
+    
+    .table-info {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.75rem;
+    }
+    
+    .guest-name-badge {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.65rem;
+    }
+    
+    .category-nav {
+        padding: 0.75rem 0;
+    }
+    
+    .category-tabs {
+        gap: 0.5rem;
+        padding: 0 0.875rem;
+    }
+    
+    .category-tab {
+        padding: 0.5rem 1rem;
+        font-size: 0.8125rem;
+        min-height: 38px;
     }
     
     .menu-item {
@@ -641,12 +978,16 @@ body {
     }
     
     .item-image {
-        width: 85px;
-        height: 85px;
+        width: 80px;
+        height: 80px;
     }
     
     .item-name {
-        font-size: 0.9375rem;
+        font-size: 0.9rem;
+    }
+    
+    .item-description {
+        font-size: 0.75rem;
     }
     
     .item-price {
@@ -655,26 +996,53 @@ body {
     
     .add-btn {
         padding: 0.5rem 0.875rem;
-        font-size: 0.8125rem;
+        font-size: 0.8rem;
     }
     
-    .cart-bar {
-        padding: 0.875rem;
+    .call-waiter-btn,
+    .view-bill-btn {
+        padding: 0.75rem 1rem;
+        font-size: 0.8rem;
     }
     
-    .place-order-btn {
-        padding: 0.875rem 1.5rem;
+    .call-waiter-btn span,
+    .view-bill-btn span {
+        display: none;
+    }
+    
+    .call-waiter-btn,
+    .view-bill-btn {
+        width: 48px;
+        height: 48px;
+        padding: 0;
+        justify-content: center;
+        border-radius: 50%;
+    }
+    
+    .call-waiter-btn i,
+    .view-bill-btn i {
+        font-size: 1.25rem;
+        margin: 0;
     }
 }
 
 /* Tablets (768px+) */
 @media (min-width: 768px) {
     .header {
-        padding: 1.5rem;
+        padding: 2rem 1.5rem 1.75rem;
     }
     
     .header h1 {
         font-size: 2rem;
+    }
+    
+    .hotel-logo-header .hotel-logo {
+        max-height: 70px;
+        max-width: 220px;
+    }
+    
+    .hotel-logo-header h1 {
+        font-size: 1.75rem;
     }
     
     .table-info {
@@ -682,8 +1050,13 @@ body {
         padding: 0.625rem 1.5rem;
     }
     
+    .guest-name-badge {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+    
     .category-nav {
-        top: 92px;
+        top: 0;
         padding: 1rem 0;
     }
     
@@ -789,7 +1162,7 @@ body {
 .view-bill-btn {
     position: fixed;
     right: 1rem;
-    bottom: 100px;
+    bottom: 90px;
     background: linear-gradient(135deg, var(--secondary) 0%, #4f46e5 100%);
     color: white;
     border: none;
@@ -813,6 +1186,111 @@ body {
 
 .view-bill-btn i {
     font-size: 1.1rem;
+}
+
+/* ===========================================
+   CALL WAITER FLOATING BUTTON
+   =========================================== */
+
+.call-waiter-btn {
+    position: fixed;
+    right: 1rem;
+    bottom: 160px;
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
+    z-index: 86;
+    transition: all 0.3s ease;
+}
+
+.call-waiter-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+}
+
+.call-waiter-btn i {
+    font-size: 1.1rem;
+}
+
+.call-waiter-btn.disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.call-waiter-btn.success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
+/* Notification Toast */
+.notification-toast {
+    position: fixed;
+    top: 80px;
+    right: 1rem;
+    background: white;
+    color: #1f2937;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 1000;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+    max-width: 320px;
+}
+
+.notification-toast.show {
+    transform: translateX(0);
+}
+
+.notification-toast.success {
+    border-left: 4px solid #10b981;
+}
+
+.notification-toast.success i {
+    color: #10b981;
+}
+
+.notification-toast.error {
+    border-left: 4px solid #ef4444;
+}
+
+.notification-toast.error i {
+    color: #ef4444;
+}
+
+.notification-toast.info {
+    border-left: 4px solid #3b82f6;
+}
+
+.notification-toast.info i {
+    color: #3b82f6;
+}
+
+.notification-toast.warning {
+    border-left: 4px solid #f59e0b;
+}
+
+.notification-toast.warning i {
+    color: #f59e0b;
+}
+
+.notification-toast i {
+    font-size: 1.2rem;
 }
 
 /* ===========================================
@@ -941,21 +1419,23 @@ body {
 
 .bill-items-header {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
+    grid-template-columns: 2fr 0.6fr 0.9fr 1.4fr 1.4fr 1.1fr;
     padding: 0.75rem 0;
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     font-weight: 600;
     text-transform: uppercase;
     color: var(--gray);
     border-bottom: 1px solid #e2e8f0;
+    gap: 0.2rem;
 }
 
 .bill-item-row {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    padding: 0.75rem 0;
+    grid-template-columns: 2fr 0.6fr 0.9fr 1.4fr 1.4fr 1.1fr;
+    padding: 0.5rem 0;
     border-bottom: 1px solid #f1f5f9;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    gap: 0.2rem;
 }
 
 .bill-item-row .item-name {
@@ -972,6 +1452,19 @@ body {
 .bill-item-row .item-total {
     text-align: right;
     color: var(--dark);
+}
+
+.bill-item-row .item-cgst,
+.bill-item-row .item-sgst {
+    text-align: right;
+    color: #059669;
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
+.bill-items-header .header-tax {
+    font-size: 0.65rem;
+    color: #6b7280;
 }
 
 .bill-totals {
@@ -1465,6 +1958,16 @@ body {
     backdrop-filter: blur(20px);
 }
 
+/* Wrapper for pamphlet and menu button */
+.daily-special-wrapper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-height: 95vh;
+}
+
 /* Premium Pamphlet Card */
 .daily-special-pamphlet {
     position: relative;
@@ -1484,6 +1987,11 @@ body {
 
 .daily-special-modal.show .daily-special-pamphlet {
     transform: scale(1) translateY(0);
+}
+
+.daily-special-modal.show .special-main-menu-btn {
+    transform: translateY(0);
+    opacity: 1;
 }
 
 /* Poster Layout */
@@ -1794,6 +2302,80 @@ body {
     font-size: 0.95rem;
 }
 
+/* Go to Main Menu Button - Inside Card (legacy) */
+.pamphlet-menu-btn {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    margin-top: 0.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.25s ease;
+    letter-spacing: 0.02em;
+}
+
+.pamphlet-menu-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+.pamphlet-menu-btn:active {
+    transform: translateY(0);
+}
+
+.pamphlet-menu-btn i {
+    font-size: 0.9rem;
+}
+
+/* Go to Main Menu Button - Outside Card */
+.special-main-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    width: 100%;
+    max-width: 360px;
+    margin-top: 1rem;
+    padding: 0.9rem 1.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition-delay: 0.15s;
+}
+
+.special-main-menu-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-3px) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.special-main-menu-btn:active {
+    transform: translateY(0) !important;
+}
+
+.special-main-menu-btn i {
+    font-size: 1rem;
+}
+
 /* Note text */
 .pamphlet-note {
     margin-top: 0.75rem;
@@ -1834,6 +2416,103 @@ body {
 
 .pamphlet-bottom i {
     color: #fbbf24;
+}
+
+/* ===========================================
+   CAROUSEL NAVIGATION FOR MULTIPLE SPECIALS
+   =========================================== */
+
+.carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.carousel-nav:hover {
+    transform: translateY(-50%) scale(1.1);
+    background: #fff;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.carousel-nav:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.carousel-nav i {
+    font-size: 1.1rem;
+    color: #1e293b;
+}
+
+.carousel-prev {
+    left: -20px;
+}
+
+.carousel-next {
+    right: -20px;
+}
+
+@media (max-width: 480px) {
+    .carousel-prev {
+        left: 5px;
+    }
+    .carousel-next {
+        right: 5px;
+    }
+    .carousel-nav {
+        width: 36px;
+        height: 36px;
+    }
+    .carousel-nav i {
+        font-size: 0.9rem;
+    }
+}
+
+/* Carousel Indicators (Dots) */
+.carousel-indicators {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    position: absolute;
+    bottom: 50px;
+    left: 0;
+    right: 0;
+    z-index: 30;
+}
+
+.carousel-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+}
+
+.carousel-dot:hover {
+    background: rgba(255, 255, 255, 0.7);
+    transform: scale(1.2);
+}
+
+.carousel-dot.active {
+    background: #fbbf24;
+    border-color: #fbbf24;
+    transform: scale(1.2);
+    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.5);
 }
 
 /* ===========================================
@@ -2566,10 +3245,21 @@ body {
         padding: 0.5rem;
     }
     
+    .daily-special-wrapper {
+        max-height: 95vh;
+        padding: 0 0.5rem;
+    }
+    
     .daily-special-pamphlet {
         max-width: 100%;
         border-radius: 18px;
-        max-height: 90vh;
+        max-height: 80vh;
+    }
+    
+    .special-main-menu-btn {
+        max-width: 100%;
+        padding: 0.8rem 1.25rem;
+        font-size: 0.9rem;
     }
     
     .pamphlet-poster {

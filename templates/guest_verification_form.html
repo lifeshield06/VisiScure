@@ -2,552 +2,1088 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0891b2">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Guest Verification | {{ hotel_name or 'HotelEase' }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Verification - {{ hotel_name or 'Hotel' }}</title>
     
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
     
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='guest_verification.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated background elements */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            top: -250px;
+            right: -250px;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+            bottom: -200px;
+            left: -200px;
+            animation: float 15s infinite ease-in-out reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+
+        .container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+            max-width: 550px;
+            width: 100%;
+            padding: 0;
+            position: relative;
+            z-index: 1;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            border-radius: 24px 24px 0 0;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 3s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .header-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            backdrop-filter: blur(10px);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .header-icon i {
+            font-size: 36px;
+            color: white;
+        }
+
+        .hotel-logo-container {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hotel-logo {
+            max-height: 60px;
+            max-width: 200px;
+            object-fit: contain;
+            background: white;
+            padding: 0.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.95;
+            font-weight: 400;
+            position: relative;
+            z-index: 1;
+        }
+
+        .form-content {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            color: #1a202c;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group label i {
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+            line-height: 1.6;
+        }
+
+        .input-icon {
+            position: relative;
+        }
+
+        .input-icon i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 16px;
+        }
+
+        .input-icon input {
+            padding-left: 45px;
+        }
+
+        .phone-input-group {
+            display: flex;
+            align-items: stretch;
+            position: relative;
+        }
+
+        .country-code {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            font-size: 15px;
+            border-radius: 12px 0 0 12px;
+            border: 2px solid #667eea;
+            border-right: none;
+            white-space: nowrap;
+        }
+
+        .phone-input-group input {
+            flex: 1;
+            border-radius: 0 12px 12px 0 !important;
+            border-left: none !important;
+        }
+
+        .phone-input-group input:focus {
+            border-left: none !important;
+        }
+
+        #phone.verified {
+            background: #f0fdf4 !important;
+        }
+
+        .otp-section {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%);
+            padding: 28px;
+            border-radius: 16px;
+            margin-bottom: 28px;
+            border: 2px solid #e0e7ff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .otp-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .otp-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .otp-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .otp-title {
+            flex: 1;
+        }
+
+        .otp-title h3 {
+            font-size: 16px;
+            color: #1a202c;
+            margin-bottom: 4px;
+        }
+
+        .otp-title p {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .otp-input-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .otp-input-group input {
+            flex: 1;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 4px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: 'Inter', sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn i {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #64748b;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .alert i {
+            font-size: 20px;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 2px solid #fecaca;
+        }
+
+        .alert-error i {
+            color: #dc2626;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 2px solid #a7f3d0;
+        }
+
+        .alert-success i {
+            color: #10b981;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 2px solid #bfdbfe;
+        }
+
+        .alert-info i {
+            color: #3b82f6;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            background: #f8fafc;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .file-upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .file-upload-area.dragover {
+            border-color: #667eea;
+            background: #e0e7ff;
+            transform: scale(1.02);
+        }
+
+        .file-upload-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            color: white;
+            font-size: 28px;
+        }
+
+        .file-upload-area input[type=file] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            cursor: pointer;
+        }
+
+        .file-upload-text h4 {
+            color: #1a202c;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .file-upload-text p {
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .file-name {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #10b981;
+            border: 2px solid #d1fae5;
+        }
+
+        .file-name i {
+            font-size: 18px;
+        }
+
+        .verified-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-left: 10px;
+            animation: bounceIn 0.5s ease-out;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .timer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff7ed;
+            color: #c2410c;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 12px;
+            border: 2px solid #fed7aa;
+        }
+
+        .timer-badge i {
+            animation: tick 1s infinite;
+        }
+
+        @keyframes tick {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        #countdown {
+            font-weight: 700;
+            color: #ea580c;
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            position: relative;
+        }
+
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e2e8f0;
+            z-index: 0;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .step.active .step-circle {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .step.completed .step-circle {
+            background: #10b981;
+            color: white;
+        }
+
+        .step-label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .step.active .step-label {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                border-radius: 16px;
+            }
+
+            .header {
+                padding: 32px 24px;
+            }
+
+            .form-content {
+                padding: 24px;
+            }
+
+            .header h1 {
+                font-size: 26px;
+            }
+
+            .otp-input-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-    <div class="form-container">
-        <!-- Header -->
-        <div class="form-header">
-            <div class="logo-container">
-                <i class="fas fa-user-check"></i>
+    <div class="container">
+        <div class="header">
+            {% if hotel_logo and logo_file_exists(hotel_logo) %}
+            <div class="hotel-logo-container">
+                <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel_logo) }}" 
+                     alt="{{ hotel_name }} Logo" 
+                     class="hotel-logo">
             </div>
+            {% else %}
+            <div class="header-icon">
+                <i class="fas fa-shield-check"></i>
+            </div>
+            {% endif %}
             <h1>Guest Verification</h1>
-            <p class="subtitle">Complete your identity verification</p>
-            {% if hotel_name %}
-            <div class="hotel-badge">
-                <i class="fas fa-hotel"></i>
-                {{ hotel_name }}
-            </div>
-            {% endif %}
+            <p>{{ hotel_name or 'Welcome to our hotel' }}</p>
         </div>
-        
-        <!-- Progress Steps (visual indicator) -->
-        <div class="progress-steps">
-            <div class="step active"></div>
-            <div class="step"></div>
-            <div class="step"></div>
-        </div>
-        
-        <!-- Form Body -->
-        <div class="form-body">
+
+        <div class="form-content">
             {% if error %}
-            <div class="error-message error-shake">
+            <div class="alert alert-error">
                 <i class="fas fa-exclamation-circle"></i>
-                <div>{{ error }}</div>
+                <span>{{ error }}</span>
             </div>
             {% endif %}
-            
-            <form action="{{ url_for('guest_verification.submit_verification', manager_id=manager_id) }}" method="POST" enctype="multipart/form-data" id="verificationForm">
-                <!-- Hidden field for hotel_id -->
-                <input type="hidden" name="hotel_id" value="{{ hotel_id }}">
-                
-                <!-- Full Name -->
+
+            <form method="POST" action="{{ url_for('guest_verification.submit_verification', manager_id=manager_id) }}" enctype="multipart/form-data" id="verificationForm">
+                <input type="hidden" name="hotel_id" value="{{ hotel_id or '' }}">
+
+                <!-- Guest Name -->
                 <div class="form-group">
                     <label for="guest_name">
                         <i class="fas fa-user"></i>
-                        Full Name <span class="required">*</span>
+                        Full Name *
                     </label>
-                    <input 
-                        type="text" 
-                        id="guest_name"
-                        name="guest_name" 
-                        required 
-                        placeholder="Enter your full name as per ID"
-                        autocomplete="name"
-                        autofocus
-                    >
-                </div>
-                
-                <!-- Phone Number -->
-                <div class="form-group">
-                    <label for="phone">
-                        <i class="fas fa-phone"></i>
-                        Phone Number <span class="required">*</span>
-                    </label>
-                    <input 
-                        type="tel" 
-                        id="phone"
-                        name="phone" 
-                        required 
-                        placeholder="Enter 10-digit mobile number"
-                        maxlength="10"
-                        pattern="[0-9]{10}" 
-                        inputmode="numeric"
-                        title="Enter a valid 10-digit phone number"
-                        autocomplete="tel"
-                    >
-                    <div class="input-hint">
-                        <i class="fas fa-info-circle"></i>
-                        10 digit mobile number without country code
+                    <div class="input-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="guest_name" name="guest_name" required placeholder="Enter your full name">
                     </div>
                 </div>
-                
+
+                <!-- Phone Number with OTP -->
+                <div class="otp-section">
+                    <div class="otp-header">
+                        <div class="otp-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <div class="otp-title">
+                            <h3>Mobile Verification</h3>
+                            <p>We'll send you an OTP for verification</p>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label for="phone">
+                            <i class="fas fa-phone"></i>
+                            Mobile Number * 
+                            <span id="verifiedBadge" style="display: none;" class="verified-badge">
+                                <i class="fas fa-check-circle"></i>
+                                Verified
+                            </span>
+                        </label>
+                        <div class="phone-input-group">
+                            <span class="country-code">+91</span>
+                            <input type="tel" id="phone" name="phone" required placeholder="10-digit mobile number" maxlength="10" pattern="[0-9]{10}">
+                        </div>
+                    </div>
+
+                    <div id="otpControls">
+                        <button type="button" class="btn btn-primary btn-full" id="sendOtpBtn" onclick="sendOTP()">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Send OTP</span>
+                        </button>
+                        <div id="otpTimer" style="display: none;" class="timer-badge">
+                            <i class="fas fa-clock"></i>
+                            Resend OTP in <span id="countdown">30</span>s
+                        </div>
+                    </div>
+
+                    <div id="otpVerification" style="display: none; margin-top: 20px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="otp_code">
+                                <i class="fas fa-key"></i>
+                                Enter OTP
+                            </label>
+                            <div class="otp-input-group">
+                                <input type="text" id="otp_code" placeholder="6-digit OTP" maxlength="6" pattern="[0-9]{6}">
+                                <button type="button" class="btn btn-success" onclick="verifyOTP()">
+                                    <i class="fas fa-check"></i>
+                                    <span>Verify</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <span>You will receive an OTP on your mobile number for verification</span>
+                </div>
+
                 <!-- Address -->
                 <div class="form-group">
                     <label for="address">
                         <i class="fas fa-map-marker-alt"></i>
-                        Complete Address <span class="required">*</span>
+                        Address
                     </label>
-                    <textarea 
-                        id="address"
-                        name="address" 
-                        required 
-                        placeholder="Enter your full address including city, state, and postal code"
-                        rows="3"
-                        autocomplete="street-address"
-                    ></textarea>
+                    <textarea id="address" name="address" placeholder="Enter your address (optional)"></textarea>
                 </div>
-                
-                <!-- KYC Verification Section -->
-                <div class="kyc-section">
-                    <!-- Step 1: ID Type Selection -->
-                    <div id="id-type-selection-step" class="kyc-step">
-                        <div class="section-header">
-                            <i class="fas fa-id-card-alt"></i>
-                            <h3>Select ID for Verification</h3>
-                            <p>Choose one ID type</p>
-                        </div>
-                        
-                        <!-- ID Type Selection (Radio Buttons styled as Checkboxes) -->
-                        <div class="id-type-selection">
-                            <label class="id-type-option">
-                                <input type="radio" name="kyc_type" value="PAN Card" id="pan_radio" required>
-                                <div class="option-card">
-                                    <div class="checkbox-indicator"></div>
-                                    <i class="fas fa-credit-card"></i>
-                                    <span>PAN Card</span>
-                                </div>
-                            </label>
-                            
-                            <label class="id-type-option">
-                                <input type="radio" name="kyc_type" value="Driving License" id="license_radio" required>
-                                <div class="option-card">
-                                    <div class="checkbox-indicator"></div>
-                                    <i class="fas fa-id-card"></i>
-                                    <span>Driving License</span>
-                                </div>
-                            </label>
-                            
-                            <label class="id-type-option">
-                                <input type="radio" name="kyc_type" value="Voter ID" id="voter_radio" required>
-                                <div class="option-card">
-                                    <div class="checkbox-indicator"></div>
-                                    <i class="fas fa-address-card"></i>
-                                    <span>Voter ID</span>
-                                </div>
-                            </label>
-                        </div>
-                        
-                        <button type="button" class="next-step-btn" id="nextToIdFields" disabled>
-                            <span>Next</span>
-                            <i class="fas fa-arrow-right"></i>
-                        </button>
-                    </div>
-                    
-                    <!-- Step 2: ID Details Input -->
-                    <div id="id-details-step" class="kyc-step" style="display: none;">
-                        <div class="section-header">
-                            <button type="button" class="back-btn" id="backToIdSelection">
-                                <i class="fas fa-arrow-left"></i>
-                            </button>
-                            <div>
-                                <h3 id="selected-id-title">PAN Card Details</h3>
-                                <p>Provide your ID information</p>
-                            </div>
-                        </div>
-                        
-                        <!-- Dynamic ID Fields Container -->
-                        <div id="id-fields-container">
-                            <!-- PAN Card Fields -->
-                            <div id="pan-fields" class="id-fields" style="display: none;">
-                                <div class="form-group">
-                                    <label for="pan_number">
-                                        <i class="fas fa-hashtag"></i>
-                                        PAN Card Number
-                                    </label>
-                                    <input 
-                                        type="text" 
-                                        id="pan_number"
-                                        name="kyc_number"
-                                        placeholder="Enter PAN Card Number (e.g., ABCDE1234F)"
-                                        maxlength="10"
-                                        style="text-transform: uppercase;"
-                                    >
-                                    <div class="input-hint">
-                                        <i class="fas fa-info-circle"></i>
-                                        10 character alphanumeric PAN number
-                                    </div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>
-                                        <i class="fas fa-camera"></i>
-                                        Upload PAN Card Image <span class="optional-badge">Optional</span>
-                                    </label>
-                                    <div class="file-upload-wrapper">
-                                        <div class="file-upload-area" id="pan_upload_area">
-                                            <input 
-                                                type="file" 
-                                                name="identity_file" 
-                                                id="pan_file"
-                                                accept="image/*,.pdf"
-                                                capture="environment"
-                                            >
-                                            <div class="upload-icon">
-                                                <i class="fas fa-cloud-upload-alt"></i>
-                                            </div>
-                                            <div class="upload-text">Tap to upload or take photo</div>
-                                            <div class="upload-hint">Image or PDF up to 10MB</div>
-                                            <div class="file-name" id="pan_file_name"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Driving License Fields -->
-                            <div id="license-fields" class="id-fields" style="display: none;">
-                                <div class="form-group">
-                                    <label for="license_number">
-                                        <i class="fas fa-hashtag"></i>
-                                        Driving License Number
-                                    </label>
-                                    <input 
-                                        type="text" 
-                                        id="license_number"
-                                        name="kyc_number"
-                                        placeholder="Enter Driving License Number"
-                                        style="text-transform: uppercase;"
-                                    >
-                                    <div class="input-hint">
-                                        <i class="fas fa-info-circle"></i>
-                                        Your driving license number
-                                    </div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>
-                                        <i class="fas fa-camera"></i>
-                                        Upload License Image <span class="optional-badge">Optional</span>
-                                    </label>
-                                    <div class="file-upload-wrapper">
-                                        <div class="file-upload-area" id="license_upload_area">
-                                            <input 
-                                                type="file" 
-                                                name="identity_file" 
-                                                id="license_file"
-                                                accept="image/*,.pdf"
-                                                capture="environment"
-                                            >
-                                            <div class="upload-icon">
-                                                <i class="fas fa-cloud-upload-alt"></i>
-                                            </div>
-                                            <div class="upload-text">Tap to upload or take photo</div>
-                                            <div class="upload-hint">Image or PDF up to 10MB</div>
-                                            <div class="file-name" id="license_file_name"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Voter ID Fields -->
-                            <div id="voter-fields" class="id-fields" style="display: none;">
-                                <div class="form-group">
-                                    <label for="voter_number">
-                                        <i class="fas fa-hashtag"></i>
-                                        Voter ID Number
-                                    </label>
-                                    <input 
-                                        type="text" 
-                                        id="voter_number"
-                                        name="kyc_number"
-                                        placeholder="Enter Voter ID Number"
-                                        style="text-transform: uppercase;"
-                                    >
-                                    <div class="input-hint">
-                                        <i class="fas fa-info-circle"></i>
-                                        Your voter ID card number
-                                    </div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>
-                                        <i class="fas fa-camera"></i>
-                                        Upload Voter ID Image <span class="optional-badge">Optional</span>
-                                    </label>
-                                    <div class="file-upload-wrapper">
-                                        <div class="file-upload-area" id="voter_upload_area">
-                                            <input 
-                                                type="file" 
-                                                name="identity_file" 
-                                                id="voter_file"
-                                                accept="image/*,.pdf"
-                                                capture="environment"
-                                            >
-                                            <div class="upload-icon">
-                                                <i class="fas fa-cloud-upload-alt"></i>
-                                            </div>
-                                            <div class="upload-text">Tap to upload or take photo</div>
-                                            <div class="upload-hint">Image or PDF up to 10MB</div>
-                                            <div class="file-name" id="voter_file_name"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="validation-note">
-                                <i class="fas fa-info-circle"></i>
-                                <span>Please provide either ID number or upload ID image (or both)</span>
-                            </div>
-                        </div>
+
+                <!-- ID Type -->
+                <div class="form-group">
+                    <label for="kyc_type">
+                        <i class="fas fa-id-card"></i>
+                        ID Document Type *
+                    </label>
+                    <select id="kyc_type" name="kyc_type" required>
+                        <option value="">Select ID Type</option>
+                        <option value="Aadhaar Card">🪪 Aadhaar Card</option>
+                        <option value="PAN Card">💳 PAN Card</option>
+                        <option value="Driving License">🚗 Driving License</option>
+                        <option value="Passport">✈️ Passport</option>
+                        <option value="Voter ID">🗳️ Voter ID</option>
+                        <option value="Other">📄 Other</option>
+                    </select>
+                </div>
+
+                <!-- ID Number -->
+                <div class="form-group">
+                    <label for="kyc_number">
+                        <i class="fas fa-hashtag"></i>
+                        ID Document Number
+                    </label>
+                    <div class="input-icon">
+                        <i class="fas fa-hashtag"></i>
+                        <input type="text" id="kyc_number" name="kyc_number" placeholder="Enter ID number (optional)">
                     </div>
                 </div>
-                
+
+                <!-- ID Document Upload -->
+                <div class="form-group">
+                    <label>
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        Upload ID Document (Optional)
+                    </label>
+                    <div class="file-upload-area" id="fileUploadArea">
+                        <div class="file-upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="file-upload-text">
+                            <h4>Click to upload or drag and drop</h4>
+                            <p>PNG, JPG, PDF up to 10MB</p>
+                        </div>
+                        <input type="file" id="identity_file" name="identity_file" accept="image/*,.pdf" onchange="updateFileName()">
+                    </div>
+                    <div id="fileName" class="file-name" style="display: none;"></div>
+                </div>
+
                 <!-- Submit Button -->
-                <button type="submit" class="submit-btn" id="submitBtn">
-                    <span class="loading" id="loadingState">
-                        <i class="fas fa-spinner"></i>
-                        Submitting...
-                    </span>
-                    <span class="btn-text" id="btnText">
-                        <i class="fas fa-paper-plane"></i>
-                        Submit Verification
-                    </span>
+                <button type="submit" class="btn btn-primary btn-full" id="submitBtn" disabled>
+                    <i class="fas fa-check-circle"></i>
+                    <span>Submit Verification</span>
                 </button>
             </form>
         </div>
-        
-        <!-- Footer -->
-        <div class="form-footer">
-            <div class="security-badge">
-                <i class="fas fa-shield-alt"></i>
-                Your information is secure and encrypted
-            </div>
-        </div>
     </div>
-    
+
     <script>
-        // Two-Step Flow: ID Type Selection → ID Details
-        const idTypeRadios = document.querySelectorAll('input[name="kyc_type"]');
-        const nextToIdFieldsBtn = document.getElementById('nextToIdFields');
-        const backToIdSelectionBtn = document.getElementById('backToIdSelection');
-        const idTypeSelectionStep = document.getElementById('id-type-selection-step');
-        const idDetailsStep = document.getElementById('id-details-step');
-        const selectedIdTitle = document.getElementById('selected-id-title');
-        
-        const panFields = document.getElementById('pan-fields');
-        const licenseFields = document.getElementById('license-fields');
-        const voterFields = document.getElementById('voter-fields');
-        
-        let selectedIdType = null;
-        
-        // Enable Next button when ID type is selected
-        idTypeRadios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                selectedIdType = this.value;
-                nextToIdFieldsBtn.disabled = false;
-            });
+        let otpVerified = false;
+        let countdownTimer = null;
+
+        // File upload drag and drop
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileInput = document.getElementById('identity_file');
+
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
         });
-        
-        // Next button: Move to ID details step
-        nextToIdFieldsBtn.addEventListener('click', function() {
-            if (!selectedIdType) return;
-            
-            // Hide step 1, show step 2
-            idTypeSelectionStep.style.display = 'none';
-            idDetailsStep.style.display = 'block';
-            idDetailsStep.style.animation = 'slideIn 0.3s ease';
-            
-            // Update title
-            selectedIdTitle.textContent = `${selectedIdType} Details`;
-            
-            // Hide all ID fields
-            panFields.style.display = 'none';
-            licenseFields.style.display = 'none';
-            voterFields.style.display = 'none';
-            
-            // Disable all ID number inputs and file inputs
-            document.querySelectorAll('.id-fields input[name="kyc_number"]').forEach(input => {
-                input.disabled = true;
-            });
-            document.querySelectorAll('.id-fields input[type="file"]').forEach(input => {
-                input.disabled = true;
-            });
-            
-            // Show selected ID fields and enable inputs
-            if (selectedIdType === 'PAN Card') {
-                panFields.style.display = 'block';
-                document.getElementById('pan_number').disabled = false;
-                document.getElementById('pan_file').disabled = false;
-            } else if (selectedIdType === 'Driving License') {
-                licenseFields.style.display = 'block';
-                document.getElementById('license_number').disabled = false;
-                document.getElementById('license_file').disabled = false;
-            } else if (selectedIdType === 'Voter ID') {
-                voterFields.style.display = 'block';
-                document.getElementById('voter_number').disabled = false;
-                document.getElementById('voter_file').disabled = false;
+
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.classList.remove('dragover');
+        });
+
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                updateFileName();
             }
-            
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
-        
-        // Back button: Return to ID type selection
-        backToIdSelectionBtn.addEventListener('click', function() {
-            idDetailsStep.style.display = 'none';
-            idTypeSelectionStep.style.display = 'block';
-            idTypeSelectionStep.style.animation = 'slideIn 0.3s ease';
-            
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-        
-        // File Upload Handling for each ID type
-        function setupFileUpload(fileInputId, uploadAreaId, fileNameId) {
-            const fileInput = document.getElementById(fileInputId);
-            const uploadArea = document.getElementById(uploadAreaId);
-            const fileName = document.getElementById(fileNameId);
-            
-            if (!fileInput || !uploadArea) return;
-            
-            fileInput.addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                    const file = e.target.files[0];
-                    const fileSize = (file.size / 1024 / 1024).toFixed(2);
-                    uploadArea.classList.add('has-file');
-                    const icon = uploadArea.querySelector('.upload-icon i');
-                    const text = uploadArea.querySelector('.upload-text');
-                    icon.className = 'fas fa-check';
-                    text.textContent = 'File selected';
-                    fileName.textContent = `${file.name} (${fileSize} MB)`;
-                }
-            });
-            
-            // Drag and drop support
-            uploadArea.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                this.classList.add('dragover');
-            });
-            
-            uploadArea.addEventListener('dragleave', function(e) {
-                e.preventDefault();
-                this.classList.remove('dragover');
-            });
-            
-            uploadArea.addEventListener('drop', function(e) {
-                e.preventDefault();
-                this.classList.remove('dragover');
-            });
+
+        function updateFileName() {
+            const input = document.getElementById('identity_file');
+            const fileNameDiv = document.getElementById('fileName');
+            if (input.files.length > 0) {
+                const file = input.files[0];
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                fileNameDiv.innerHTML = `
+                    <i class="fas fa-file-alt"></i>
+                    <span>${file.name} (${fileSize} MB)</span>
+                `;
+                fileNameDiv.style.display = 'flex';
+            } else {
+                fileNameDiv.style.display = 'none';
+            }
         }
-        
-        // Setup file uploads for all ID types
-        setupFileUpload('pan_file', 'pan_upload_area', 'pan_file_name');
-        setupFileUpload('license_file', 'license_upload_area', 'license_file_name');
-        setupFileUpload('voter_file', 'voter_upload_area', 'voter_file_name');
-        
-        // Form Submission with Validation
-        const form = document.getElementById('verificationForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const loadingState = document.getElementById('loadingState');
-        const btnText = document.getElementById('btnText');
-        
-        form.addEventListener('submit', function(e) {
-            // Check if ID type is selected
-            const selectedIdType = document.querySelector('input[name="kyc_type"]:checked');
-            if (!selectedIdType) {
+
+        async function sendOTP() {
+            const phone = document.getElementById('phone').value.trim();
+            const hotelId = document.querySelector('input[name="hotel_id"]').value;
+            
+            if (!phone || phone.length !== 10 || !/^\d{10}$/.test(phone)) {
+                showAlert('Please enter a valid 10-digit mobile number', 'error');
+                return;
+            }
+
+            const sendBtn = document.getElementById('sendOtpBtn');
+            const originalContent = sendBtn.innerHTML;
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<span class="loading-spinner"></span><span>Sending...</span>';
+
+            try {
+                const response = await fetch('/guest-verification/api/send-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        phone_number: phone,
+                        hotel_id: hotelId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('OTP sent successfully! Check your phone.', 'success');
+                    document.getElementById('otpVerification').style.display = 'block';
+                    startCountdown();
+                } else {
+                    showAlert('Failed to send OTP: ' + data.message, 'error');
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = originalContent;
+                }
+            } catch (error) {
+                showAlert('Error sending OTP: ' + error.message, 'error');
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = originalContent;
+            }
+        }
+
+        async function verifyOTP() {
+            const phone = document.getElementById('phone').value.trim();
+            const otp = document.getElementById('otp_code').value.trim();
+
+            if (!otp || otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+                showAlert('Please enter a valid 6-digit OTP', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/guest-verification/api/verify-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        phone_number: phone,
+                        otp_code: otp
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('✓ Phone number verified successfully!', 'success');
+                    otpVerified = true;
+                    document.getElementById('verifiedBadge').style.display = 'inline-flex';
+                    document.getElementById('otpControls').style.display = 'none';
+                    document.getElementById('otpVerification').style.display = 'none';
+                    document.getElementById('phone').readOnly = true;
+                    document.getElementById('phone').classList.add('verified');
+                    document.getElementById('submitBtn').disabled = false;
+                    if (countdownTimer) clearInterval(countdownTimer);
+                } else {
+                    showAlert('Verification failed: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showAlert('Error verifying OTP: ' + error.message, 'error');
+            }
+        }
+
+        function startCountdown() {
+            let seconds = 30;
+            const timerDiv = document.getElementById('otpTimer');
+            const countdownSpan = document.getElementById('countdown');
+            const sendBtn = document.getElementById('sendOtpBtn');
+
+            timerDiv.style.display = 'inline-flex';
+            
+            countdownTimer = setInterval(() => {
+                seconds--;
+                countdownSpan.textContent = seconds;
+
+                if (seconds <= 0) {
+                    clearInterval(countdownTimer);
+                    timerDiv.style.display = 'none';
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = '<i class="fas fa-redo"></i><span>Resend OTP</span>';
+                }
+            }, 1000);
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            
+            const icon = type === 'error' ? 'exclamation-circle' : 
+                        type === 'success' ? 'check-circle' : 'info-circle';
+            
+            alertDiv.innerHTML = `
+                <i class="fas fa-${icon}"></i>
+                <span>${message}</span>
+            `;
+            
+            const form = document.getElementById('verificationForm');
+            form.insertBefore(alertDiv, form.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => alertDiv.remove(), 300);
+            }, 5000);
+        }
+
+        // Form validation
+        document.getElementById('verificationForm').addEventListener('submit', function(e) {
+            if (!otpVerified) {
                 e.preventDefault();
-                alert('Please select an ID type');
+                showAlert('Please verify your mobile number with OTP before submitting', 'error');
                 return false;
             }
-            
-            // Get active ID number input and file input
-            const activeIdFields = document.querySelector('.id-fields[style*="display: block"]');
-            if (activeIdFields) {
-                const idNumberInput = activeIdFields.querySelector('input[name="kyc_number"]');
-                const fileInput = activeIdFields.querySelector('input[type="file"]');
-                
-                // Validate: must have either ID number or file
-                const hasIdNumber = idNumberInput && idNumberInput.value.trim();
-                const hasFile = fileInput && fileInput.files.length > 0;
-                
-                if (!hasIdNumber && !hasFile) {
-                    e.preventDefault();
-                    alert('Please provide either ID number or upload ID image');
-                    return false;
+        });
+
+        // Phone input validation
+        document.getElementById('phone').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        // OTP input validation
+        document.getElementById('otp_code').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        // Add slideOut animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideOut {
+                from {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+                to {
+                    opacity: 0;
+                    transform: translateX(20px);
                 }
             }
-            
-            submitBtn.disabled = true;
-            loadingState.classList.add('show');
-        });
-        
-        // Phone number formatting
-        const phoneInput = document.getElementById('phone');
-        phoneInput.addEventListener('input', function(e) {
-            this.value = this.value.replace(/[^0-9]/g, '').substring(0, 10);
-        });
-        
-        // Update progress steps on input
-        const inputs = document.querySelectorAll('input:not([type="radio"]):not([type="file"]), textarea');
-        const steps = document.querySelectorAll('.step');
-        
-        function updateProgress() {
-            let filledCount = 0;
-            let totalFields = 4; // name, phone, address, ID type
-            
-            // Check basic fields
-            if (document.getElementById('guest_name').value.trim()) filledCount++;
-            if (document.getElementById('phone').value.trim()) filledCount++;
-            if (document.getElementById('address').value.trim()) filledCount++;
-            
-            // Check if ID type selected and has data
-            const selectedIdType = document.querySelector('input[name="kyc_type"]:checked');
-            if (selectedIdType) {
-                // Check if we're on step 2 and have ID data
-                if (idDetailsStep.style.display !== 'none') {
-                    const activeIdFields = document.querySelector('.id-fields[style*="display: block"]');
-                    if (activeIdFields) {
-                        const idNumberInput = activeIdFields.querySelector('input[name="kyc_number"]');
-                        const fileInput = activeIdFields.querySelector('input[type="file"]');
-                        if ((idNumberInput && idNumberInput.value.trim()) || (fileInput && fileInput.files.length > 0)) {
-                            filledCount++;
-                        }
-                    }
-                } else {
-                    // Just selected ID type, count it
-                    filledCount++;
-                }
-            }
-            
-            const progress = Math.floor((filledCount / totalFields) * 3);
-            steps.forEach((step, index) => {
-                step.classList.toggle('active', index <= progress);
-            });
-        }
-        
-        inputs.forEach(input => {
-            input.addEventListener('input', updateProgress);
-            input.addEventListener('change', updateProgress);
-        });
-        
-        idTypeRadios.forEach(radio => {
-            radio.addEventListener('change', updateProgress);
-        });
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>

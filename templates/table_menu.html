@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0891b2">
-    <title>Menu - Table {{ table.table_number }} - HotelEase</title>
+    <title>Menu - Table {{ table.table_number }} - VisiScure Order</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,7 +19,16 @@
 <body>
     <!-- Header -->
     <header class="header">
+        {% if hotel_logo and logo_file_exists(hotel_logo) %}
+        <div class="hotel-logo-header">
+            <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel_logo) }}" 
+                 alt="{{ hotel_name }} Logo" 
+                 class="hotel-logo">
+            <h1>{{ hotel_name or 'Restaurant' }}</h1>
+        </div>
+        {% else %}
         <h1><i class="fas fa-utensils"></i> Restaurant Menu</h1>
+        {% endif %}
         <div class="table-info">
             <i class="fas fa-chair"></i> Table {{ table.table_number }}
         </div>
@@ -65,6 +79,12 @@
         <span>View Bill</span>
     </div>
 
+    <!-- Call Waiter Button (Floating) -->
+    <div class="call-waiter-btn" id="call-waiter-btn" onclick="callWaiter()">
+        <i class="fas fa-bell"></i>
+        <span>Call Waiter</span>
+    </div>
+
     <!-- Order Success Modal -->
     <div class="order-modal" id="order-modal">
         <div class="order-modal-content">
@@ -87,9 +107,15 @@
             <button class="bill-close-btn" onclick="closeBillModal()">&times;</button>
             <div class="bill-header">
                 <div class="bill-logo">
-                    <i class="fas fa-hotel"></i>
+                    {% if hotel_logo and logo_file_exists(hotel_logo) %}
+                        <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel_logo) }}" 
+                             alt="{{ hotel_name or 'Hotel' }} Logo" 
+                             style="max-height: 80px; max-width: 200px; object-fit: contain; background: white; padding: 0.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); margin-bottom: 1rem;">
+                    {% else %}
+                        <i class="fas fa-hotel"></i>
+                    {% endif %}
                 </div>
-                <h2 id="bill-hotel-name">Restaurant</h2>
+                <h2 id="bill-hotel-name">{{ hotel_name or 'Restaurant' }}</h2>
                 <p id="bill-hotel-address"></p>
             </div>
             <div class="bill-info">
@@ -118,16 +144,30 @@
                     <span>Subtotal</span>
                     <span id="bill-subtotal">₹0.00</span>
                 </div>
+                <div class="bill-total-row" style="border-top: 1px dashed #e5e7eb; padding-top: 0.5rem; margin-top: 0.25rem;">
+                    <span style="color: #059669;">Total CGST</span>
+                    <span id="bill-cgst" style="color: #059669;">₹0.00</span>
+                </div>
                 <div class="bill-total-row">
-                    <span>Tax (<span id="bill-tax-rate">5</span>%)</span>
+                    <span style="color: #059669;">Total SGST</span>
+                    <span id="bill-sgst" style="color: #059669;">₹0.00</span>
+                </div>
+                <div class="bill-total-row">
+                    <span>Total Tax</span>
                     <span id="bill-tax">₹0.00</span>
                 </div>
-                <div class="bill-total-row grand-total">
+                <div class="bill-total-row grand-total" style="border-top: 1px solid #d1d5db; padding-top: 0.5rem; margin-top: 0.25rem;">
                     <span>Grand Total</span>
                     <span id="bill-grand-total">₹0.00</span>
                 </div>
             </div>
             <div class="bill-payment-section" id="bill-payment-section">
+                <div id="payment-method-row" style="display: none; padding: 0.75rem 1rem; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border-radius: 12px; margin-bottom: 1rem; border: 1px solid #bae6fd;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #0369a1; font-weight: 500;"><i class="fas fa-wallet" style="margin-right: 0.5rem;"></i>Payment Method</span>
+                        <span id="payment-method-value" style="font-weight: 700; color: #0c4a6e; background: white; padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.9rem;"></span>
+                    </div>
+                </div>
                 <div class="payment-status" id="payment-status">
                     <i class="fas fa-clock"></i>
                     <span>Payment Pending</span>
@@ -205,10 +245,6 @@
                     <i class="fas fa-money-bill-wave"></i>
                     <span>Cash</span>
                 </button>
-                <button class="payment-option" onclick="processPayment('CARD')">
-                    <i class="fas fa-credit-card"></i>
-                    <span>Card</span>
-                </button>
                 <button class="payment-option" onclick="processPayment('UPI')">
                     <i class="fas fa-mobile-alt"></i>
                     <span>UPI</span>
@@ -227,6 +263,46 @@
             <p>Thank you for dining with us</p>
             <p class="success-message">Your table is now available for the next guest.</p>
             <button class="btn" onclick="closePaymentSuccess()">Done</button>
+        </div>
+    </div>
+
+    <!-- UPI QR Payment Modal -->
+    <div class="payment-modal" id="upi-qr-modal">
+        <div class="payment-modal-content">
+            <button class="payment-close-btn" onclick="closeUPIQRModal()">&times;</button>
+            <div class="payment-header">
+                <i class="fas fa-qrcode"></i>
+                <h2>Scan & Pay via UPI</h2>
+            </div>
+            
+            <div style="text-align: center; padding: 1.5rem;">
+                <div style="background: white; padding: 1rem; border-radius: 12px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <img id="upi-qr-image" src="" alt="UPI QR Code" style="max-width: 300px; max-height: 300px; display: block;">
+                </div>
+                
+                <div style="margin-top: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 8px;">
+                    <p style="color: var(--gray); margin-bottom: 0.5rem; font-size: 0.875rem;">UPI ID</p>
+                    <p style="font-weight: 600; color: var(--dark); font-size: 1.125rem; margin-bottom: 1rem;" id="upi-qr-upi-id"></p>
+                    
+                    <p style="color: var(--gray); margin-bottom: 0.5rem; font-size: 0.875rem;">Amount to Pay</p>
+                    <p style="font-weight: 700; color: var(--success); font-size: 1.5rem;" id="upi-qr-amount"></p>
+                </div>
+                
+                <p style="color: var(--gray); margin-top: 1rem; font-size: 0.875rem;">
+                    <i class="fas fa-info-circle"></i> Open any UPI app and scan the QR code to complete payment
+                </p>
+            </div>
+            
+            <div style="padding: 1rem; border-top: 1px solid #e5e7eb;">
+                <!-- Pay Now via UPI App Button - for mobile devices -->
+                <button class="btn" id="pay-via-upi-app-btn" onclick="payViaUPIApp()" style="width: 100%; margin-bottom: 0.75rem; background: linear-gradient(135deg, #5f259f 0%, #a855f7 100%); color: white; border: none; padding: 1rem; border-radius: 12px; font-weight: 600; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 15px rgba(95, 37, 159, 0.3); transition: all 0.3s ease;">
+                    <i class="fas fa-mobile-alt"></i> Pay Now via UPI App
+                </button>
+                <p style="color: var(--gray); font-size: 0.75rem; text-align: center; margin-bottom: 0.75rem;">— or confirm after scanning QR —</p>
+                <button class="btn btn-primary" onclick="confirmUPIPayment()" style="width: 100%;">
+                    <i class="fas fa-check-circle"></i> I've Completed the Payment
+                </button>
+            </div>
         </div>
     </div>
 
@@ -264,19 +340,25 @@
         </div>
     </div>
 
-    <!-- Daily Special Popup Modal - Premium Food Poster Design -->
+    <!-- Daily Special Popup Modal - Premium Food Poster Design with Carousel -->
     <div class="daily-special-modal" id="daily-special-modal">
         <div class="daily-special-overlay" onclick="closeDailySpecialModal()"></div>
-        <div class="daily-special-pamphlet">
-            <button class="pamphlet-close-btn" onclick="closeDailySpecialModal()" title="Close">
-                <i class="fas fa-times"></i>
-            </button>
-            
-            <!-- Premium Poster Design - Full Image Background -->
-            <div class="pamphlet-poster">
-                <!-- Ribbon at top -->
-                <div class="pamphlet-ribbon">
-                    <span class="ribbon-text">
+        <div class="daily-special-wrapper">
+            <div class="daily-special-pamphlet">
+                <button class="pamphlet-close-btn" onclick="closeDailySpecialModal()" title="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+                
+                <!-- Carousel Navigation - Left -->
+                <button class="carousel-nav carousel-prev" id="special-prev" onclick="showPreviousSpecial()" style="display: none;">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <!-- Premium Poster Design - Full Image Background -->
+                <div class="pamphlet-poster">
+                    <!-- Ribbon at top -->
+                    <div class="pamphlet-ribbon">
+                        <span class="ribbon-text">
                         <i class="fas fa-star"></i> TODAY'S SPECIAL <i class="fas fa-star"></i>
                     </span>
                 </div>
@@ -326,13 +408,30 @@
                     </div>
                 </div>
                 
+                <!-- Carousel Indicators -->
+                <div class="carousel-indicators" id="carousel-indicators" style="display: none;">
+                    <!-- Dots will be generated dynamically -->
+                </div>
+                
                 <!-- Footer -->
                 <div class="pamphlet-bottom">
                     <p><i class="fas fa-clock"></i> Limited time offer - Today only!</p>
                 </div>
             </div>
+            
+            <!-- Carousel Navigation - Right -->
+            <button class="carousel-nav carousel-next" id="special-next" onclick="showNextSpecial()" style="display: none;">
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
+        
+        <!-- Go to Main Menu Button - Outside Card -->
+        <button class="special-main-menu-btn" onclick="goToMainMenu()">
+            <i class="fas fa-utensils"></i>
+            <span>Go to Main Menu</span>
+        </button>
     </div>
+</div>
 
     <!-- Cart Review Modal -->
     <div class="cart-review-modal" id="cart-review-modal">
@@ -370,6 +469,11 @@
         const tableId = {{ table.id }};
         const sessionStorageKey = `table_session_${tableId}`;
         const guestNameStorageKey = `guest_name_${tableId}`;
+        
+        // UPI Payment Configuration
+        const hotelUPIId = "{{ upi_id or '' }}";
+        const hotelUPIQRImage = "{{ upi_qr_image or '' }}";
+        const hotelName = "{{ hotel_name or 'Restaurant' }}";
         let cart = [];
         let currentOrderId = null;
         let sessionId = localStorage.getItem(sessionStorageKey);
@@ -497,6 +601,17 @@
                     viewOnlyMode = false;
                     guestName = name;
                     localStorage.setItem(guestNameStorageKey, guestName);
+                    
+                    // Check if we should clear stale session (no active bill exists)
+                    if (data.clear_session) {
+                        // Clear old session - new guest starts fresh
+                        sessionId = null;
+                        localStorage.removeItem(sessionStorageKey);
+                        document.getElementById('view-bill-btn').style.display = 'none';
+                        cart = [];
+                        currentOrderId = null;
+                        updateCartUI();
+                    }
                     
                     if (data.is_returning_guest) {
                         // Restore session for returning guest
@@ -1064,15 +1179,41 @@
         // ============== Bill & Payment Functions ==============
         
         // Check for existing session and show bill button
+        // Only show View Bill if there's an active OPEN bill for this table
         function checkExistingSession() {
-            if (sessionId) {
-                document.getElementById('view-bill-btn').style.display = 'flex';
+            if (!sessionId) {
+                document.getElementById('view-bill-btn').style.display = 'none';
+                return;
             }
+            
+            // Verify with backend that bill is still OPEN
+            fetch(`/orders/api/table-bill/${tableId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.has_open_bill && data.bill) {
+                        // Only show View Bill button if bill is OPEN
+                        document.getElementById('view-bill-btn').style.display = 'flex';
+                    } else {
+                        // No open bill - hide View Bill button and clear stale session
+                        document.getElementById('view-bill-btn').style.display = 'none';
+                        sessionId = null;
+                        localStorage.removeItem(sessionStorageKey);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking session:', error);
+                    // On error, still try to show based on localStorage
+                    if (sessionId) {
+                        document.getElementById('view-bill-btn').style.display = 'flex';
+                    }
+                });
         }
 
         // ============== Daily Special Popup Functions ==============
         let dailySpecialShown = false;
-        let currentDailySpecial = null; // Store the special data for adding to cart
+        let currentDailySpecial = null; // Store the current special data for adding to cart
+        let allDailySpecials = []; // Store all specials for carousel
+        let currentSpecialIndex = 0; // Track current special in carousel
 
         function loadDailySpecial() {
             // Only show popup once per page load
@@ -1081,8 +1222,17 @@
             fetch('/api/public-daily-special/' + tableId)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success && data.special) {
-                        currentDailySpecial = data.special; // Store for later use
+                    if (data.success && data.specials && data.specials.length > 0) {
+                        allDailySpecials = data.specials;
+                        currentSpecialIndex = 0;
+                        currentDailySpecial = allDailySpecials[0];
+                        setupCarouselIndicators();
+                        showDailySpecialPopup(currentDailySpecial);
+                    } else if (data.success && data.special) {
+                        // Backward compatibility for single special
+                        allDailySpecials = [data.special];
+                        currentSpecialIndex = 0;
+                        currentDailySpecial = data.special;
                         showDailySpecialPopup(data.special);
                     }
                 })
@@ -1091,14 +1241,68 @@
                 });
         }
 
-        function showDailySpecialPopup(special) {
-            if (dailySpecialShown) return;
+        function setupCarouselIndicators() {
+            const indicatorsContainer = document.getElementById('carousel-indicators');
+            const prevBtn = document.getElementById('special-prev');
+            const nextBtn = document.getElementById('special-next');
             
-            document.getElementById('special-popup-name').textContent = special.menu_name;
+            if (allDailySpecials.length > 1) {
+                // Show navigation buttons
+                prevBtn.style.display = 'flex';
+                nextBtn.style.display = 'flex';
+                indicatorsContainer.style.display = 'flex';
+                
+                // Create dots
+                indicatorsContainer.innerHTML = '';
+                allDailySpecials.forEach((_, index) => {
+                    const dot = document.createElement('span');
+                    dot.className = 'carousel-dot' + (index === 0 ? ' active' : '');
+                    dot.onclick = () => goToSpecial(index);
+                    indicatorsContainer.appendChild(dot);
+                });
+            } else {
+                prevBtn.style.display = 'none';
+                nextBtn.style.display = 'none';
+                indicatorsContainer.style.display = 'none';
+            }
+        }
+
+        function updateCarouselIndicators() {
+            const dots = document.querySelectorAll('.carousel-dot');
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentSpecialIndex);
+            });
+        }
+
+        function showPreviousSpecial() {
+            if (allDailySpecials.length <= 1) return;
+            currentSpecialIndex = (currentSpecialIndex - 1 + allDailySpecials.length) % allDailySpecials.length;
+            currentDailySpecial = allDailySpecials[currentSpecialIndex];
+            updateSpecialDisplay(currentDailySpecial);
+            updateCarouselIndicators();
+        }
+
+        function showNextSpecial() {
+            if (allDailySpecials.length <= 1) return;
+            currentSpecialIndex = (currentSpecialIndex + 1) % allDailySpecials.length;
+            currentDailySpecial = allDailySpecials[currentSpecialIndex];
+            updateSpecialDisplay(currentDailySpecial);
+            updateCarouselIndicators();
+        }
+
+        function goToSpecial(index) {
+            if (index < 0 || index >= allDailySpecials.length) return;
+            currentSpecialIndex = index;
+            currentDailySpecial = allDailySpecials[index];
+            updateSpecialDisplay(currentDailySpecial);
+            updateCarouselIndicators();
+        }
+
+        function updateSpecialDisplay(special) {
+            document.getElementById('special-popup-name').textContent = special.dish_name || special.menu_name;
             document.getElementById('special-popup-description').textContent = special.description || 'A specially curated dish made with the finest ingredients for today!';
             document.getElementById('special-popup-price').textContent = '₹' + parseFloat(special.price).toFixed(2);
             
-            // Handle image display - new unified design
             const heroSection = document.getElementById('pamphlet-hero');
             const noImageSection = document.getElementById('pamphlet-no-image');
             const popupImage = document.getElementById('special-popup-image');
@@ -1111,6 +1315,12 @@
                 heroSection.style.display = 'none';
                 noImageSection.style.display = 'flex';
             }
+        }
+
+        function showDailySpecialPopup(special) {
+            if (dailySpecialShown) return;
+            
+            updateSpecialDisplay(special);
             
             const modal = document.getElementById('daily-special-modal');
             modal.classList.add('show');
@@ -1126,15 +1336,24 @@
             document.body.style.overflow = '';
         }
 
+        function goToMainMenu() {
+            closeDailySpecialModal();
+            // Scroll to menu section smoothly
+            const menuSection = document.querySelector('.categories-nav') || document.querySelector('.menu-container');
+            if (menuSection) {
+                menuSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
         function addSpecialToCart() {
             if (!currentDailySpecial) {
                 console.error('No daily special data available');
                 return;
             }
             
-            const specialName = currentDailySpecial.menu_name;
+            const specialName = currentDailySpecial.dish_name || currentDailySpecial.menu_name;
             const specialPrice = parseFloat(currentDailySpecial.price);
-            const specialId = currentDailySpecial.menu_id;  // Get dish ID from daily special
+            const specialId = currentDailySpecial.id || currentDailySpecial.menu_id;
             
             // Add to cart using existing addToCart logic
             const existingItem = cart.find(item => item.name === specialName);
@@ -1143,7 +1362,7 @@
                 existingItem.quantity += 1;
             } else {
                 cart.push({
-                    id: specialId,  // ← Include dish ID
+                    id: specialId,
                     name: specialName,
                     price: specialPrice,
                     quantity: 1
@@ -1389,7 +1608,13 @@
                     if (data.success && data.bill) {
                         displayBill(data.bill);
                     } else {
-                        alert('No bill found for this session');
+                        // Bill not found or completed - clear stale session and hide button
+                        sessionId = null;
+                        localStorage.removeItem(sessionStorageKey);
+                        document.getElementById('view-bill-btn').style.display = 'none';
+                        
+                        // Show friendly message
+                        alert('Your previous order session has been completed. You can place a new order.');
                     }
                 })
                 .catch(error => {
@@ -1402,38 +1627,72 @@
             // Update bill header
             document.getElementById('bill-hotel-name').textContent = bill.hotel_name || 'Restaurant';
             document.getElementById('bill-hotel-address').textContent = bill.hotel_address || '';
+            
+            // Update hotel logo dynamically
+            const billLogoDiv = document.querySelector('.bill-logo');
+            if (billLogoDiv) {
+                if (bill.hotel_logo) {
+                    billLogoDiv.innerHTML = `
+                        <img src="/static/uploads/hotel_logos/${bill.hotel_logo}" 
+                             alt="${bill.hotel_name || 'Hotel'} Logo" 
+                             style="max-height: 80px; max-width: 200px; object-fit: contain; background: white; padding: 0.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); margin-bottom: 1rem;">
+                    `;
+                } else {
+                    billLogoDiv.innerHTML = '<i class="fas fa-hotel"></i>';
+                }
+            }
+            
             document.getElementById('bill-number').textContent = bill.order_count > 1 ? `Session (${bill.order_count} orders)` : 'Order Bill';
             document.getElementById('bill-guest-name').textContent = bill.guest_name || guestName || 'Guest';
             document.getElementById('bill-table-number').textContent = bill.table_number;
             document.getElementById('bill-date').textContent = formatDateTime(bill.created_at);
             
-            // Render items
+            // Render items with per-item CGST/SGST columns
             const itemsContainer = document.getElementById('bill-items');
             let itemsHTML = `
                 <div class="bill-items-header">
                     <span>Item</span>
                     <span>Qty</span>
                     <span>Price</span>
+                    <span>CGST</span>
+                    <span>SGST</span>
                     <span>Total</span>
                 </div>
             `;
             
             bill.items.forEach(item => {
+                // Get per-item tax amounts (enriched by backend)
+                const itemCgst = item.cgst_amount || 0;
+                const itemSgst = item.sgst_amount || 0;
+                const itemTotal = item.total_with_tax || (item.price * item.quantity + itemCgst + itemSgst);
+                const cgstPct = item.cgst_percentage || 0;
+                const sgstPct = item.sgst_percentage || 0;
+                
                 itemsHTML += `
                     <div class="bill-item-row">
                         <span class="item-name">${item.name}</span>
                         <span class="item-qty">${item.quantity}</span>
                         <span class="item-price">₹${parseFloat(item.price).toFixed(2)}</span>
-                        <span class="item-total">₹${(item.price * item.quantity).toFixed(2)}</span>
+                        <span class="item-cgst">${cgstPct}% (₹${parseFloat(itemCgst).toFixed(2)})</span>
+                        <span class="item-sgst">${sgstPct}% (₹${parseFloat(itemSgst).toFixed(2)})</span>
+                        <span class="item-total">₹${parseFloat(itemTotal).toFixed(2)}</span>
                     </div>
                 `;
             });
             itemsContainer.innerHTML = itemsHTML;
             
-            // Update totals
+            // Update totals with CGST/SGST
             document.getElementById('bill-subtotal').textContent = `₹${parseFloat(bill.subtotal).toFixed(2)}`;
-            document.getElementById('bill-tax-rate').textContent = bill.tax_rate;
-            document.getElementById('bill-tax').textContent = `₹${parseFloat(bill.tax_amount).toFixed(2)}`;
+            
+            // Calculate CGST/SGST totals
+            const cgstAmount = parseFloat(bill.cgst_amount || 0);
+            const sgstAmount = parseFloat(bill.sgst_amount || 0);
+            const taxAmount = cgstAmount + sgstAmount;
+            
+            // Show total CGST, SGST, and Tax
+            document.getElementById('bill-cgst').textContent = `₹${cgstAmount.toFixed(2)}`;
+            document.getElementById('bill-sgst').textContent = `₹${sgstAmount.toFixed(2)}`;
+            document.getElementById('bill-tax').textContent = `₹${taxAmount.toFixed(2)}`;
             document.getElementById('bill-grand-total').textContent = `₹${parseFloat(bill.total_amount).toFixed(2)}`;
             
             currentBillTotal = bill.total_amount;
@@ -1441,15 +1700,28 @@
             // Update payment status
             const paymentStatus = document.getElementById('payment-status');
             const payNowBtn = document.getElementById('pay-now-btn');
+            const paymentMethodRow = document.getElementById('payment-method-row');
+            const paymentMethodValue = document.getElementById('payment-method-value');
             
             if (bill.payment_status === 'PAID') {
                 paymentStatus.innerHTML = '<i class="fas fa-check-circle"></i><span>Paid</span>';
                 paymentStatus.classList.add('paid');
                 payNowBtn.style.display = 'none';
+                
+                // Show payment method if available
+                if (bill.payment_method) {
+                    paymentMethodRow.style.display = 'block';
+                    const methodText = bill.payment_method === 'UPI' ? 'UPI (Online)' : 'Cash';
+                    const methodIcon = bill.payment_method === 'UPI' ? '<i class="fas fa-qrcode" style="margin-right: 0.25rem; color: #5f259f;"></i>' : '<i class="fas fa-money-bill-wave" style="margin-right: 0.25rem; color: #059669;"></i>';
+                    paymentMethodValue.innerHTML = methodIcon + methodText;
+                } else {
+                    paymentMethodRow.style.display = 'none';
+                }
             } else {
                 paymentStatus.innerHTML = '<i class="fas fa-clock"></i><span>Payment Pending</span>';
                 paymentStatus.classList.remove('paid');
                 payNowBtn.style.display = 'flex';
+                paymentMethodRow.style.display = 'none';
             }
             
             // Show bill modal
@@ -1537,11 +1809,132 @@
         }
         
         function processPayment(method) {
+            // Handle UPI payment with three-case logic
+            if (method === 'UPI') {
+                const grandTotal = parseFloat(document.getElementById('payment-grand-total').textContent.replace('₹', '').replace(',', ''));
+                
+                // Case A: QR Code exists - Show QR modal
+                if (hotelUPIQRImage && hotelUPIQRImage.trim() !== '') {
+                    showUPIQRModal(grandTotal);
+                    closePaymentModal();
+                    return;
+                } 
+                // Case B: Only UPI ID exists - Generate UPI link
+                else if (hotelUPIId && hotelUPIId.trim() !== '') {
+                    const upiLink = generateUPILink(hotelUPIId, hotelName, grandTotal);
+                    
+                    // Open UPI link in new window/app
+                    window.location.href = upiLink;
+                    
+                    // Close payment modal and show confirmation after delay
+                    closePaymentModal();
+                    setTimeout(() => {
+                        if (confirm('Have you completed the UPI payment?\n\nClick OK if payment is done, or Cancel to try again.')) {
+                            completePaymentProcess(method);
+                        } else {
+                            // Reopen payment modal if user cancelled
+                            showPaymentOptions();
+                        }
+                    }, 2000);
+                    return;
+                } 
+                // Case C: No UPI configuration available
+                else {
+                    alert('UPI payment is not available for this hotel. Please use Cash payment.');
+                    return;
+                }
+            }
+            
+            // For Cash payment, process directly
             const payBtn = event.target.closest('.payment-option');
             const originalHTML = payBtn.innerHTML;
             payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Processing...</span>';
             payBtn.disabled = true;
             
+            completePaymentProcess(method, payBtn, originalHTML);
+        }
+        
+        function generateUPILink(upiId, payeeName, amount) {
+            // URL encode parameters as per UPI specification
+            const encodedUpiId = encodeURIComponent(upiId);
+            const encodedPayeeName = encodeURIComponent(payeeName);
+            const formattedAmount = amount.toFixed(2); // Format to 2 decimal places
+            
+            // Construct UPI deep link following specification
+            // Format: upi://pay?pa={upi_id}&pn={payee_name}&am={amount}&cu=INR
+            return `upi://pay?pa=${encodedUpiId}&pn=${encodedPayeeName}&am=${formattedAmount}&cu=INR`;
+        }
+        
+        // Store UPI payment link for Pay Now button
+        let currentUPILink = '';
+        
+        function showUPIQRModal(amount) {
+            // Construct full path to QR image
+            const qrImagePath = `/static/uploads/hotel_qr/${hotelUPIQRImage}`;
+            
+            // Set QR image source
+            document.getElementById('upi-qr-image').src = qrImagePath;
+            
+            // Display UPI ID
+            document.getElementById('upi-qr-upi-id').textContent = hotelUPIId || 'N/A';
+            
+            // Display formatted amount
+            document.getElementById('upi-qr-amount').textContent = `₹${amount.toFixed(2)}`;
+            
+            // Generate UPI deep link for Pay Now button
+            if (hotelUPIId && hotelUPIId.trim() !== '') {
+                currentUPILink = generateUPILink(hotelUPIId, hotelName, amount);
+                document.getElementById('pay-via-upi-app-btn').style.display = 'flex';
+            } else {
+                currentUPILink = '';
+                document.getElementById('pay-via-upi-app-btn').style.display = 'none';
+            }
+            
+            // Show the modal
+            document.getElementById('upi-qr-modal').classList.add('show');
+        }
+        
+        function payViaUPIApp() {
+            if (!currentUPILink) {
+                alert('UPI payment link not available. Please scan the QR code instead.');
+                return;
+            }
+            
+            // Check if on mobile device
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // Open UPI app directly on mobile
+                window.location.href = currentUPILink;
+            } else {
+                // On desktop, show a message that UPI apps work on mobile
+                alert('UPI app payment works best on mobile devices.\n\nPlease scan the QR code using your phone\'s UPI app (Google Pay, PhonePe, Paytm, etc.).');
+            }
+        }
+        
+        function closeUPIQRModal() {
+            document.getElementById('upi-qr-modal').classList.remove('show');
+        }
+        
+        function confirmUPIPayment() {
+            // Confirm with user that payment is complete
+            if (confirm('Have you completed the UPI payment?\n\nClick OK to confirm payment, or Cancel to continue scanning.')) {
+                // Close QR modal
+                closeUPIQRModal();
+                
+                // Process payment through backend
+                completePaymentProcess('UPI');
+            }
+        }
+        
+        function completePaymentProcess(method, payBtn = null, originalHTML = null) {
+            // Show loading state if button provided
+            if (payBtn) {
+                payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Processing...</span>';
+                payBtn.disabled = true;
+            }
+            
+            // Call backend to mark payment as complete
             fetch('/orders/api/process-payment', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -1550,32 +1943,43 @@
                     session_id: sessionId,
                     guest_name: guestName,
                     payment_method: method,
-                    tip_amount: selectedTipAmount  // Include tip in payment
+                    tip_amount: selectedTipAmount
                 })
             })
             .then(response => response.json())
             .then(data => {
-                payBtn.innerHTML = originalHTML;
-                payBtn.disabled = false;
+                // Restore button state if provided
+                if (payBtn) {
+                    payBtn.innerHTML = originalHTML;
+                    payBtn.disabled = false;
+                }
                 
                 if (data.success) {
+                    // Close all payment-related modals
                     closePaymentModal();
                     closeBillModal();
+                    
+                    // Show success message
                     showPaymentSuccess();
                     
-                    // Clear session
+                    // Clear session data
                     localStorage.removeItem(sessionStorageKey);
                     sessionId = null;
+                    
+                    // Hide view bill button
                     document.getElementById('view-bill-btn').style.display = 'none';
                 } else {
-                    alert('Payment failed: ' + data.message);
+                    alert('Payment failed: ' + (data.message || 'Unknown error'));
                 }
             })
             .catch(error => {
-                payBtn.innerHTML = originalHTML;
-                payBtn.disabled = false;
+                // Restore button state on error
+                if (payBtn) {
+                    payBtn.innerHTML = originalHTML;
+                    payBtn.disabled = false;
+                }
                 console.error('Error processing payment:', error);
-                alert('Error processing payment. Please try again.');
+                alert('Error processing payment. Please try again or contact staff.');
             });
         }
         
@@ -1604,6 +2008,127 @@
         document.getElementById('payment-success-modal').addEventListener('click', function(e) {
             if (e.target === this) closePaymentSuccess();
         });
+        
+        // ============== Call Waiter Functions ==============
+        let waiterCallPending = false;
+        let lastCallTime = 0;
+        
+        function callWaiter() {
+            const btn = document.getElementById('call-waiter-btn');
+            
+            // Check cooldown (10 seconds)
+            const now = Date.now();
+            const timeSinceLastCall = (now - lastCallTime) / 1000;
+            if (timeSinceLastCall < 10 && lastCallTime > 0) {
+                const waitTime = Math.ceil(10 - timeSinceLastCall);
+                showNotification(`Please wait ${waitTime} seconds before calling again`, 'warning');
+                return;
+            }
+            
+            // Disable button and show loading
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Calling...</span>';
+            btn.disabled = true;
+            
+            // Create waiter call request
+            console.log('[CALL_WAITER] Creating request:', {table_id: tableId, session_id: sessionId, guest_name: guestName});
+            
+            fetch('/api/waiter-calls/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    table_id: tableId,
+                    session_id: sessionId,
+                    guest_name: guestName
+                })
+            })
+            .then(response => {
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response. Please restart the Flask server.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('[CALL_WAITER] Response:', data);
+                if (data.success) {
+                    console.log('[CALL_WAITER] Success! Request ID:', data.request_id, 'Waiter ID:', data.waiter_id);
+                    
+                    // Update last call time
+                    lastCallTime = Date.now();
+                    
+                    // Show success state temporarily
+                    btn.innerHTML = '<i class="fas fa-check"></i><span>Waiter Notified</span>';
+                    btn.classList.add('success');
+                    showNotification('Waiter has been notified! They will be with you shortly.', 'success');
+                    
+                    // Reset button after 3 seconds
+                    setTimeout(() => {
+                        btn.innerHTML = originalHTML;
+                        btn.classList.remove('success');
+                        btn.disabled = false;
+                    }, 3000);
+                } else if (data.cooldown) {
+                    // Cooldown message from server
+                    console.warn('[CALL_WAITER] Cooldown:', data.message);
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                    showNotification(data.message, 'warning');
+                } else {
+                    console.error('[CALL_WAITER] Failed:', data.message);
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                    showNotification(data.message || 'Failed to call waiter', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('[CALL_WAITER] Error:', error);
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                showNotification(error.message || 'Error calling waiter. Please restart the server.', 'error');
+            });
+        }
+        
+        function checkWaiterCallStatus() {
+            // No longer needed - button resets automatically
+            return;
+        }
+        
+        function resetWaiterCallButton() {
+            // No longer needed - button resets automatically
+            return;
+        }
+        
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            let notification = document.getElementById('notification-toast');
+            if (!notification) {
+                notification = document.createElement('div');
+                notification.id = 'notification-toast';
+                notification.className = 'notification-toast';
+                document.body.appendChild(notification);
+            }
+            
+            // Set icon based on type
+            let icon = 'fa-info-circle';
+            if (type === 'success') icon = 'fa-check-circle';
+            if (type === 'error') icon = 'fa-exclamation-circle';
+            if (type === 'warning') icon = 'fa-exclamation-triangle';
+            
+            notification.innerHTML = `<i class="fas ${icon}"></i> ${message}`;
+            notification.className = `notification-toast ${type} show`;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+        
+        // Check for existing pending request on page load
+        
+        // No need to check existing waiter call on page load
+        // Button is always available (with cooldown protection)
     </script>
 </body>
 </html>

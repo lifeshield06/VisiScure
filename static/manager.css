@@ -48,29 +48,47 @@ body {
     top: 0;
     width: var(--sidebar-width);
     height: 100vh;
-    background: linear-gradient(180deg, var(--dark) 0%, #0f172a 100%);
+    background: linear-gradient(180deg, var(--dark) 0%, #506494 100%);
     padding: 0;
     z-index: 1000;
     overflow-y: auto;
 }
 
 .sidebar-brand {
-    padding: 1.5rem;
+    padding: 1.5rem 1rem;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-brand .brand-logo {
+    height: 1000px;
+    width: auto;
+    max-width: 80%;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+.sidebar-brand .brand-text {
+    display: none;
 }
 
 .sidebar-brand i {
     font-size: 2rem;
-    color: var(--primary-light);
+    color: #06b6d4;
+    flex-shrink: 0;
 }
 
 .sidebar-brand span {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 700;
-    color: white;
+    color: #1e293b;
+    line-height: 1.2;
+    white-space: nowrap;
 }
 
 .sidebar-menu {

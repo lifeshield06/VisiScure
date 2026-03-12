@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Playback Test - Waiter Call System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .test-section h2 {
+            color: #667eea;
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 10px 10px 0;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .status {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .file-list {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .file-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-item button {
+            padding: 8px 15px;
+            font-size: 14px;
+            margin: 0;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #e83e8c;
+        }
+        .icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔊 Voice Playback Test</h1>
+        <p class="subtitle">Waiter Call System - gTTS Voice Generation</p>
+
+        <!-- Test 1: Play Generated Files -->
+        <div class="test-section">
+            <h2>📢 Test 1: Play Generated Voice Files</h2>
+            <p>Click the buttons below to play the generated voice announcements:</p>
+            
+            <button onclick="playVoice('call_123.mp3')">
+                🎵 Play "Table 10 is calling waiter"
+            </button>
+            
+            <button onclick="playVoice('call_table_5_20260307_144450.mp3')">
+                🎵 Play "Table 5 is calling waiter"
+            </button>
+            
+            <div id="status1" class="status" style="display: none;"></div>
+        </div>
+
+        <!-- Test 2: Generate New Voice -->
+        <div class="test-section">
+            <h2>🎤 Test 2: Generate New Voice (API Test)</h2>
+            <p>Generate a new voice file for a specific table number:</p>
+            
+            <input type="number" id="tableNumber" placeholder="Enter table number" 
+                   style="padding: 12px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 16px; width: 200px; margin-right: 10px;">
+            
+            <button onclick="generateAndPlay()">
+                🎙️ Generate & Play Voice
+            </button>
+            
+            <div id="status2" class="status" style="display: none;"></div>
+        </div>
+
+        <!-- Test 3: List All Voice Files -->
+        <div class="test-section">
+            <h2>📁 Test 3: Available Voice Files</h2>
+            <p>All generated voice files in the system:</p>
+            
+            <button onclick="listVoiceFiles()">
+                📋 Refresh File List
+            </button>
+            
+            <div id="fileList" class="file-list" style="display: none;"></div>
+        </div>
+
+        <!-- Test 4: Volume Control -->
+        <div class="test-section">
+            <h2>🔊 Test 4: Volume Control</h2>
+            <p>Adjust the playback volume:</p>
+            
+            <input type="range" id="volumeControl" min="0" max="100" value="100" 
+                   style="width: 300px; margin-right: 15px;" 
+                   oninput="updateVolume(this.value)">
+            <span id="volumeLabel">100%</span>
+            
+            <div id="status4" class="status info" style="display: block; margin-top: 15px;">
+                Current volume: <strong>100%</strong>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="test-section">
+            <h2>ℹ️ How to Use</h2>
+            <ol>
+                <li>Click any "Play" button to hear the voice announcement</li>
+                <li>Enter a table number and click "Generate & Play" to create a new voice file</li>
+                <li>Adjust volume using the slider</li>
+                <li>Check browser console (F12) for detailed logs</li>
+            </ol>
+            
+            <p><strong>Note:</strong> Make sure your Flask server is running for API tests to work!</p>
+        </div>
+    </div>
+
+    <script>
+        let audioElement = new Audio();
+        audioElement.volume = 1.0;
+
+        function showStatus(elementId, message, type) {
+            const statusEl = document.getElementById(elementId);
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+            
+            console.log(`[TEST] ${type.toUpperCase()}: ${message}`);
+        }
+
+        function playVoice(filename) {
+            console.log(`[TEST] Playing voice file: ${filename}`);
+            
+            const url = `/static/sounds/waiter_calls/${filename}`;
+            audioElement.src = url;
+            
+            audioElement.play()
+                .then(() => {
+                    showStatus('status1', `✅ Playing: ${filename}`, 'success');
+                })
+                .catch(err => {
+                    showStatus('status1', `❌ Error playing audio: ${err.message}`, 'error');
+                    console.error('[TEST] Playback error:', err);
+                });
+        }
+
+        async function generateAndPlay() {
+            const tableNumber = document.getElementById('tableNumber').value;
+            
+            if (!tableNumber || tableNumber <= 0) {
+                showStatus('status2', '❌ Please enter a valid table number', 'error');
+                return;
+            }
+            
+            showStatus('status2', `🎙️ Generating voice for Table ${tableNumber}...`, 'info');
+            console.log(`[TEST] Generating voice for table ${tableNumber}`);
+            
+            try {
+                const response = await fetch(`/api/waiter-calls/voice/${tableNumber}`);
+                const data = await response.json();
+                
+                if (data.success && data.voice_url) {
+                    console.log(`[TEST] Voice generated: ${data.voice_url}`);
+                    showStatus('status2', `✅ Voice generated! Playing now...`, 'success');
+                    
+                    audioElement.src = data.voice_url;
+                    await audioElement.play();
+                    
+                    showStatus('status2', `✅ Playing: "Table ${tableNumber} is calling waiter"`, 'success');
+                } else {
+                    showStatus('status2', `❌ Failed: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus('status2', `❌ Error: ${error.message}`, 'error');
+                console.error('[TEST] Generation error:', error);
+            }
+        }
+
+        function listVoiceFiles() {
+            const fileListEl = document.getElementById('fileList');
+            
+            // For demo purposes, show the known files
+            // In production, you'd fetch this from an API endpoint
+            const files = [
+                { name: 'call_123.mp3', size: '18.2 KB' },
+                { name: 'call_table_5_20260307_144450.mp3', size: '18.8 KB' }
+            ];
+            
+            if (files.length === 0) {
+                fileListEl.innerHTML = '<p>No voice files found.</p>';
+            } else {
+                fileListEl.innerHTML = `
+                    <p><strong>${files.length} voice file(s) found:</strong></p>
+                    ${files.map(file => `
+                        <div class="file-item">
+                            <span>🎵 ${file.name} <small>(${file.size})</small></span>
+                            <button onclick="playVoice('${file.name}')">▶️ Play</button>
+                        </div>
+                    `).join('')}
+                `;
+            }
+            
+            fileListEl.style.display = 'block';
+            console.log('[TEST] File list refreshed');
+        }
+
+        function updateVolume(value) {
+            const volume = value / 100;
+            audioElement.volume = volume;
+            document.getElementById('volumeLabel').textContent = `${value}%`;
+            document.getElementById('status4').innerHTML = `Current volume: <strong>${value}%</strong>`;
+            console.log(`[TEST] Volume set to ${value}%`);
+        }
+
+        // Auto-load file list on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('[TEST] Voice Playback Test Page Loaded');
+            console.log('[TEST] Audio element initialized');
+            listVoiceFiles();
+        });
+    </script>
+</body>
+</html>

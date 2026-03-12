@@ -819,19 +819,19 @@ class DashboardStats:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
-            # Get today's revenue (from paid orders)
+            # Get today's revenue (from paid AND completed orders)
             cursor.execute("""
                 SELECT COALESCE(SUM(total_amount), 0) as today_revenue 
                 FROM table_orders 
-                WHERE hotel_id = %s AND payment_status = 'PAID' AND DATE(created_at) = CURDATE()
+                WHERE hotel_id = %s AND payment_status = 'PAID' AND order_status = 'COMPLETED' AND DATE(created_at) = CURDATE()
             """, (hotel_id,))
             today_revenue = float(cursor.fetchone()['today_revenue'])
             
-            # Get total revenue (all time from paid orders)
+            # Get total revenue (all time from paid AND completed orders)
             cursor.execute("""
                 SELECT COALESCE(SUM(total_amount), 0) as total_revenue 
                 FROM table_orders 
-                WHERE hotel_id = %s AND payment_status = 'PAID'
+                WHERE hotel_id = %s AND payment_status = 'PAID' AND order_status = 'COMPLETED'
             """, (hotel_id,))
             total_revenue = float(cursor.fetchone()['total_revenue'])
             
@@ -932,17 +932,130 @@ class DashboardStats:
         }
 
 
+class RevenueReports:
+    """Class to fetch revenue reporting data"""
+    
+    @staticmethod
+    def get_revenue_summary(hotel_id):
+        """Get revenue summary: today, yesterday, last month, total"""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            
+            # Today's Revenue (PAID and COMPLETED orders only)
+            cursor.execute("""
+                SELECT COALESCE(SUM(total_amount), 0) as revenue 
+                FROM table_orders 
+                WHERE hotel_id = %s AND DATE(created_at) = CURDATE() AND payment_status = 'PAID' AND order_status = 'COMPLETED'
+            """, (hotel_id,))
+            today_revenue = float(cursor.fetchone()['revenue'])
+            
+            # Yesterday's Revenue (PAID and COMPLETED orders only)
+            cursor.execute("""
+                SELECT COALESCE(SUM(total_amount), 0) as revenue 
+                FROM table_orders 
+                WHERE hotel_id = %s AND DATE(created_at) = CURDATE() - INTERVAL 1 DAY AND payment_status = 'PAID' AND order_status = 'COMPLETED'
+            """, (hotel_id,))
+            yesterday_revenue = float(cursor.fetchone()['revenue'])
+            
+            # Last Month Revenue (PAID and COMPLETED orders only)
+            cursor.execute("""
+                SELECT COALESCE(SUM(total_amount), 0) as revenue 
+                FROM table_orders 
+                WHERE hotel_id = %s 
+                AND MONTH(created_at) = MONTH(CURDATE() - INTERVAL 1 MONTH)
+                AND YEAR(created_at) = YEAR(CURDATE() - INTERVAL 1 MONTH)
+                AND payment_status = 'PAID' AND order_status = 'COMPLETED'
+            """, (hotel_id,))
+            last_month_revenue = float(cursor.fetchone()['revenue'])
+            
+            # Total Revenue (all time, PAID and COMPLETED orders only)
+            cursor.execute("""
+                SELECT COALESCE(SUM(total_amount), 0) as revenue 
+                FROM table_orders 
+                WHERE hotel_id = %s AND payment_status = 'PAID' AND order_status = 'COMPLETED'
+            """, (hotel_id,))
+            total_revenue = float(cursor.fetchone()['revenue'])
+            
+            cursor.close()
+            connection.close()
+            
+            return {
+                'today': today_revenue,
+                'yesterday': yesterday_revenue,
+                'last_month': last_month_revenue,
+                'total': total_revenue
+            }
+        except Exception as e:
+            print(f"Error getting revenue summary: {e}")
+            return {'today': 0.0, 'yesterday': 0.0, 'last_month': 0.0, 'total': 0.0}
+    
+    @staticmethod
+    def get_daily_revenue(hotel_id, days=30):
+        """Get daily revenue data for the last N days"""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            
+            cursor.execute("""
+                SELECT 
+                    DATE(created_at) as date,
+                    COUNT(*) as total_orders,
+                    COALESCE(SUM(total_amount), 0) as revenue
+                FROM table_orders 
+                WHERE hotel_id = %s 
+                AND payment_status = 'PAID' AND order_status = 'COMPLETED'
+                AND DATE(created_at) >= CURDATE() - INTERVAL %s DAY
+                GROUP BY DATE(created_at)
+                ORDER BY DATE(created_at) DESC
+            """, (hotel_id, days))
+            
+            daily_data = cursor.fetchall()
+            
+            # Convert date and decimal to serializable format
+            for row in daily_data:
+                row['date'] = str(row['date'])
+                row['revenue'] = float(row['revenue'])
+            
+            cursor.close()
+            connection.close()
+            
+            return daily_data
+        except Exception as e:
+            print(f"Error getting daily revenue: {e}")
+            return []
+
+
 class DailySpecialMenu:
-    """Model for managing daily special menu items"""
+    """Model for managing daily special menu items - supports multiple specials per day"""
     
     @staticmethod
     def create_table():
-        """Create the daily_special_menu table if it doesn't exist"""
+        """Create the today_specials table if it doesn't exist"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor()
             
-            # Create table without foreign key to avoid constraint issues
+            # Create new today_specials table (supports multiple specials per day)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS today_specials (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    hotel_id INT NOT NULL,
+                    dish_name VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    price DECIMAL(10, 2) NOT NULL,
+                    image_path VARCHAR(500) DEFAULT NULL,
+                    special_date DATE NOT NULL,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    display_order INT DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    INDEX idx_hotel_date_active (hotel_id, special_date, is_active)
+                )
+            """)
+            connection.commit()
+            
+            # Also ensure old table exists for backwards compatibility
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS daily_special_menu (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -961,109 +1074,145 @@ class DailySpecialMenu:
             """)
             connection.commit()
             
-            # Check if image_path column exists, add it if missing (for existing tables)
-            try:
-                cursor.execute("""
-                    SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
-                    WHERE TABLE_SCHEMA = DATABASE() 
-                    AND TABLE_NAME = 'daily_special_menu' 
-                    AND COLUMN_NAME = 'image_path'
-                """)
-                column_exists = cursor.fetchone()
-                
-                if not column_exists:
-                    cursor.execute("""
-                        ALTER TABLE daily_special_menu 
-                        ADD COLUMN image_path VARCHAR(500) DEFAULT NULL AFTER price
-                    """)
-                    connection.commit()
-                    print("Added image_path column to daily_special_menu table")
-            except Error as alter_error:
-                print(f"Note: Could not add image_path column: {alter_error}")
-            
             cursor.close()
             connection.close()
             return True
         except Error as e:
-            print(f"Error creating daily_special_menu table: {e}")
+            print(f"Error creating today_specials table: {e}")
             return False
     
     @staticmethod
-    def get_today_special(hotel_id):
-        """Get today's special menu for a hotel"""
+    def get_today_specials(hotel_id):
+        """Get all today's specials for a hotel"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             cursor.execute("""
-                SELECT id, hotel_id, menu_name, description, price, image_path, special_date, is_active
-                FROM daily_special_menu 
+                SELECT id, hotel_id, dish_name, description, price, image_path, special_date, is_active, display_order
+                FROM today_specials 
                 WHERE hotel_id = %s AND special_date = CURDATE() AND is_active = TRUE
+                ORDER BY display_order ASC, created_at ASC
             """, (hotel_id,))
+            specials = cursor.fetchall()
+            cursor.close()
+            connection.close()
+            return specials
+        except Error as e:
+            print(f"Error getting today's specials: {e}")
+            return []
+    
+    @staticmethod
+    def get_today_special(hotel_id):
+        """Get first today's special for backward compatibility"""
+        specials = DailySpecialMenu.get_today_specials(hotel_id)
+        if specials:
+            # Convert dish_name to menu_name for backward compatibility
+            special = specials[0]
+            special['menu_name'] = special.get('dish_name', '')
+            return special
+        return None
+    
+    @staticmethod
+    def get_special_by_id(special_id, hotel_id):
+        """Get a specific special by ID"""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute("""
+                SELECT id, hotel_id, dish_name, description, price, image_path, special_date, is_active
+                FROM today_specials 
+                WHERE id = %s AND hotel_id = %s
+            """, (special_id, hotel_id))
             special = cursor.fetchone()
             cursor.close()
             connection.close()
             return special
         except Error as e:
-            print(f"Error getting today's special: {e}")
+            print(f"Error getting special by id: {e}")
             return None
     
     @staticmethod
-    def add_or_update_special(hotel_id, menu_name, description, price, image_path=None):
-        """Add or update today's special menu for a hotel"""
+    def add_special(hotel_id, dish_name, description, price, image_path=None):
+        """Add a new today's special"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor()
             
-            # First check if a record exists for today
+            # Get next display order
             cursor.execute("""
-                SELECT id, image_path FROM daily_special_menu 
+                SELECT COALESCE(MAX(display_order), 0) + 1 as next_order 
+                FROM today_specials 
                 WHERE hotel_id = %s AND special_date = CURDATE()
             """, (hotel_id,))
-            existing = cursor.fetchone()
+            result = cursor.fetchone()
+            next_order = result[0] if result else 1
             
-            if existing:
-                # Update existing record
-                if image_path:
-                    cursor.execute("""
-                        UPDATE daily_special_menu 
-                        SET menu_name = %s, description = %s, price = %s, image_path = %s, 
-                            is_active = TRUE, updated_at = CURRENT_TIMESTAMP
-                        WHERE hotel_id = %s AND special_date = CURDATE()
-                    """, (menu_name, description, price, image_path, hotel_id))
-                else:
-                    cursor.execute("""
-                        UPDATE daily_special_menu 
-                        SET menu_name = %s, description = %s, price = %s, 
-                            is_active = TRUE, updated_at = CURRENT_TIMESTAMP
-                        WHERE hotel_id = %s AND special_date = CURDATE()
-                    """, (menu_name, description, price, hotel_id))
-            else:
-                # Insert new record
-                cursor.execute("""
-                    INSERT INTO daily_special_menu 
-                    (hotel_id, menu_name, description, price, image_path, special_date, is_active)
-                    VALUES (%s, %s, %s, %s, %s, CURDATE(), TRUE)
-                """, (hotel_id, menu_name, description, price, image_path))
+            cursor.execute("""
+                INSERT INTO today_specials 
+                (hotel_id, dish_name, description, price, image_path, special_date, is_active, display_order)
+                VALUES (%s, %s, %s, %s, %s, CURDATE(), TRUE, %s)
+            """, (hotel_id, dish_name, description, price, image_path, next_order))
             
+            special_id = cursor.lastrowid
             connection.commit()
             cursor.close()
             connection.close()
             
-            return {'success': True, 'message': "Today's special menu saved successfully!"}
+            return {'success': True, 'message': "Special dish added successfully!", 'id': special_id}
         except Error as e:
-            print(f"Error saving special menu: {e}")
+            print(f"Error adding special: {e}")
             return {'success': False, 'message': f'Database error: {str(e)}'}
     
     @staticmethod
+    def update_special(special_id, hotel_id, dish_name, description, price, image_path=None):
+        """Update an existing special"""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor()
+            
+            if image_path:
+                cursor.execute("""
+                    UPDATE today_specials 
+                    SET dish_name = %s, description = %s, price = %s, image_path = %s, 
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s AND hotel_id = %s
+                """, (dish_name, description, price, image_path, special_id, hotel_id))
+            else:
+                cursor.execute("""
+                    UPDATE today_specials 
+                    SET dish_name = %s, description = %s, price = %s, 
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s AND hotel_id = %s
+                """, (dish_name, description, price, special_id, hotel_id))
+            
+            connection.commit()
+            affected = cursor.rowcount
+            cursor.close()
+            connection.close()
+            
+            if affected > 0:
+                return {'success': True, 'message': "Special dish updated successfully!"}
+            return {'success': False, 'message': 'Special not found'}
+        except Error as e:
+            print(f"Error updating special: {e}")
+            return {'success': False, 'message': f'Database error: {str(e)}'}
+    
+    @staticmethod
+    def add_or_update_special(hotel_id, menu_name, description, price, image_path=None):
+        """Add or update - for backward compatibility, adds a new special"""
+        return DailySpecialMenu.add_special(hotel_id, menu_name, description, price, image_path)
+    
+    @staticmethod
     def update_special_image(hotel_id, image_path):
-        """Update only the image for today's special"""
+        """Update image for the most recent special - backward compatibility"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor()
             cursor.execute("""
-                UPDATE daily_special_menu 
+                UPDATE today_specials 
                 SET image_path = %s, updated_at = CURRENT_TIMESTAMP
-                WHERE hotel_id = %s AND special_date = CURDATE()
+                WHERE hotel_id = %s AND special_date = CURDATE() AND is_active = TRUE
+                ORDER BY created_at DESC LIMIT 1
             """, (image_path, hotel_id))
             connection.commit()
             affected = cursor.rowcount
@@ -1072,26 +1221,49 @@ class DailySpecialMenu:
             
             if affected > 0:
                 return {'success': True, 'message': 'Image updated successfully!'}
-            return {'success': False, 'message': 'No special menu found for today'}
+            return {'success': False, 'message': 'No special found for today'}
         except Error as e:
             print(f"Error updating special image: {e}")
             return {'success': False, 'message': f'Database error: {str(e)}'}
     
     @staticmethod
-    def delete_today_special(hotel_id):
-        """Delete/deactivate today's special menu"""
+    def delete_special(special_id, hotel_id):
+        """Delete a specific special by ID"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor()
             cursor.execute("""
-                UPDATE daily_special_menu 
+                UPDATE today_specials 
+                SET is_active = FALSE 
+                WHERE id = %s AND hotel_id = %s
+            """, (special_id, hotel_id))
+            connection.commit()
+            affected = cursor.rowcount
+            cursor.close()
+            connection.close()
+            
+            if affected > 0:
+                return {'success': True, 'message': "Special dish removed!"}
+            return {'success': False, 'message': 'Special not found'}
+        except Error as e:
+            print(f"Error deleting special: {e}")
+            return {'success': False, 'message': f'Database error: {str(e)}'}
+    
+    @staticmethod
+    def delete_today_special(hotel_id):
+        """Delete/deactivate all today's specials - backward compatibility"""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor()
+            cursor.execute("""
+                UPDATE today_specials 
                 SET is_active = FALSE 
                 WHERE hotel_id = %s AND special_date = CURDATE()
             """, (hotel_id,))
             connection.commit()
             cursor.close()
             connection.close()
-            return {'success': True, 'message': "Today's special menu removed!"}
+            return {'success': True, 'message': "All today's specials removed!"}
         except Error as e:
-            print(f"Error deleting special menu: {e}")
+            print(f"Error deleting specials: {e}")
             return {'success': False, 'message': f'Database error: {str(e)}'}

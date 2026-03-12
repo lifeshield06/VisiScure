@@ -77,18 +77,17 @@ def migrate_existing_orders():
                 if not dish_id:
                     continue
                 
-                # Get category_id and kitchen_section_id for this dish
+                # Get category_id and kitchen_id directly from the dish
                 cursor.execute("""
-                    SELECT d.category_id, kcm.kitchen_section_id
-                    FROM menu_dishes d
-                    LEFT JOIN kitchen_category_mapping kcm ON d.category_id = kcm.category_id
-                    WHERE d.id = %s
+                    SELECT category_id, kitchen_id
+                    FROM menu_dishes
+                    WHERE id = %s
                     LIMIT 1
                 """, (dish_id,))
                 
                 dish_info = cursor.fetchone()
                 category_id = dish_info['category_id'] if dish_info else None
-                kitchen_section_id = dish_info['kitchen_section_id'] if dish_info else None
+                kitchen_section_id = dish_info['kitchen_id'] if dish_info else None
                 
                 # Insert into order_items
                 cursor.execute("""

@@ -24,6 +24,23 @@ def verification_dashboard(manager_id):
     # Get all verifications for this hotel
     verifications = GuestVerification.get_verifications_by_hotel(hotel_id)
     
+    # Fetch hotel name and logo
+    hotel_name = session.get('hotel_name')
+    hotel_logo = None
+    if hotel_id:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
+            result = cursor.fetchone()
+            if result:
+                hotel_name = result[0]
+                hotel_logo = result[1]
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"Error fetching hotel data: {e}")
+    
     # Generate QR code for public form (using hotel_id for hotel-specific form)
     public_url = f"{request.url_root}guest-verification/form/{manager_id}?hotel_id={hotel_id}"
     
@@ -42,6 +59,8 @@ def verification_dashboard(manager_id):
     return render_template('verification_dashboard.html', 
                          manager_id=manager_id,
                          hotel_id=hotel_id,
+                         hotel_name=hotel_name,
+                         hotel_logo=hotel_logo,
                          verifications=verifications,
                          public_url=public_url,
                          qr_code=qr_code_base64)
@@ -58,25 +77,28 @@ def public_form(manager_id):
         except (ValueError, TypeError):
             hotel_id = None
     
-    # Get hotel name if hotel_id is available
+    # Get hotel name and logo if hotel_id is available
     hotel_name = None
+    hotel_logo = None
     if hotel_id:
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT hotel_name FROM hotels WHERE id = %s", (hotel_id,))
+            cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
             result = cursor.fetchone()
             if result:
                 hotel_name = result[0]
+                hotel_logo = result[1]
             cursor.close()
             conn.close()
         except Exception as e:
-            print(f"Error fetching hotel name: {e}")
+            print(f"Error fetching hotel data: {e}")
     
     return render_template('guest_verification_form.html', 
                          manager_id=manager_id, 
                          hotel_id=hotel_id,
-                         hotel_name=hotel_name)
+                         hotel_name=hotel_name,
+                         hotel_logo=hotel_logo)
 
 @guest_verification_bp.route('/submit/<int:manager_id>', methods=['POST'])
 def submit_verification(manager_id):
@@ -108,9 +130,28 @@ def submit_verification(manager_id):
         
         # Validate phone: exactly 10 digits, numbers only
         if not phone.isdigit() or len(phone) != 10:
+            # Fetch hotel data for error display
+            hotel_name = None
+            hotel_logo = None
+            if hotel_id:
+                try:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
+                    result = cursor.fetchone()
+                    if result:
+                        hotel_name = result[0]
+                        hotel_logo = result[1]
+                    cursor.close()
+                    conn.close()
+                except Exception as e:
+                    print(f"Error fetching hotel data: {e}")
+            
             return render_template('guest_verification_form.html', 
                                  manager_id=manager_id, 
                                  hotel_id=hotel_id,
+                                 hotel_name=hotel_name,
+                                 hotel_logo=hotel_logo,
                                  error='Phone number must be exactly 10 digits (numbers only)')
         
         # Check wallet balance BEFORE accepting submission (if hotel_id exists)
@@ -118,10 +159,28 @@ def submit_verification(manager_id):
             from wallet.models import HotelWallet
             balance_check = HotelWallet.check_balance_for_verification(hotel_id)
             if not balance_check.get('sufficient', True):
+                # Fetch hotel data for error display
+                hotel_name = None
+                hotel_logo = None
+                try:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
+                    result = cursor.fetchone()
+                    if result:
+                        hotel_name = result[0]
+                        hotel_logo = result[1]
+                    cursor.close()
+                    conn.close()
+                except Exception as e:
+                    print(f"Error fetching hotel data: {e}")
+                
                 return render_template('guest_verification_form.html', 
                                      manager_id=manager_id, 
                                      hotel_id=hotel_id,
-                                     error=f"Cannot submit verification: Insufficient wallet balance. Required: ₹{balance_check.get('charge', 0):.2f}, Available: ₹{balance_check.get('balance', 0):.2f}. Please contact hotel management.")
+                                     hotel_name=hotel_name,
+                                     hotel_logo=hotel_logo,
+                                     error=f"Cannot submit verification: Insufficient wallet balance. Required: ₹{balance_check.get('charge', 0):.2f}, Available: ₹{balance_check.get('balance', 0):.2f}. Please contact restaurant management.")
         
         # Handle file upload
         identity_file = request.files.get('identity_file')
@@ -151,6 +210,23 @@ def submit_verification(manager_id):
             else:
                 print(f"[VERIFICATION] Skipping wallet deduction - hotel_id={hotel_id}, verification_id={verification_id}")
             
+            # Fetch hotel data for success page
+            success_hotel_name = None
+            success_hotel_logo = None
+            if hotel_id:
+                try:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
+                    result_data = cursor.fetchone()
+                    if result_data:
+                        success_hotel_name = result_data[0]
+                        success_hotel_logo = result_data[1]
+                    cursor.close()
+                    conn.close()
+                except Exception as e:
+                    print(f"Error fetching hotel data for success: {e}")
+            
             # Log activity with hotel_id
             if hotel_id:
                 try:
@@ -166,19 +242,61 @@ def submit_verification(manager_id):
                 except Exception as e:
                     print(f"Error logging activity: {e}")
             
-            return render_template('verification_success.html')
+            return render_template('verification_success.html',
+                                 hotel_name=success_hotel_name,
+                                 hotel_logo=success_hotel_logo)
         else:
+            # Fetch hotel data for error display
+            hotel_name = None
+            hotel_logo = None
+            if hotel_id:
+                try:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
+                    result = cursor.fetchone()
+                    if result:
+                        hotel_name = result[0]
+                        hotel_logo = result[1]
+                    cursor.close()
+                    conn.close()
+                except Exception as e:
+                    print(f"Error fetching hotel data: {e}")
+            
             return render_template('guest_verification_form.html', 
                                  manager_id=manager_id,
                                  hotel_id=hotel_id,
+                                 hotel_name=hotel_name,
+                                 hotel_logo=hotel_logo,
                                  error=result['message'])
     
     except Exception as e:
         print(f"Error in submit_verification: {e}")
         import traceback
         traceback.print_exc()
+        
+        # Fetch hotel data for error display
+        hotel_name = None
+        hotel_logo = None
+        if hotel_id:
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
+                result = cursor.fetchone()
+                if result:
+                    hotel_name = result[0]
+                    hotel_logo = result[1]
+                cursor.close()
+                conn.close()
+            except Exception as ex:
+                print(f"Error fetching hotel data: {ex}")
+        
         return render_template('guest_verification_form.html', 
-                             manager_id=manager_id, 
+                             manager_id=manager_id,
+                             hotel_id=hotel_id,
+                             hotel_name=hotel_name,
+                             hotel_logo=hotel_logo,
                              error=f"Error: {str(e)}")
 
 @guest_verification_bp.route('/update-status', methods=['POST'])
@@ -282,3 +400,141 @@ def api_get_qr_code(manager_id):
         'qr_code': qr_code_base64,
         'public_url': public_url
     })
+
+@guest_verification_bp.route('/api/send-otp', methods=['POST'])
+def send_otp():
+    """API endpoint to send OTP to phone number"""
+    try:
+        from .otp_service import OTPService
+        
+        data = request.json
+        phone_number = data.get('phone_number', '').strip()
+        hotel_id = data.get('hotel_id') or session.get('hotel_id')
+        
+        print("\n" + "="*70)
+        print("SEND OTP REQUEST RECEIVED")
+        print("="*70)
+        print(f"[ROUTE] Original Input: {phone_number}")
+        print(f"[ROUTE] Hotel ID: {hotel_id}")
+        print(f"[ROUTE] Input Length: {len(phone_number)}")
+        print(f"[ROUTE] Is Digit: {phone_number.isdigit()}")
+        
+        # Validate phone number
+        if not phone_number or not phone_number.isdigit() or len(phone_number) != 10:
+            print(f"[ROUTE] ❌ Validation Failed")
+            print(f"[ROUTE] Expected: 10-digit number")
+            print(f"[ROUTE] Got: {phone_number}")
+            print("="*70 + "\n")
+            return jsonify({
+                'success': False,
+                'message': 'Invalid phone number. Please enter a valid 10-digit number.'
+            }), 400
+        
+        # Get hotel name from database
+        hotel_name = "Tip Top Restaurant"  # Default
+        if hotel_id:
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT hotel_name FROM hotels WHERE id = %s", (hotel_id,))
+                result = cursor.fetchone()
+                if result:
+                    hotel_name = result[0]
+                    print(f"[ROUTE] Found hotel name: {hotel_name}")
+                cursor.close()
+                conn.close()
+            except Exception as e:
+                print(f"[ROUTE] Error fetching hotel name: {e}")
+        
+        print(f"[ROUTE] ✅ Validation Passed")
+        print(f"[ROUTE] Using hotel name: {hotel_name}")
+        print(f"[ROUTE] Calling OTPService.send_otp('{phone_number}', '{hotel_name}')")
+        print("="*70)
+        
+        # Send OTP with hotel name
+        result = OTPService.send_otp(phone_number, hotel_name)
+        
+        print("\n" + "="*70)
+        print("SEND OTP RESULT")
+        print("="*70)
+        print(f"[ROUTE] Success: {result.get('success')}")
+        print(f"[ROUTE] Message: {result.get('message')}")
+        if 'otp_debug' in result:
+            print(f"[ROUTE] 🔐 DEBUG OTP: {result.get('otp_debug')}")
+        print("="*70 + "\n")
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        print(f"\n[ROUTE] ❌ ERROR in send_otp: {e}")
+        import traceback
+        traceback.print_exc()
+        print("\n")
+        return jsonify({
+            'success': False,
+            'message': f'Failed to send OTP: {str(e)}'
+        }), 500
+
+@guest_verification_bp.route('/api/verify-otp', methods=['POST'])
+def verify_otp():
+    """API endpoint to verify OTP"""
+    try:
+        from .otp_service import OTPService
+        
+        data = request.json
+        phone_number = data.get('phone_number', '').strip()
+        otp_code = data.get('otp_code', '').strip()
+        
+        # Validate inputs
+        if not phone_number or not otp_code:
+            return jsonify({
+                'success': False,
+                'message': 'Phone number and OTP are required.'
+            }), 400
+        
+        if not otp_code.isdigit() or len(otp_code) != 6:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid OTP format. Please enter a 6-digit code.'
+            }), 400
+        
+        # Verify OTP
+        result = OTPService.verify_otp(phone_number, otp_code)
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        print(f"Error in verify_otp: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Failed to verify OTP: {str(e)}'
+        }), 500
+
+@guest_verification_bp.route('/api/check-otp-status', methods=['POST'])
+def check_otp_status():
+    """API endpoint to check if phone number has verified OTP"""
+    try:
+        from .otp_service import OTPService
+        
+        data = request.json
+        phone_number = data.get('phone_number', '').strip()
+        
+        if not phone_number:
+            return jsonify({
+                'success': False,
+                'message': 'Phone number is required.'
+            }), 400
+        
+        # Check OTP status
+        result = OTPService.check_verification_status(phone_number)
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        print(f"Error in check_otp_status: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Failed to check OTP status: {str(e)}'
+        }), 500

@@ -115,7 +115,10 @@ def format_dish(dish_row):
         "description": dish_row.get('description', ''),
         "images": images_list,
         "image_urls": image_urls,
-        "category_id": dish_row.get('category_id')
+        "category_id": dish_row.get('category_id'),
+        "kitchen_id": dish_row.get('kitchen_id'),
+        "cgst": float(dish_row.get('cgst', 2.50) or 2.50),
+        "sgst": float(dish_row.get('sgst', 2.50) or 2.50)
     }
 
 @menu_bp.route("/menu")
@@ -139,6 +142,28 @@ def get_categories():
     categories = {cat['id']: cat['name'] for cat in categories_list}
     return jsonify({"success": True, "categories": categories})
 
+@menu_bp.route("/api/kitchens")
+def get_kitchens_for_menu():
+    """Get all active kitchens for the hotel to populate the Assign Kitchen dropdown"""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({"success": False, "message": "Hotel not found"}), 400
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT id, section_name as name FROM kitchen_sections WHERE hotel_id = %s AND is_active = TRUE ORDER BY section_name",
+            (hotel_id,)
+        )
+        kitchens = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify({"success": True, "kitchens": kitchens})
+    except Exception as e:
+        print(f"Error fetching kitchens: {e}")
+        return jsonify({"success": False, "message": "Error fetching kitchens"})
+
 @menu_bp.route("/api/dishes/<int:category_id>")
 def get_dishes(category_id):
     hotel_id = session.get('hotel_id')
@@ -160,10 +185,24 @@ def add_dish():
     
     try:
         category_id = int(request.form.get("category_id", 0))
+        kitchen_id = request.form.get("kitchen_id", "").strip()
+        kitchen_id = int(kitchen_id) if kitchen_id else None
         name = request.form.get("name", "").strip()
         price_str = request.form.get("price", "0").strip()
         quantity_str = request.form.get("quantity", "").strip()
         description = request.form.get("description", "").strip()
+        cgst_str = request.form.get("cgst", "2.5").strip()
+        sgst_str = request.form.get("sgst", "2.5").strip()
+        
+        # Parse tax values
+        try:
+            cgst = float(cgst_str) if cgst_str else 2.50
+        except ValueError:
+            cgst = 2.50
+        try:
+            sgst = float(sgst_str) if sgst_str else 2.50
+        except ValueError:
+            sgst = 2.50
         
         # Validation
         if not name:
@@ -202,7 +241,10 @@ def add_dish():
             price=price,
             quantity=quantity,
             description=description,
-            images=[]  # Empty list initially
+            images=[],  # Empty list initially
+            kitchen_id=kitchen_id,
+            cgst=cgst,
+            sgst=sgst
         )
         
         if not result.get("success"):
@@ -225,7 +267,10 @@ def add_dish():
                 quantity=quantity,
                 description=description,
                 images=images,  # Pass as list
-                hotel_id=hotel_id
+                hotel_id=hotel_id,
+                kitchen_id=kitchen_id,
+                cgst=cgst,
+                sgst=sgst
             )
         
         # Create response dish
@@ -253,10 +298,24 @@ def edit_dish():
     
     try:
         dish_id = int(request.form.get("dish_id", 0))
+        kitchen_id = request.form.get("kitchen_id", "").strip()
+        kitchen_id = int(kitchen_id) if kitchen_id else None
         name = request.form.get("name", "").strip()
         price_str = request.form.get("price", "0").strip()
         quantity_str = request.form.get("quantity", "0").strip()
         description = request.form.get("description", "").strip()
+        cgst_str = request.form.get("cgst", "2.5").strip()
+        sgst_str = request.form.get("sgst", "2.5").strip()
+        
+        # Parse tax values
+        try:
+            cgst = float(cgst_str) if cgst_str else 2.50
+        except ValueError:
+            cgst = 2.50
+        try:
+            sgst = float(sgst_str) if sgst_str else 2.50
+        except ValueError:
+            sgst = 2.50
         
         # Validation
         if not name:
@@ -323,7 +382,10 @@ def edit_dish():
             quantity=quantity,
             description=description,
             images=images_list,  # Pass as list
-            hotel_id=hotel_id
+            hotel_id=hotel_id,
+            kitchen_id=kitchen_id,
+            cgst=cgst,
+            sgst=sgst
         )
         
         if success:
@@ -613,7 +675,7 @@ def get_public_menu(table_id):
 
 @menu_bp.route("/api/public-daily-special/<int:table_id>")
 def get_public_daily_special(table_id):
-    """Public API to get today's daily special for a table - no login required"""
+    """Public API to get today's daily specials for a table - no login required"""
     try:
         from orders.table_models import Table
         from hotel_manager.models import DailySpecialMenu
@@ -627,20 +689,31 @@ def get_public_daily_special(table_id):
         if not hotel_id:
             return jsonify({"success": False, "message": "Hotel not configured for this table"}), 400
         
-        # Get today's special for this hotel
-        special = DailySpecialMenu.get_today_special(hotel_id)
+        # Get all today's specials for this hotel
+        specials = DailySpecialMenu.get_today_specials(hotel_id)
         
-        if special:
-            return jsonify({
-                "success": True, 
-                "special": {
-                    "menu_name": special['menu_name'],
-                    "description": special['description'],
-                    "price": float(special['price']),
-                    "image_path": special.get('image_path')
-                }
+        # Format specials for API response
+        formatted_specials = []
+        for special in specials:
+            formatted_specials.append({
+                "id": special['id'],
+                "dish_name": special['dish_name'],
+                "menu_name": special['dish_name'],  # backward compatibility
+                "description": special['description'],
+                "price": float(special['price']),
+                "image_path": special.get('image_path')
             })
-        return jsonify({"success": True, "special": None})
+        
+        # Also return single 'special' for backward compatibility
+        single_special = formatted_specials[0] if formatted_specials else None
+        
+        return jsonify({
+            "success": True, 
+            "specials": formatted_specials,
+            "special": single_special  # backward compatibility
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
     except Exception as e:
         return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 

@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>{{ section_name }} - Kitchen</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #f59e0b;
+            --primary-dark: #d97706;
+            --secondary: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Mobile App Container */
+        .mobile-app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 80px;
+        }
+        
+        /* Compact Top Bar */
+        .app-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .kitchen-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        
+        .kitchen-info h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.15rem;
+        }
+        
+        .kitchen-info p {
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .icon-btn:active {
+            transform: scale(0.95);
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* Quick Stats Row */
+        .quick-stats {
+            display: flex;
+            gap: 0.75rem;
+            padding: 1rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        
+        .quick-stats::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .stat-pill {
+            min-width: 110px;
+            background: white;
+            border-radius: 16px;
+            padding: 1rem 0.75rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .stat-pill:active {
+            transform: scale(0.98);
+        }
+        
+        .stat-pill i {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .stat-pill span {
+            display: block;
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-pill label {
+            font-size: 0.7rem;
+            color: var(--gray-500);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .active-stat { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+        .active-stat i { color: var(--warning); }
+        .active-stat span { color: var(--warning); }
+        
+        .preparing-stat { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+        .preparing-stat i { color: var(--secondary); }
+        .preparing-stat span { color: var(--secondary); }
+        
+        .ready-stat { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+        .ready-stat i { color: var(--success); }
+        .ready-stat span { color: var(--success); }
+        
+        /* Main Content */
+        .app-content {
+            flex: 1;
+            padding: 0 1rem 1rem;
+        }
+        
+        /* Category Sections */
+        .category-section {
+            background: white;
+            border-radius: 16px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--gray-100);
+        }
+        
+        .section-header h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray-800);
+        }
+        
+        .section-header h2 i {
+            color: var(--primary);
+        }
+        
+        .badge {
+            background: var(--gray-100);
+            color: var(--gray-600);
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        /* Order Cards */
+        .order-card {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid;
+            transition: all 0.2s;
+        }
+        
+        .order-card:active {
+            transform: scale(0.99);
+        }
+        
+        .order-card.active { border-color: var(--warning); }
+        .order-card.preparing { border-color: var(--secondary); }
+        .order-card.ready { border-color: var(--success); }
+        
+        .order-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 0.75rem;
+        }
+        
+        .order-info h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.25rem;
+        }
+        
+        .order-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+        
+        .order-meta i {
+            font-size: 0.75rem;
+        }
+        
+        .status-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            white-space: nowrap;
+        }
+        
+        .status-badge.active {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-badge.preparing {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .status-badge.ready {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .order-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .detail-box {
+            background: white;
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .detail-label {
+            font-size: 0.7rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+        
+        .detail-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+        
+        .detail-value.time {
+            font-size: 0.9rem;
+        }
+        
+        /* Action Buttons */
+        .order-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: 0.85rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, var(--secondary), #2563eb);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-ready {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
+        .ready-indicator {
+            flex: 1;
+            padding: 0.85rem;
+            background: #d1fae5;
+            color: #065f46;
+            border-radius: 10px;
+            font-weight: 600;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--gray-400);
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        .empty-state p {
+            font-size: 0.95rem;
+        }
+        
+        /* Loading State */
+        .loading-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--gray-400);
+        }
+        
+        .loading-state i {
+            font-size: 2rem;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Bottom Actions Bar */
+        .bottom-actions {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 0.75rem 1rem;
+            display: flex;
+            gap: 0.5rem;
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+            z-index: 90;
+        }
+        
+        .action-card {
+            flex: 1;
+            background: var(--gray-50);
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.35rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .action-card:active {
+            transform: scale(0.95);
+            background: var(--gray-100);
+        }
+        
+        .action-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+        
+        .active-icon {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: var(--warning);
+        }
+        
+        .preparing-icon {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: var(--secondary);
+        }
+        
+        .ready-icon {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: var(--success);
+        }
+        
+        .refresh-icon {
+            background: linear-gradient(135deg, var(--gray-200), var(--gray-300));
+            color: var(--gray-600);
+        }
+        
+        .action-card span {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+        
+        .action-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: var(--danger);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.15rem 0.4rem;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+        }
+        
+        .action-badge.warning {
+            background: var(--warning);
+        }
+        
+        .action-badge.success {
+            background: var(--success);
+        }
+        
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--gray-900);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .toast.success {
+            background: var(--success);
+        }
+        
+        .toast.error {
+            background: var(--danger);
+        }
+        
+        .toast-icon {
+            font-size: 1.25rem;
+        }
+        
+        .toast-message {
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile App Container -->
+    <div class="mobile-app">
+        
+        <!-- Compact Top Bar -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="kitchen-icon">
+                    {% if hotel_logo and logo_file_exists(hotel_logo) %}
+                        <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel_logo) }}" 
+                             alt="{{ hotel_name or 'Hotel' }} Logo" 
+                             style="width: 100%; height: 100%; object-fit: contain; border-radius: 10px;">
+                    {% else %}
+                        <i class="fas fa-fire-burner"></i>
+                    {% endif %}
+                </div>
+                <div class="kitchen-info">
+                    <h1>{{ hotel_name or section_name }}</h1>
+                    <p>{{ section_name }} - Kitchen</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="icon-btn" onclick="loadOrders()" id="refreshBtn">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <a href="/" class="icon-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Quick Stats Row -->
+        <div class="quick-stats">
+            <div class="stat-pill active-stat" onclick="scrollToSection('active-section')">
+                <i class="fas fa-clock"></i>
+                <span id="stat-active">0</span>
+                <label>Active</label>
+            </div>
+            <div class="stat-pill preparing-stat" onclick="scrollToSection('preparing-section')">
+                <i class="fas fa-fire"></i>
+                <span id="stat-preparing">0</span>
+                <label>Preparing</label>
+            </div>
+            <div class="stat-pill ready-stat" onclick="scrollToSection('ready-section')">
+                <i class="fas fa-check-circle"></i>
+                <span id="stat-ready">0</span>
+                <label>Ready</label>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="app-content" id="orders-container">
+            <div class="loading-state">
+                <i class="fas fa-spinner"></i>
+                <p>Loading orders...</p>
+            </div>
+        </main>
+
+        <!-- Bottom Actions Bar -->
+        <nav class="bottom-actions">
+            <button class="action-card" onclick="scrollToSection('active-section')">
+                <div class="action-icon active-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <span>Active</span>
+                <div class="action-badge warning" id="active-badge">0</div>
+            </button>
+            <button class="action-card" onclick="scrollToSection('preparing-section')">
+                <div class="action-icon preparing-icon">
+                    <i class="fas fa-fire"></i>
+                </div>
+                <span>Preparing</span>
+                <div class="action-badge" id="preparing-badge">0</div>
+            </button>
+            <button class="action-card" onclick="scrollToSection('ready-section')">
+                <div class="action-icon ready-icon">
+                    <i class="fas fa-check"></i>
+                </div>
+                <span>Ready</span>
+                <div class="action-badge success" id="ready-badge">0</div>
+            </button>
+            <button class="action-card" onclick="loadOrders()">
+                <div class="action-icon refresh-icon">
+                    <i class="fas fa-sync-alt"></i>
+                </div>
+                <span>Refresh</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="toast-icon fas fa-check-circle"></i>
+        <span class="toast-message">Success!</span>
+    </div>
+
+    <script>
+        const sectionId = {{ section_id }};
+        let autoRefreshInterval;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadOrders();
+            startAutoRefresh();
+        });
+        
+        function startAutoRefresh() {
+            autoRefreshInterval = setInterval(loadOrders, 15000); // 15 seconds
+        }
+        
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        }
+        
+        function scrollToSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        
+        function loadOrders() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (refreshBtn) {
+                refreshBtn.querySelector('i').style.animation = 'spin 1s linear infinite';
+            }
+            
+            fetch(`/orders/api/kitchen-section-orders/${sectionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (refreshBtn) {
+                        refreshBtn.querySelector('i').style.animation = '';
+                    }
+                    
+                    if (data.success) {
+                        displayOrders(data.orders_by_category, data.stats);
+                    } else {
+                        document.getElementById('orders-container').innerHTML = 
+                            `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>${data.message}</p></div>`;
+                    }
+                })
+                .catch(error => {
+                    if (refreshBtn) {
+                        refreshBtn.querySelector('i').style.animation = '';
+                    }
+                    console.error('Error loading orders:', error);
+                    document.getElementById('orders-container').innerHTML = 
+                        '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Error loading orders</p></div>';
+                });
+        }
+        
+        function displayOrders(ordersByCategory, stats) {
+            // Update stats
+            document.getElementById('stat-active').textContent = stats.active || 0;
+            document.getElementById('stat-preparing').textContent = stats.preparing || 0;
+            document.getElementById('stat-ready').textContent = stats.ready || 0;
+            
+            document.getElementById('active-badge').textContent = stats.active || 0;
+            document.getElementById('preparing-badge').textContent = stats.preparing || 0;
+            document.getElementById('ready-badge').textContent = stats.ready || 0;
+            
+            const container = document.getElementById('orders-container');
+            
+            if (!ordersByCategory || Object.keys(ordersByCategory).length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><p>No pending orders</p></div>';
+                return;
+            }
+            
+            let html = '';
+            
+            // Group orders by status
+            const ordersByStatus = {
+                'ACTIVE': [],
+                'PREPARING': [],
+                'READY': []
+            };
+            
+            for (const [categoryName, orders] of Object.entries(ordersByCategory)) {
+                orders.forEach(order => {
+                    order.category_name = categoryName;
+                    if (ordersByStatus[order.order_status]) {
+                        ordersByStatus[order.order_status].push(order);
+                    }
+                });
+            }
+            
+            // Render Active Orders
+            if (ordersByStatus['ACTIVE'].length > 0) {
+                html += renderStatusSection('active-section', 'Active Orders', 'clock', ordersByStatus['ACTIVE'], 'warning');
+            }
+            
+            // Render Preparing Orders
+            if (ordersByStatus['PREPARING'].length > 0) {
+                html += renderStatusSection('preparing-section', 'Preparing', 'fire', ordersByStatus['PREPARING'], 'danger');
+            }
+            
+            // Render Ready Orders
+            if (ordersByStatus['READY'].length > 0) {
+                html += renderStatusSection('ready-section', 'Ready to Serve', 'check-circle', ordersByStatus['READY'], 'success');
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function renderStatusSection(id, title, icon, orders, badgeClass) {
+            let html = `
+                <div class="category-section" id="${id}">
+                    <div class="section-header">
+                        <h2><i class="fas fa-${icon}"></i> ${title}</h2>
+                        <span class="badge badge-${badgeClass}">${orders.length}</span>
+                    </div>
+            `;
+            
+            orders.forEach(order => {
+                const statusClass = order.order_status.toLowerCase();
+                const statusIcon = {
+                    'ACTIVE': 'clock',
+                    'PREPARING': 'fire',
+                    'READY': 'check-circle'
+                }[order.order_status] || 'circle';
+                
+                html += `
+                    <div class="order-card ${statusClass}">
+                        <div class="order-card-header">
+                            <div class="order-info">
+                                <h3>${order.item_name}</h3>
+                                <div class="order-meta">
+                                    <span><i class="fas fa-layer-group"></i> ${order.category_name}</span>
+                                    <span><i class="fas fa-table"></i> Table ${order.table_number}</span>
+                                </div>
+                            </div>
+                            <div class="status-badge ${statusClass}">
+                                <i class="fas fa-${statusIcon}"></i>
+                                ${order.order_status}
+                            </div>
+                        </div>
+                        
+                        <div class="order-details">
+                            <div class="detail-box">
+                                <div class="detail-label">Quantity</div>
+                                <div class="detail-value">${order.quantity}</div>
+                            </div>
+                            <div class="detail-box">
+                                <div class="detail-label">Order Time</div>
+                                <div class="detail-value time">${formatTime(order.created_at)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="order-actions">
+                            ${order.order_status === 'ACTIVE' ? `
+                                <button class="action-btn btn-start" onclick="updateStatus(${order.item_id}, 'PREPARING')">
+                                    <i class="fas fa-fire"></i> Start Preparing
+                                </button>
+                            ` : ''}
+                            ${order.order_status === 'PREPARING' ? `
+                                <button class="action-btn btn-ready" onclick="updateStatus(${order.item_id}, 'READY')">
+                                    <i class="fas fa-check"></i> Mark Ready
+                                </button>
+                            ` : ''}
+                            ${order.order_status === 'READY' ? `
+                                <div class="ready-indicator">
+                                    <i class="fas fa-check-circle"></i> Ready for Waiter
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+        
+        function formatTime(timestamp) {
+            if (!timestamp) return 'N/A';
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours}h ${diffMins % 60}m`;
+            return `${Math.floor(diffHours / 24)}d ago`;
+        }
+        
+        function updateStatus(itemId, newStatus) {
+            fetch('/orders/api/update-item-status', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    item_id: itemId,
+                    status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Status updated to ${newStatus}`, 'success');
+                    loadOrders();
+                } else {
+                    showToast(data.message || 'Error updating status', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating status:', error);
+                showToast('Error updating status', 'error');
+            });
+        }
+        
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = toast.querySelector('.toast-icon');
+            const messageEl = toast.querySelector('.toast-message');
+            
+            // Set icon
+            if (type === 'success') {
+                icon.className = 'toast-icon fas fa-check-circle';
+                toast.className = 'toast success';
+            } else if (type === 'error') {
+                icon.className = 'toast-icon fas fa-exclamation-circle';
+                toast.className = 'toast error';
+            }
+            
+            messageEl.textContent = message;
+            
+            // Show toast
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Stop auto-refresh when page is unloaded
+        window.addEventListener('beforeunload', stopAutoRefresh);
+    </script>
+</body>
+</html>
