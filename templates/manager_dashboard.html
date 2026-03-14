@@ -2209,16 +2209,184 @@
             .dashboard-cards-container,
             .wallet-cards-container {
                 grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 0 0.5rem;
             }
 
             .dashboard-card,
             .wallet-card {
                 min-height: 140px;
+                margin: 0;
+                padding: 1.5rem 1rem;
             }
 
             .dashboard-card-value,
             .wallet-card-value {
                 font-size: 1.5rem;
+            }
+
+            /* Wallet & Balance Mobile Improvements */
+            .wallet-card-content {
+                padding: 0;
+                gap: 1rem;
+            }
+
+            .wallet-card-icon {
+                width: 45px;
+                height: 45px;
+            }
+
+            .wallet-card-info {
+                flex: 1;
+            }
+
+            .wallet-card-label {
+                font-size: 0.8rem;
+                margin-bottom: 0.25rem;
+            }
+
+            .wallet-card-footer {
+                margin-top: 1rem;
+                padding-top: 1rem;
+                font-size: 0.75rem;
+            }
+
+            /* Add Balance Section Mobile */
+            .card {
+                margin: 0 0.5rem 1.5rem 0.5rem !important;
+                border-radius: 12px;
+            }
+
+            .card-body .form-row {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+
+            .card-body .btn {
+                width: 100%;
+                padding: 0.875rem 1rem;
+                justify-content: center;
+            }
+
+            .card-body .form-group {
+                margin-bottom: 1rem !important;
+            }
+
+            /* Transaction History Mobile */
+            .card-header {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: stretch;
+            }
+
+            .card-header .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            /* Transaction Table Mobile Responsiveness */
+            #transactions-container {
+                overflow-x: auto;
+                margin: -1rem;
+                padding: 1rem;
+            }
+
+            #transactions-container .data-table {
+                width: 100%;
+                border-collapse: collapse;
+                min-width: 600px;
+                font-size: 0.8rem;
+            }
+
+            #transactions-container .data-table th,
+            #transactions-container .data-table td {
+                padding: 0.5rem 0.25rem;
+                border-bottom: 1px solid #e5e7eb;
+                text-align: left;
+                vertical-align: middle;
+            }
+
+            #transactions-container .data-table th {
+                background: #f8fafc;
+                color: #4a5568;
+                font-weight: 600;
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                position: sticky;
+                top: 0;
+                z-index: 1;
+            }
+
+            #transactions-container .data-table td:nth-child(1) {
+                width: 8%;
+                text-align: center;
+            }
+
+            #transactions-container .data-table td:nth-child(2) {
+                width: 20%;
+                font-size: 0.7rem;
+            }
+
+            #transactions-container .data-table td:nth-child(3) {
+                width: 18%;
+            }
+
+            #transactions-container .data-table td:nth-child(4) {
+                width: 15%;
+                font-weight: 600;
+            }
+
+            #transactions-container .data-table td:nth-child(5) {
+                width: 20%;
+                font-size: 0.7rem;
+            }
+
+            #transactions-container .data-table td:nth-child(6) {
+                width: 19%;
+                font-weight: 600;
+            }
+
+            #transactions-container .data-table tbody tr:hover {
+                background: #f8fafc;
+            }
+
+            /* Today's Special Mobile Responsiveness */
+            .special-section-layout {
+                gap: 1rem;
+                padding: 0 0.5rem;
+            }
+
+            /* Hide the entire Live Preview section on mobile */
+            .pamphlet-preview-card {
+                display: none !important;
+            }
+
+            .daily-special-card {
+                max-width: 100%;
+                margin: 0;
+                padding: 1rem;
+            }
+
+            .special-info-section {
+                margin-top: 1.5rem;
+                padding: 1rem;
+            }
+
+            .form-actions {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .form-actions .btn-primary,
+            .form-actions .btn-secondary {
+                width: 100%;
+                justify-content: center;
+            }
+
+            /* Hide "No specials added" message on mobile */
+            .no-specials-message {
+                display: none !important;
             }
         }
 
@@ -3159,7 +3327,82 @@
                 -webkit-overflow-scrolling: touch !important;
             }
             
-            /* Waiter Tips Section */
+            /* ===== WAITER TIPS SECTION - MOBILE RESPONSIVE ===== */
+            
+            /* Waiter Tips Page Header */
+            #waiter-tips .page-header {
+                padding: 15px 12px !important;
+            }
+            
+            #waiter-tips .page-header h1 {
+                font-size: 20px !important;
+            }
+            
+            #waiter-tips .page-header p {
+                font-size: 14px !important;
+            }
+            
+            /* Tip Visibility Toggle Card - Mobile */
+            #waiter-tips .table-card {
+                padding: 15px !important;
+                margin-bottom: 15px !important;
+                border-radius: 14px !important;
+            }
+            
+            #waiter-tips .table-card > div[style*="display: flex"] {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 15px !important;
+            }
+            
+            #waiter-tips .table-card h3 {
+                font-size: 16px !important;
+                line-height: 1.4 !important;
+            }
+            
+            #waiter-tips .table-card p {
+                font-size: 13px !important;
+                line-height: 1.5 !important;
+            }
+            
+            /* Toggle Switch - Mobile Alignment */
+            .toggle-switch {
+                align-self: flex-end !important;
+            }
+            
+            /* Tip Summary Header - Stack Vertically */
+            #waiter-tips .table-card > div[style*="justify-content: space-between"] {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+            }
+            
+            /* Filter Controls - Stack Vertically */
+            #waiter-tips .table-card div[style*="display: flex"][style*="gap: 0.75rem"] {
+                flex-direction: column !important;
+                width: 100% !important;
+                gap: 10px !important;
+            }
+            
+            /* Dropdown and Button - Full Width */
+            #tip-period-filter {
+                width: 100% !important;
+                padding: 12px 16px !important;
+                font-size: 15px !important;
+                min-height: 48px !important;
+                border-radius: 10px !important;
+            }
+            
+            #waiter-tips .btn-secondary.btn-sm {
+                width: 100% !important;
+                padding: 12px 16px !important;
+                font-size: 15px !important;
+                min-height: 48px !important;
+                justify-content: center !important;
+                border-radius: 10px !important;
+            }
+            
+            /* Tips Grid */
             .tips-grid {
                 grid-template-columns: 1fr !important;
                 gap: 15px !important;
@@ -3170,7 +3413,158 @@
                 border-radius: 14px !important;
             }
             
-            /* Kitchen Management */
+            /* Waiter Tips List */
+            #waiter-tips-list {
+                padding: 0 !important;
+            }
+            
+            /* Empty State - Mobile */
+            #waiter-tips .empty-state {
+                padding: 40px 20px !important;
+                text-align: center !important;
+            }
+            
+            #waiter-tips .empty-state i {
+                font-size: 3rem !important;
+                margin-bottom: 15px !important;
+            }
+            
+            #waiter-tips .empty-state h3 {
+                font-size: 18px !important;
+                margin-bottom: 8px !important;
+            }
+            
+            #waiter-tips .empty-state p {
+                font-size: 14px !important;
+                line-height: 1.5 !important;
+            }
+            
+            /* Tip Cards - Mobile Optimized */
+            .tip-waiter-card {
+                padding: 15px !important;
+                border-radius: 12px !important;
+                margin-bottom: 12px !important;
+            }
+            
+            .tip-waiter-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 10px !important;
+            }
+            
+            .tip-waiter-name {
+                font-size: 16px !important;
+            }
+            
+            .tip-amount {
+                font-size: 20px !important;
+            }
+            
+            .tip-details {
+                flex-direction: column !important;
+                gap: 8px !important;
+                margin-top: 12px !important;
+            }
+            
+            .tip-detail-item {
+                font-size: 13px !important;
+            }
+            
+            /* ===== KITCHEN MANAGEMENT - MOBILE RESPONSIVE ===== */
+            
+            /* Kitchen Management Page Header */
+            #kitchen-management .page-header {
+                padding: 15px 12px !important;
+            }
+            
+            #kitchen-management .page-header h1 {
+                font-size: 20px !important;
+            }
+            
+            #kitchen-management .page-header p {
+                font-size: 14px !important;
+            }
+            
+            /* Form Card - Add New Kitchen */
+            #kitchen-management .form-card {
+                padding: 15px !important;
+                margin-bottom: 20px !important;
+                border-radius: 14px !important;
+            }
+            
+            /* Form Card Header - Stack Vertically */
+            #kitchen-management .form-card > div[style*="display: flex"] {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+            }
+            
+            #kitchen-management .form-card h3 {
+                font-size: 17px !important;
+                margin-bottom: 0 !important;
+            }
+            
+            /* Kitchen Login QR Button - Full Width */
+            #kitchen-management .btn-secondary.btn-sm {
+                width: 100% !important;
+                padding: 12px 16px !important;
+                font-size: 15px !important;
+                min-height: 48px !important;
+                justify-content: center !important;
+                border-radius: 10px !important;
+            }
+            
+            /* Form Group */
+            #kitchen-management .form-group {
+                margin-bottom: 18px !important;
+            }
+            
+            #kitchen-management .form-group label {
+                font-size: 14px !important;
+                margin-bottom: 8px !important;
+            }
+            
+            #kitchen-management .form-group input {
+                padding: 12px 16px !important;
+                font-size: 15px !important;
+                min-height: 48px !important;
+                border-radius: 10px !important;
+            }
+            
+            /* Create Kitchen Button - Full Width */
+            #kitchen-management .btn-primary {
+                width: 100% !important;
+                padding: 14px 20px !important;
+                font-size: 16px !important;
+                min-height: 52px !important;
+                justify-content: center !important;
+                border-radius: 10px !important;
+            }
+            
+            /* Table Card - All Kitchens */
+            #kitchen-management .table-card {
+                padding: 15px !important;
+                border-radius: 14px !important;
+            }
+            
+            /* Table Card Header - Stack Vertically */
+            #kitchen-management .table-card > div[style*="display: flex"] {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+            }
+            
+            #kitchen-management .table-card h3 {
+                font-size: 17px !important;
+                margin-bottom: 0 !important;
+            }
+            
+            /* Refresh Button - Full Width */
+            #kitchen-management .table-card .btn-secondary.btn-sm {
+                width: 100% !important;
+            }
+            
+            /* Kitchen Grid */
             .kitchen-grid {
                 grid-template-columns: 1fr !important;
                 gap: 15px !important;
@@ -3181,10 +3575,1489 @@
                 border-radius: 14px !important;
             }
             
-            /* Table Orders */
+            /* Kitchen List Items */
+            #kitchens-list {
+                padding: 0 !important;
+            }
+            
+            /* Kitchen Item Card */
+            .kitchen-item {
+                padding: 15px !important;
+                border-radius: 12px !important;
+                margin-bottom: 12px !important;
+            }
+            
+            .kitchen-item-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 10px !important;
+            }
+            
+            .kitchen-name {
+                font-size: 16px !important;
+            }
+            
+            /* Kitchen Actions - Wrap Properly */
+            .kitchen-actions {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                width: 100% !important;
+            }
+            
+            .kitchen-actions button {
+                flex: 1 1 calc(33.333% - 6px) !important;
+                min-width: 80px !important;
+                padding: 10px 12px !important;
+                font-size: 13px !important;
+                min-height: 44px !important;
+                justify-content: center !important;
+            }
+            
+            /* Kitchen Details */
+            .kitchen-details {
+                flex-direction: column !important;
+                gap: 8px !important;
+                margin-top: 12px !important;
+            }
+            
+            .kitchen-detail-item {
+                font-size: 13px !important;
+            }
+            
+            /* Kitchen QR Modal - Mobile */
+            #kitchen-qr-modal .modal-content {
+                width: 95% !important;
+                max-width: 95% !important;
+                margin: 10px !important;
+            }
+            
+            #kitchen-qr-modal .modal-body {
+                padding: 20px 15px !important;
+            }
+            
+            #kitchen-qr-modal .modal-body p {
+                font-size: 14px !important;
+            }
+            
+            #kitchen-qr-modal input[type="text"] {
+                font-size: 12px !important;
+                padding: 10px !important;
+            }
+            
+            #kitchen-qr-modal .btn-secondary {
+                padding: 10px 14px !important;
+                font-size: 14px !important;
+            }
+            
+            #kitchen-qr-modal .btn-primary {
+                width: 100% !important;
+                padding: 14px 20px !important;
+                font-size: 15px !important;
+                min-height: 48px !important;
+            }
+            
+            /* Empty State - Kitchen Management */
+            #kitchen-management .empty-state {
+                padding: 40px 20px !important;
+                text-align: center !important;
+            }
+            
+            #kitchen-management .empty-state i {
+                font-size: 3rem !important;
+            }
+            
+            #kitchen-management .empty-state p {
+                font-size: 14px !important;
+            }
+            
+            /* Message Box */
+            #kitchen-form-message {
+                margin-bottom: 15px !important;
+                padding: 12px 14px !important;
+                font-size: 14px !important;
+                border-radius: 10px !important;
+            }
+            
+            /* ===== TABLE ORDERS & BILLS - MOBILE RESPONSIVE ===== */
+            
+            /* Table Orders Page Header */
+            #table-orders .page-header {
+                padding: 15px 12px !important;
+            }
+            
+            #table-orders .page-header h1 {
+                font-size: 20px !important;
+            }
+            
+            #table-orders .page-header p {
+                font-size: 14px !important;
+            }
+            
+            /* Sub-Navigation Tabs - Wrap on Mobile */
+            .sub-nav {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                padding: 0 12px !important;
+                margin-bottom: 20px !important;
+            }
+            
+            .sub-nav-btn {
+                flex: 1 1 calc(50% - 4px) !important;
+                min-width: 140px !important;
+                padding: 12px 14px !important;
+                font-size: 14px !important;
+                min-height: 48px !important;
+                justify-content: center !important;
+                border-radius: 10px !important;
+                white-space: nowrap !important;
+            }
+            
+            .sub-nav-btn i {
+                font-size: 14px !important;
+            }
+            
+            /* View Orders Section */
+            #view-orders .table-card {
+                padding: 15px !important;
+                border-radius: 14px !important;
+            }
+            
+            /* Table Card Header - Stack Vertically */
+            #view-orders .table-card > div[style*="display: flex"] {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+            }
+            
+            #view-orders .table-card h3 {
+                font-size: 17px !important;
+                margin-bottom: 0 !important;
+            }
+            
+            /* Action Buttons Container - Stack Vertically */
+            #view-orders .table-card div[style*="gap: 0.5rem"] {
+                flex-direction: column !important;
+                width: 100% !important;
+                gap: 10px !important;
+            }
+            
+            /* Refresh and Clear Buttons - Full Width */
+            #view-orders .btn-secondary.btn-sm,
+            #view-orders .btn-danger.btn-sm {
+                width: 100% !important;
+                padding: 12px 16px !important;
+                font-size: 15px !important;
+                min-height: 48px !important;
+                justify-content: center !important;
+                border-radius: 10px !important;
+            }
+            
+            /* Orders List */
+            #orders-list {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            
+            /* Active Bills Section */
+            #active-bills .table-card {
+                padding: 15px !important;
+                border-radius: 14px !important;
+            }
+            
+            #active-bills .table-card > div[style*="display: flex"] {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+            }
+            
+            #active-bills .table-card h3 {
+                font-size: 17px !important;
+                margin-bottom: 0 !important;
+            }
+            
+            #active-bills .table-card p {
+                font-size: 13px !important;
+                line-height: 1.5 !important;
+            }
+            
+            #active-bills .btn-secondary.btn-sm {
+                width: 100% !important;
+                padding: 12px 16px !important;
+                font-size: 15px !important;
+                min-height: 48px !important;
+                justify-content: center !important;
+            }
+            
+            /* Active Bills List */
+            #active-bills-list {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            
+            /* Manage Tables Section */
+            #manage-tables .form-card {
+                padding: 15px !important;
+                margin-bottom: 20px !important;
+                border-radius: 14px !important;
+            }
+            
+            #manage-tables .form-card h3 {
+                font-size: 17px !important;
+                margin-bottom: 15px !important;
+            }
+            
+            #manage-tables .form-group {
+                margin-bottom: 18px !important;
+            }
+            
+            #manage-tables .form-group label {
+                font-size: 14px !important;
+                margin-bottom: 8px !important;
+            }
+            
+            #manage-tables .form-group input {
+                padding: 12px 16px !important;
+                font-size: 15px !important;
+                min-height: 48px !important;
+                border-radius: 10px !important;
+            }
+            
+            #manage-tables .btn-primary {
+                width: 100% !important;
+                padding: 14px 20px !important;
+                font-size: 16px !important;
+                min-height: 52px !important;
+                justify-content: center !important;
+                border-radius: 10px !important;
+            }
+            
+            #manage-tables .table-card {
+                padding: 15px !important;
+                border-radius: 14px !important;
+            }
+            
+            #manage-tables .table-card h3 {
+                font-size: 17px !important;
+                margin-bottom: 15px !important;
+            }
+            
+            /* Tables Grid - 2 Columns on Mobile */
             .tables-grid {
                 grid-template-columns: repeat(2, 1fr) !important;
                 gap: 12px !important;
+            }
+            
+            /* Table Card Item - Mobile Optimized */
+            .table-card-item {
+                padding: 12px !important;
+                border-radius: 12px !important;
+                min-height: 180px !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            
+            .table-card-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 6px !important;
+                margin-bottom: 8px !important;
+            }
+            
+            .table-card-header h4 {
+                font-size: 14px !important;
+                margin: 0 !important;
+            }
+            
+            .table-status-badge {
+                font-size: 10px !important;
+                padding: 3px 8px !important;
+                align-self: flex-start !important;
+            }
+            
+            /* QR Preview - Mobile Optimized */
+            .table-qr-preview {
+                flex: 1 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                margin: 8px 0 !important;
+                cursor: pointer !important;
+                transition: transform 0.2s ease !important;
+            }
+            
+            .table-qr-preview:hover {
+                transform: scale(1.05) !important;
+            }
+            
+            .table-qr-preview img {
+                width: 80px !important;
+                height: 80px !important;
+                border-radius: 8px !important;
+                border: 2px solid #e2e8f0 !important;
+            }
+            
+            .table-qr-placeholder {
+                width: 80px !important;
+                height: 80px !important;
+                background: #f3f4f6 !important;
+                border-radius: 8px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                color: #9ca3af !important;
+                font-size: 24px !important;
+            }
+            
+            .table-card-actions {
+                flex-direction: column !important;
+                gap: 6px !important;
+                margin-top: auto !important;
+            }
+            
+            .table-card-actions button {
+                width: 100% !important;
+                padding: 8px 10px !important;
+                font-size: 11px !important;
+                min-height: 36px !important;
+                justify-content: center !important;
+                border-radius: 6px !important;
+            }
+            
+            /* QR Preview Modal */
+            .qr-modal-overlay {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                background: rgba(0, 0, 0, 0.7) !important;
+                z-index: 10000 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                transition: all 0.3s ease !important;
+            }
+            
+            .qr-modal-overlay.show {
+                opacity: 1 !important;
+                visibility: visible !important;
+            }
+            
+            .qr-modal-content {
+                background: white !important;
+                border-radius: 16px !important;
+                padding: 24px !important;
+                max-width: 90% !important;
+                max-height: 90% !important;
+                text-align: center !important;
+                position: relative !important;
+                transform: scale(0.8) !important;
+                transition: transform 0.3s ease !important;
+            }
+            
+            .qr-modal-overlay.show .qr-modal-content {
+                transform: scale(1) !important;
+            }
+            
+            .qr-modal-header {
+                margin-bottom: 16px !important;
+            }
+            
+            .qr-modal-header h3 {
+                margin: 0 !important;
+                color: #1f2937 !important;
+                font-size: 18px !important;
+            }
+            
+            .qr-modal-close {
+                position: absolute !important;
+                top: 12px !important;
+                right: 12px !important;
+                background: #f3f4f6 !important;
+                border: none !important;
+                width: 32px !important;
+                height: 32px !important;
+                border-radius: 50% !important;
+                cursor: pointer !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-size: 18px !important;
+                color: #6b7280 !important;
+                transition: all 0.2s ease !important;
+            }
+            
+            .qr-modal-close:hover {
+                background: #e5e7eb !important;
+                color: #374151 !important;
+            }
+            
+            .qr-modal-image {
+                width: 250px !important;
+                height: 250px !important;
+                border-radius: 12px !important;
+                border: 3px solid #e2e8f0 !important;
+                margin-bottom: 16px !important;
+            }
+            
+            .qr-modal-info {
+                color: #6b7280 !important;
+                font-size: 14px !important;
+                margin-bottom: 16px !important;
+            }
+            
+            .qr-modal-actions {
+                display: flex !important;
+                gap: 12px !important;
+                justify-content: center !important;
+            }
+            
+            .qr-modal-actions button {
+                padding: 10px 20px !important;
+                border-radius: 8px !important;
+                border: none !important;
+                cursor: pointer !important;
+                font-weight: 500 !important;
+                transition: all 0.2s ease !important;
+            }
+            
+            .btn-download-modal {
+                background: #3b82f6 !important;
+                color: white !important;
+            }
+            
+            .btn-download-modal:hover {
+                background: #2563eb !important;
+            }
+            
+            .btn-close-modal {
+                background: #6b7280 !important;
+                color: white !important;
+            }
+            
+            .btn-close-modal:hover {
+                background: #4b5563 !important;
+            }
+            
+            /* ===== MANAGE TABLES - DESKTOP IMPROVEMENTS ===== */
+            @media (min-width: 1024px) {
+                /* Desktop Page Header */
+                #manage-tables .page-header {
+                    padding: 2rem !important;
+                    margin-bottom: 2rem !important;
+                }
+                
+                #manage-tables .page-header h1 {
+                    font-size: 2rem !important;
+                    margin-bottom: 0.5rem !important;
+                }
+                
+                /* Add New Table Section - Desktop Layout */
+                #manage-tables .form-card {
+                    padding: 2rem !important;
+                    margin: 0 2rem 2rem 2rem !important;
+                    border-radius: 16px !important;
+                    max-width: 600px !important;
+                }
+                
+                #manage-tables .form-card h3 {
+                    font-size: 1.25rem !important;
+                    margin-bottom: 1.5rem !important;
+                    color: #1f2937 !important;
+                }
+                
+                /* Horizontal Form Layout */
+                #manage-tables .table-form {
+                    display: flex !important;
+                    align-items: end !important;
+                    gap: 1rem !important;
+                }
+                
+                #manage-tables .form-group {
+                    flex: 1 !important;
+                    margin-bottom: 0 !important;
+                    max-width: 300px !important;
+                }
+                
+                #manage-tables .form-group label {
+                    font-size: 0.9rem !important;
+                    font-weight: 600 !important;
+                    color: #374151 !important;
+                    margin-bottom: 0.5rem !important;
+                    display: block !important;
+                }
+                
+                #manage-tables .form-group input {
+                    width: 100% !important;
+                    padding: 0.75rem 1rem !important;
+                    font-size: 0.95rem !important;
+                    border: 2px solid #e5e7eb !important;
+                    border-radius: 8px !important;
+                    transition: all 0.2s ease !important;
+                }
+                
+                #manage-tables .form-group input:focus {
+                    outline: none !important;
+                    border-color: #3b82f6 !important;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+                }
+                
+                #manage-tables .btn-primary {
+                    flex-shrink: 0 !important;
+                    padding: 0.75rem 1.5rem !important;
+                    font-size: 0.95rem !important;
+                    font-weight: 600 !important;
+                    border-radius: 8px !important;
+                    min-height: auto !important;
+                    white-space: nowrap !important;
+                }
+                
+                /* All Tables Section - Desktop Layout */
+                #manage-tables .table-card {
+                    padding: 2rem !important;
+                    margin: 0 2rem !important;
+                    border-radius: 16px !important;
+                }
+                
+                #manage-tables .table-card h3 {
+                    font-size: 1.25rem !important;
+                    margin-bottom: 1.5rem !important;
+                    color: #1f2937 !important;
+                }
+                
+                /* Desktop Tables Grid */
+                #manage-tables .tables-grid {
+                    display: grid !important;
+                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+                    gap: 1.5rem !important;
+                    padding: 0 !important;
+                }
+                
+                /* Desktop Table Card Items */
+                #manage-tables .table-card-item {
+                    background: white !important;
+                    border: 1px solid #e5e7eb !important;
+                    border-radius: 12px !important;
+                    padding: 1.5rem !important;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+                    transition: all 0.3s ease !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    min-height: 280px !important;
+                }
+                
+                #manage-tables .table-card-item:hover {
+                    transform: translateY(-2px) !important;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+                    border-color: #d1d5db !important;
+                }
+                
+                /* Desktop Table Card Header */
+                #manage-tables .table-card-header {
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    align-items: center !important;
+                    margin-bottom: 1rem !important;
+                    padding-bottom: 0.75rem !important;
+                    border-bottom: 1px solid #f3f4f6 !important;
+                }
+                
+                #manage-tables .table-card-header h4 {
+                    font-size: 1.1rem !important;
+                    font-weight: 600 !important;
+                    color: #1f2937 !important;
+                    margin: 0 !important;
+                    display: flex !important;
+                    align-items: center !important;
+                }
+                
+                #manage-tables .table-status-badge {
+                    font-size: 0.75rem !important;
+                    font-weight: 600 !important;
+                    padding: 0.25rem 0.75rem !important;
+                    border-radius: 12px !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.5px !important;
+                }
+                
+                /* Desktop QR Preview Section */
+                #manage-tables .table-qr-preview {
+                    flex: 1 !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    margin: 1rem 0 !important;
+                    padding: 1rem !important;
+                    background: #f8fafc !important;
+                    border-radius: 8px !important;
+                    cursor: pointer !important;
+                    transition: all 0.2s ease !important;
+                }
+                
+                #manage-tables .table-qr-preview:hover {
+                    background: #f1f5f9 !important;
+                    transform: scale(1.02) !important;
+                }
+                
+                #manage-tables .table-qr-preview img {
+                    width: 120px !important;
+                    height: 120px !important;
+                    border-radius: 8px !important;
+                    border: 2px solid #e5e7eb !important;
+                    background: white !important;
+                }
+                
+                #manage-tables .table-qr-placeholder {
+                    width: 120px !important;
+                    height: 120px !important;
+                    background: #f3f4f6 !important;
+                    border: 2px dashed #d1d5db !important;
+                    border-radius: 8px !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    color: #9ca3af !important;
+                }
+                
+                #manage-tables .table-qr-placeholder i {
+                    font-size: 2rem !important;
+                    margin-bottom: 0.5rem !important;
+                }
+                
+                #manage-tables .table-qr-placeholder small {
+                    font-size: 0.75rem !important;
+                    font-weight: 500 !important;
+                }
+                
+                /* Desktop Table Card Actions */
+                #manage-tables .table-card-actions {
+                    display: flex !important;
+                    gap: 0.75rem !important;
+                    margin-top: auto !important;
+                    padding-top: 1rem !important;
+                    border-top: 1px solid #f3f4f6 !important;
+                }
+                
+                #manage-tables .table-card-actions button {
+                    flex: 1 !important;
+                    padding: 0.6rem 1rem !important;
+                    font-size: 0.85rem !important;
+                    font-weight: 500 !important;
+                    border-radius: 6px !important;
+                    border: none !important;
+                    cursor: pointer !important;
+                    transition: all 0.2s ease !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 0.5rem !important;
+                }
+                
+                #manage-tables .btn-download {
+                    background: #3b82f6 !important;
+                    color: white !important;
+                }
+                
+                #manage-tables .btn-download:hover {
+                    background: #2563eb !important;
+                    transform: translateY(-1px) !important;
+                }
+                
+                #manage-tables .btn-delete-table {
+                    background: #ef4444 !important;
+                    color: white !important;
+                }
+                
+                #manage-tables .btn-delete-table:hover {
+                    background: #dc2626 !important;
+                    transform: translateY(-1px) !important;
+                }
+                
+                /* Desktop Empty State */
+                #manage-tables .empty-state {
+                    grid-column: 1 / -1 !important;
+                    padding: 4rem 2rem !important;
+                    text-align: center !important;
+                    color: #6b7280 !important;
+                }
+                
+                #manage-tables .empty-state i {
+                    font-size: 4rem !important;
+                    margin-bottom: 1rem !important;
+                    opacity: 0.5 !important;
+                }
+                
+                #manage-tables .empty-state h3 {
+                    font-size: 1.5rem !important;
+                    margin-bottom: 0.5rem !important;
+                    color: #374151 !important;
+                }
+                
+                #manage-tables .empty-state p {
+                    font-size: 1rem !important;
+                    color: #6b7280 !important;
+                }
+                
+                /* Responsive Grid Adjustments */
+                @media (min-width: 1200px) {
+                    #manage-tables .tables-grid {
+                        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
+                        gap: 2rem !important;
+                    }
+                }
+                
+                @media (min-width: 1400px) {
+                    #manage-tables .tables-grid {
+                        grid-template-columns: repeat(4, 1fr) !important;
+                    }
+                }
+            }
+            
+            /* Order Cards - Mobile Optimized */
+            .order-card {
+                padding: 15px !important;
+                border-radius: 12px !important;
+                margin-bottom: 12px !important;
+            }
+            
+            .order-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 10px !important;
+            }
+            
+            .order-table-number {
+                font-size: 16px !important;
+            }
+            
+            .order-status {
+                font-size: 12px !important;
+                padding: 6px 12px !important;
+            }
+            
+            .order-items {
+                margin-top: 12px !important;
+            }
+            
+            .order-item {
+                padding: 10px !important;
+                font-size: 13px !important;
+            }
+            
+            .order-actions {
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                margin-top: 12px !important;
+            }
+            
+            .order-actions button {
+                flex: 1 1 calc(50% - 4px) !important;
+                min-width: 120px !important;
+                padding: 10px 12px !important;
+                font-size: 13px !important;
+                min-height: 44px !important;
+            }
+            
+            /* Bill Cards - Mobile Optimized */
+            .bill-card {
+                padding: 15px !important;
+                border-radius: 12px !important;
+                margin-bottom: 12px !important;
+            }
+            
+            .bill-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 10px !important;
+            }
+            
+            .bill-table {
+                font-size: 16px !important;
+            }
+            
+            .bill-amount {
+                font-size: 20px !important;
+            }
+            
+            .bill-details {
+                flex-direction: column !important;
+                gap: 8px !important;
+                margin-top: 12px !important;
+            }
+            
+            .bill-detail-item {
+                font-size: 13px !important;
+            }
+            
+            .bill-actions {
+                flex-direction: column !important;
+                gap: 10px !important;
+                margin-top: 12px !important;
+            }
+            
+            .bill-actions button {
+                width: 100% !important;
+                padding: 12px 16px !important;
+                font-size: 14px !important;
+                min-height: 48px !important;
+                justify-content: center !important;
+            }
+            
+            /* Empty State - Table Orders */
+            #table-orders .empty-state {
+                padding: 40px 20px !important;
+                text-align: center !important;
+            }
+            
+            #table-orders .empty-state i {
+                font-size: 3rem !important;
+            }
+            
+            #table-orders .empty-state p {
+                font-size: 14px !important;
+            }
+            
+            /* Message Box - Table Orders */
+            #table-message {
+                margin-bottom: 15px !important;
+                padding: 12px 14px !important;
+                font-size: 14px !important;
+                border-radius: 10px !important;
+            }
+            
+            /* Responsive Tables - Mobile Card Layout */
+            @media (max-width: 768px) {
+                #orders-list table,
+                #orders-list > div[style*="overflow-x: auto"] {
+                    display: none !important; /* Hide table on mobile */
+                }
+                
+                /* Mobile Card Layout for Orders */
+                #orders-list .mobile-order-cards {
+                    display: block !important;
+                }
+            }
+            
+            .mobile-order-card {
+                background: white !important;
+                border-radius: 12px !important;
+                padding: 16px !important;
+                margin-bottom: 12px !important;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+            
+            .mobile-order-header {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: flex-start !important;
+                margin-bottom: 12px !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+            }
+            
+            .mobile-order-number {
+                font-weight: 700 !important;
+                color: #4f46e5 !important;
+                font-size: 16px !important;
+            }
+            
+            .mobile-order-total {
+                font-weight: 700 !important;
+                color: #059669 !important;
+                font-size: 18px !important;
+            }
+            
+            .mobile-order-info {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 12px !important;
+                margin-bottom: 12px !important;
+            }
+            
+            .mobile-info-item {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 4px !important;
+            }
+            
+            .mobile-info-label {
+                font-size: 11px !important;
+                color: #9ca3af !important;
+                text-transform: uppercase !important;
+                font-weight: 600 !important;
+                letter-spacing: 0.5px !important;
+            }
+            
+            .mobile-info-value {
+                font-size: 14px !important;
+                color: #1f2937 !important;
+                font-weight: 500 !important;
+            }
+            
+            .mobile-table-guest {
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+            }
+            
+            .mobile-table-badge {
+                background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+                color: white !important;
+                padding: 4px 8px !important;
+                border-radius: 6px !important;
+                font-weight: 600 !important;
+                font-size: 12px !important;
+            }
+            
+            .mobile-status-badges {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 6px !important;
+                margin-bottom: 12px !important;
+            }
+            
+            .mobile-status-row {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                gap: 8px !important;
+            }
+            
+            .mobile-payment-method {
+                padding: 6px 12px !important;
+                border-radius: 16px !important;
+                font-size: 12px !important;
+                font-weight: 600 !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 4px !important;
+            }
+            
+            .mobile-order-time {
+                font-size: 12px !important;
+                color: #6b7280 !important;
+                text-align: center !important;
+                padding: 8px !important;
+                background: #f8fafc !important;
+                border-radius: 8px !important;
+                margin-bottom: 12px !important;
+            }
+            
+            .mobile-order-actions {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 8px !important;
+            }
+            
+            .mobile-action-row {
+                display: flex !important;
+                gap: 8px !important;
+            }
+            
+            .mobile-order-actions button {
+                flex: 1 !important;
+                padding: 10px 12px !important;
+                font-size: 13px !important;
+                min-height: 44px !important;
+                border-radius: 8px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 6px !important;
+            }
+            
+            /* Sub-section Container */
+            .sub-section {
+                padding: 0 !important;
+            }
+            
+            /* ===== TABLE ORDERS & BILLS - DESKTOP RESPONSIVE ===== */
+            @media (min-width: 769px) {
+                /* Hide mobile card layout on desktop */
+                .mobile-order-cards,
+                #orders-list .mobile-order-cards {
+                    display: none !important;
+                    visibility: hidden !important;
+                }
+                
+                /* Show table on desktop */
+                #orders-list table {
+                    display: table !important;
+                    width: 100% !important;
+                    min-width: 1000px !important;
+                }
+                
+                #orders-list > div[style*="overflow-x: auto"] {
+                    display: block !important;
+                }
+                
+                /* Ensure mobile card elements are completely hidden */
+                .mobile-order-card,
+                .mobile-order-header,
+                .mobile-order-info,
+                .mobile-status-badges,
+                .mobile-order-time,
+                .mobile-order-actions {
+                    display: none !important;
+                }
+                
+                /* Desktop Table Header */
+                #table-orders .page-header {
+                    padding: 2rem !important;
+                }
+                
+                #table-orders .page-header h1 {
+                    font-size: 2rem !important;
+                    margin-bottom: 0.5rem !important;
+                }
+                
+                /* Sub-Navigation Tabs - Horizontal Layout */
+                .sub-nav {
+                    display: flex !important;
+                    justify-content: center !important;
+                    gap: 1rem !important;
+                    padding: 0 2rem !important;
+                    margin-bottom: 2rem !important;
+                }
+                
+                .sub-nav-btn {
+                    flex: none !important;
+                    min-width: 180px !important;
+                    padding: 1rem 1.5rem !important;
+                    font-size: 1rem !important;
+                    border-radius: 12px !important;
+                }
+                
+                /* Table Card Layout */
+                #view-orders .table-card,
+                #active-bills .table-card {
+                    padding: 2rem !important;
+                    border-radius: 16px !important;
+                    margin: 0 2rem !important;
+                }
+                
+                /* Table Card Header - Horizontal Layout */
+                #view-orders .table-card > div[style*="display: flex"],
+                #active-bills .table-card > div[style*="display: flex"] {
+                    flex-direction: row !important;
+                    align-items: center !important;
+                    justify-content: space-between !important;
+                    margin-bottom: 1.5rem !important;
+                }
+                
+                #view-orders .table-card h3,
+                #active-bills .table-card h3 {
+                    font-size: 1.5rem !important;
+                    margin-bottom: 0 !important;
+                }
+                
+                /* Action Buttons Container - Horizontal Layout */
+                #view-orders .table-card div[style*="gap: 0.5rem"],
+                #active-bills .table-card div[style*="gap: 0.5rem"] {
+                    flex-direction: row !important;
+                    width: auto !important;
+                    gap: 1rem !important;
+                }
+                
+                /* Refresh and Clear Buttons */
+                #view-orders .btn-secondary.btn-sm,
+                #view-orders .btn-danger.btn-sm,
+                #active-bills .btn-secondary.btn-sm {
+                    width: auto !important;
+                    padding: 0.75rem 1.5rem !important;
+                    font-size: 0.9rem !important;
+                    min-height: auto !important;
+                    white-space: nowrap !important;
+                }
+                
+                /* Table Styling */
+                #orders-list table {
+                    border-collapse: collapse !important;
+                    background: white !important;
+                    border-radius: 12px !important;
+                    overflow: hidden !important;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+                }
+                
+                #orders-list table thead th {
+                    padding: 1.25rem 1rem !important;
+                    font-size: 0.9rem !important;
+                    font-weight: 600 !important;
+                    text-align: left !important;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                    color: white !important;
+                    border: none !important;
+                }
+                
+                #orders-list table tbody td {
+                    padding: 1.25rem 1rem !important;
+                    font-size: 0.9rem !important;
+                    border-bottom: 1px solid #f1f5f9 !important;
+                    vertical-align: middle !important;
+                }
+                
+                #orders-list table tbody tr:hover {
+                    background: #f8fafc !important;
+                }
+                
+                /* Column Alignment */
+                #orders-list table th:nth-child(1),
+                #orders-list table td:nth-child(1) {
+                    width: 10% !important;
+                    text-align: left !important;
+                }
+                
+                #orders-list table th:nth-child(2),
+                #orders-list table td:nth-child(2) {
+                    width: 15% !important;
+                    text-align: left !important;
+                }
+                
+                #orders-list table th:nth-child(3),
+                #orders-list table td:nth-child(3) {
+                    width: 10% !important;
+                    text-align: right !important;
+                }
+                
+                #orders-list table th:nth-child(4),
+                #orders-list table td:nth-child(4) {
+                    width: 12% !important;
+                    text-align: center !important;
+                }
+                
+                #orders-list table th:nth-child(5),
+                #orders-list table td:nth-child(5) {
+                    width: 12% !important;
+                    text-align: center !important;
+                }
+                
+                #orders-list table th:nth-child(6),
+                #orders-list table td:nth-child(6) {
+                    width: 10% !important;
+                    text-align: center !important;
+                }
+                
+                #orders-list table th:nth-child(7),
+                #orders-list table td:nth-child(7) {
+                    width: 13% !important;
+                    text-align: left !important;
+                }
+                
+                #orders-list table th:nth-child(8),
+                #orders-list table td:nth-child(8) {
+                    width: 13% !important;
+                    text-align: center !important;
+                }
+                
+                #orders-list table th:nth-child(9),
+                #orders-list table td:nth-child(9) {
+                    width: 5% !important;
+                    text-align: center !important;
+                }
+                
+                /* Action Buttons in Table */
+                #orders-list table .btn-sm {
+                    padding: 0.5rem 0.75rem !important;
+                    font-size: 0.8rem !important;
+                    border-radius: 6px !important;
+                    white-space: nowrap !important;
+                }
+                
+                /* Status Badges */
+                #orders-list .status-badge {
+                    padding: 0.5rem 1rem !important;
+                    border-radius: 20px !important;
+                    font-size: 0.8rem !important;
+                    font-weight: 600 !important;
+                    white-space: nowrap !important;
+                }
+                
+                /* Payment Method Badges */
+                #orders-list table td:nth-child(6) span {
+                    padding: 0.5rem 1rem !important;
+                    border-radius: 20px !important;
+                    font-size: 0.8rem !important;
+                    font-weight: 600 !important;
+                    white-space: nowrap !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+                
+                /* Empty State */
+                #table-orders .empty-state {
+                    padding: 4rem 2rem !important;
+                    text-align: center !important;
+                }
+                
+                #table-orders .empty-state i {
+                    font-size: 4rem !important;
+                    margin-bottom: 1rem !important;
+                }
+                
+                #table-orders .empty-state h3 {
+                    font-size: 1.5rem !important;
+                    margin-bottom: 0.5rem !important;
+                }
+                
+                #table-orders .empty-state p {
+                    font-size: 1rem !important;
+                    color: #6b7280 !important;
+                }
+            }
+            
+            /* ===== MENU MANAGEMENT - MOBILE RESPONSIVE ===== */
+            
+            /* Menu Container */
+            .menu-container {
+                padding: 0 !important;
+            }
+            
+            /* Menu Header Main */
+            .menu-header-main {
+                padding: 15px 12px !important;
+            }
+            
+            .menu-header-main h1 {
+                font-size: 20px !important;
+            }
+            
+            /* Menu Tabs - Category Buttons Wrap */
+            .menu-tabs {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                padding: 0 12px 15px 12px !important;
+                overflow-x: visible !important;
+            }
+            
+            .menu-tabs .tab {
+                flex: 1 1 calc(50% - 4px) !important;
+                min-width: 120px !important;
+                padding: 12px 14px !important;
+                font-size: 14px !important;
+                min-height: 48px !important;
+                justify-content: center !important;
+                border-radius: 10px !important;
+                white-space: nowrap !important;
+            }
+            
+            /* Add Category Button - Full Width */
+            .menu-tabs .add-tab {
+                flex: 1 1 100% !important;
+                width: 100% !important;
+                order: 999 !important;
+            }
+            
+            /* Menu Content */
+            .menu-content {
+                padding: 15px 12px !important;
+            }
+            
+            /* Menu Header - Stack Vertically */
+            .menu-header {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+                margin-bottom: 20px !important;
+            }
+            
+            .menu-header h3 {
+                font-size: 18px !important;
+                margin-bottom: 0 !important;
+            }
+            
+            /* Menu Header Actions - Stack Vertically */
+            .menu-header > div[style*="display: flex"] {
+                flex-direction: column !important;
+                width: 100% !important;
+                gap: 10px !important;
+            }
+            
+            /* Category Actions */
+            .category-actions {
+                display: flex !important;
+                gap: 8px !important;
+                width: 100% !important;
+            }
+            
+            .category-actions button {
+                flex: 1 !important;
+                padding: 10px 12px !important;
+                font-size: 14px !important;
+                min-height: 44px !important;
+                justify-content: center !important;
+            }
+            
+            /* Add Dish Button - Full Width */
+            #add-dish-btn {
+                width: 100% !important;
+                padding: 14px 20px !important;
+                font-size: 16px !important;
+                min-height: 52px !important;
+                justify-content: center !important;
+                border-radius: 10px !important;
+            }
+            
+            /* Dishes Container - Horizontal Scroll */
+            #dishes-container {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            
+            /* Dishes Table */
+            .dishes-table {
+                min-width: 600px !important;
+                font-size: 13px !important;
+            }
+            
+            .dishes-table th,
+            .dishes-table td {
+                padding: 10px 8px !important;
+                font-size: 13px !important;
+            }
+            
+            .dishes-table th {
+                font-size: 12px !important;
+                white-space: nowrap !important;
+            }
+            
+            /* Dish Image */
+            .dishes-table img {
+                width: 50px !important;
+                height: 50px !important;
+            }
+            
+            /* Dish Actions */
+            .dishes-table .dish-actions {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 6px !important;
+            }
+            
+            .dishes-table .dish-actions button {
+                width: 100% !important;
+                padding: 8px 10px !important;
+                font-size: 12px !important;
+                min-height: 36px !important;
+            }
+            
+            /* Empty State - Menu */
+            #menu .empty-state {
+                padding: 40px 20px !important;
+                text-align: center !important;
+            }
+            
+            #menu .empty-state i {
+                font-size: 3rem !important;
+            }
+            
+            #menu .empty-state p {
+                font-size: 14px !important;
+            }
+            
+            #menu .empty-state button {
+                width: 100% !important;
+                max-width: 300px !important;
+                margin: 0 auto !important;
+            }
+            
+            /* Dish Modal - Mobile */
+            #dish-modal .modal-content {
+                width: 95% !important;
+                max-width: 95% !important;
+                margin: 10px !important;
+                max-height: 90vh !important;
+                overflow-y: auto !important;
+            }
+            
+            #dish-modal .modal-header {
+                padding: 18px 15px !important;
+            }
+            
+            #dish-modal .modal-header h3 {
+                font-size: 18px !important;
+            }
+            
+            #dish-modal form {
+                padding: 20px 15px !important;
+            }
+            
+            #dish-modal .form-group {
+                margin-bottom: 18px !important;
+            }
+            
+            #dish-modal .form-group label {
+                font-size: 14px !important;
+                margin-bottom: 8px !important;
+            }
+            
+            #dish-modal .form-group input,
+            #dish-modal .form-group select,
+            #dish-modal .form-group textarea {
+                padding: 12px 16px !important;
+                font-size: 15px !important;
+                min-height: 48px !important;
+                border-radius: 10px !important;
+            }
+            
+            #dish-modal textarea {
+                min-height: 100px !important;
+            }
+            
+            #dish-modal .modal-actions {
+                flex-direction: column-reverse !important;
+                gap: 10px !important;
+                padding: 20px 15px !important;
+            }
+            
+            #dish-modal .modal-actions button {
+                width: 100% !important;
+                padding: 14px 20px !important;
+                font-size: 16px !important;
+                min-height: 52px !important;
+                justify-content: center !important;
+            }
+            
+            /* Category Modal - Mobile */
+            .category-modal .modal-content {
+                width: 95% !important;
+                max-width: 95% !important;
+                margin: 10px !important;
+            }
+            
+            .category-modal .modal-body {
+                padding: 20px 15px !important;
+            }
+            
+            .category-modal .form-group input {
+                padding: 12px 16px !important;
+                font-size: 15px !important;
+                min-height: 48px !important;
+            }
+            
+            .category-modal .modal-actions button {
+                width: 100% !important;
+                padding: 14px 20px !important;
+                font-size: 16px !important;
+                min-height: 52px !important;
+            }
+            
+            /* Menu Categories - Mobile */
+            .menu-categories {
+                flex-direction: column !important;
+                gap: 12px !important;
+            }
+            
+            .menu-category-card {
+                width: 100% !important;
+                padding: 15px !important;
             }
             
             .table-card-item {
@@ -3719,7 +5592,6 @@
             .clickable {
                 min-height: 44px !important;
                 min-width: 44px !important;
-            }
                 padding: 12px;
             }
             
@@ -3789,6 +5661,592 @@
             
             .user-name {
                 display: none;
+            }
+        }
+
+        /* ===== WAITERS MANAGEMENT - DESKTOP STYLES ===== */
+        @media (min-width: 769px) {
+            /* Waiters Page Header - Desktop */
+            .waiters-page-header {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                gap: 2rem;
+            }
+
+            .waiters-page-header .page-header-content {
+                flex: 1;
+            }
+
+            .waiters-page-header .btn-add-waiter {
+                flex-shrink: 0;
+            }
+
+            /* Card Header Row - Desktop */
+            .card-header-row {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                padding: 1.5rem;
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .card-header-row h3 {
+                margin: 0;
+                font-size: 1.2rem;
+                font-weight: 600;
+                color: #1e293b;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            /* Header Actions - Desktop */
+            .header-actions {
+                display: flex;
+                flex-direction: row;
+                gap: 0.75rem;
+                align-items: center;
+            }
+
+            .header-actions .btn-secondary {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+                white-space: nowrap;
+                min-width: auto;
+            }
+
+            /* Waiters Table - Desktop */
+            .waiters-table {
+                width: 100%;
+                border-collapse: collapse;
+                background: white;
+            }
+
+            .waiters-table thead th {
+                background: #f8fafc;
+                color: #475569;
+                font-weight: 600;
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                padding: 1rem 1.25rem;
+                text-align: left;
+                border-bottom: 2px solid #e2e8f0;
+            }
+
+            .waiters-table tbody td {
+                padding: 1rem 1.25rem;
+                border-bottom: 1px solid #f1f5f9;
+                vertical-align: middle;
+                font-size: 0.875rem;
+            }
+
+            .waiters-table tbody tr {
+                transition: background-color 0.2s ease;
+            }
+
+            .waiters-table tbody tr:hover {
+                background-color: #f8fafc;
+            }
+
+            /* Waiter ID Badge */
+            .waiter-id-badge {
+                background: #e0f2fe;
+                color: #0369a1;
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                font-family: 'Courier New', monospace;
+                font-size: 0.75rem;
+                font-weight: 600;
+            }
+
+            /* Status Badge */
+            .status-badge {
+                padding: 0.25rem 0.75rem;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .status-badge.active {
+                background: #d1fae5;
+                color: #065f46;
+            }
+
+            .status-badge.inactive {
+                background: #fee2e2;
+                color: #991b1b;
+            }
+
+            /* Tables Cell */
+            .tables-cell {
+                max-width: 200px;
+            }
+
+            .no-tables {
+                color: #94a3b8;
+                font-style: italic;
+                font-size: 0.8rem;
+            }
+
+            /* Action Buttons - Desktop */
+            .action-buttons {
+                display: flex;
+                flex-direction: row;
+                gap: 0.5rem;
+                align-items: center;
+                justify-content: flex-start;
+            }
+
+            .action-buttons .btn-sm {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.75rem;
+                border-radius: 6px;
+                border: none;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 36px;
+                height: 32px;
+            }
+
+            .action-buttons .btn-sm:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            }
+
+            .action-buttons .btn-info {
+                background: linear-gradient(135deg, #3b82f6, #2563eb);
+                color: white;
+            }
+
+            .action-buttons .btn-warning {
+                background: linear-gradient(135deg, #f59e0b, #d97706);
+                color: white;
+            }
+
+            .action-buttons .btn-success {
+                background: linear-gradient(135deg, #10b981, #059669);
+                color: white;
+            }
+
+            .action-buttons .btn-danger {
+                background: linear-gradient(135deg, #ef4444, #dc2626);
+                color: white;
+            }
+
+            /* Table Card */
+            .table-card {
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+
+            /* Table Responsive */
+            .table-responsive {
+                overflow-x: auto;
+                margin: 0;
+            }
+        }
+
+        /* ===== WAITER TIPS - DESKTOP STYLES ===== */
+        @media (min-width: 769px) {
+            /* Waiter Tips Page Header - Desktop */
+            #waiter-tips .page-header {
+                padding: 2rem 0;
+            }
+
+            #waiter-tips .page-header h1 {
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
+            }
+
+            #waiter-tips .page-header p {
+                font-size: 1rem;
+                color: #6b7280;
+            }
+
+            /* Tip Visibility Toggle Card - Desktop */
+            #waiter-tips .table-card {
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                padding: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            /* Toggle Section - Desktop Horizontal Layout */
+            #waiter-tips .table-card > div[style*="display: flex"] {
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+            }
+
+            #waiter-tips .table-card h3 {
+                margin: 0;
+                font-size: 1rem;
+                color: #1f2937;
+                font-weight: 600;
+            }
+
+            #waiter-tips .table-card p {
+                color: #6b7280;
+                font-size: 0.85rem;
+                margin: 0.25rem 0 0 0;
+                line-height: 1.4;
+            }
+
+            /* Summary Header - Desktop Horizontal Layout */
+            #waiter-tips .table-card > div[style*="justify-content: space-between"] {
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                margin-bottom: 1rem;
+            }
+
+            #waiter-tips .table-card h3 {
+                margin: 0;
+                font-size: 1.2rem;
+                font-weight: 600;
+                color: #1e293b;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            /* Filter Controls - Desktop Horizontal Layout */
+            #waiter-tips .table-card div[style*="display: flex"][style*="gap: 0.75rem"] {
+                display: flex !important;
+                flex-direction: row !important;
+                gap: 0.75rem !important;
+                align-items: center !important;
+                width: auto !important;
+            }
+
+            /* Dropdown and Button Styling */
+            #waiter-tips #tip-period-filter {
+                padding: 0.5rem 1rem;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                font-size: 0.9rem;
+                cursor: pointer;
+                background: white;
+                min-width: 120px;
+            }
+
+            #waiter-tips .btn-secondary.btn-sm {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+                white-space: nowrap;
+                min-width: auto;
+                width: auto;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            /* Waiter Tips List - Desktop */
+            #waiter-tips-list {
+                padding: 0;
+            }
+
+            /* Empty State - Desktop */
+            #waiter-tips .empty-state {
+                padding: 3rem 2rem;
+                text-align: center;
+                background: #f8fafc;
+                border-radius: 8px;
+                border: 2px dashed #cbd5e1;
+            }
+
+            #waiter-tips .empty-state i {
+                font-size: 3rem;
+                color: #94a3b8;
+                margin-bottom: 1rem;
+            }
+
+            #waiter-tips .empty-state h3 {
+                font-size: 1.25rem;
+                color: #374151;
+                margin-bottom: 0.5rem;
+                font-weight: 600;
+            }
+
+            #waiter-tips .empty-state p {
+                font-size: 1rem;
+                color: #6b7280;
+                line-height: 1.5;
+                margin: 0;
+            }
+
+            /* Toggle Switch - Desktop */
+            .toggle-switch {
+                position: relative;
+                display: inline-block;
+                width: 52px;
+                height: 28px;
+                flex-shrink: 0;
+            }
+
+            .toggle-slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #e2e8f0;
+                transition: 0.3s;
+                border-radius: 28px;
+            }
+
+            .toggle-slider:before {
+                position: absolute;
+                content: "";
+                height: 20px;
+                width: 20px;
+                left: 4px;
+                bottom: 4px;
+                background-color: white;
+                transition: 0.3s;
+                border-radius: 50%;
+            }
+
+            input:checked + .toggle-slider {
+                background-color: #10b981;
+            }
+
+            input:checked + .toggle-slider:before {
+                transform: translateX(24px);
+            }
+        }
+
+        /* ===== KITCHEN MANAGEMENT - DESKTOP STYLES ===== */
+        @media (min-width: 769px) {
+            /* Kitchen Management Page Header - Desktop */
+            #kitchen-management .page-header {
+                padding: 2rem 0;
+            }
+
+            #kitchen-management .page-header h1 {
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
+            }
+
+            #kitchen-management .page-header p {
+                font-size: 1rem;
+                color: #6b7280;
+            }
+
+            /* Form Card - Add New Kitchen - Desktop */
+            #kitchen-management .form-card {
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                padding: 1.5rem;
+                margin-bottom: 2rem;
+            }
+
+            /* Form Card Header - Desktop Horizontal Layout */
+            #kitchen-management .form-card > div[style*="display: flex"] {
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                margin-bottom: 1rem;
+            }
+
+            #kitchen-management .form-card h3 {
+                margin: 0;
+                font-size: 1.2rem;
+                font-weight: 600;
+                color: #1e293b;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            /* Kitchen Login QR Button - Desktop */
+            #kitchen-management .btn-secondary.btn-sm {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+                white-space: nowrap;
+                min-width: auto;
+                width: auto;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            /* Form Group - Desktop */
+            #kitchen-management .form-group {
+                margin-bottom: 1.5rem;
+            }
+
+            #kitchen-management .form-group label {
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: #374151;
+                margin-bottom: 0.5rem;
+                display: block;
+            }
+
+            #kitchen-management .form-group input {
+                width: 100%;
+                padding: 0.75rem 1rem;
+                font-size: 0.875rem;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                transition: border-color 0.2s ease;
+            }
+
+            #kitchen-management .form-group input:focus {
+                outline: none;
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+            /* Create Kitchen Button - Desktop */
+            #kitchen-management .btn-primary {
+                padding: 0.75rem 1.5rem;
+                font-size: 0.875rem;
+                width: auto;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            /* Table Card - All Kitchens - Desktop */
+            #kitchen-management .table-card {
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                padding: 1.5rem;
+            }
+
+            /* Table Card Header - Desktop Horizontal Layout */
+            #kitchen-management .table-card > div[style*="display: flex"] {
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                margin-bottom: 1rem;
+            }
+
+            #kitchen-management .table-card h3 {
+                margin: 0;
+                font-size: 1.2rem;
+                font-weight: 600;
+                color: #1e293b;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            /* Refresh Button - Desktop */
+            #kitchen-management .table-card .btn-secondary.btn-sm {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+                white-space: nowrap;
+                min-width: auto;
+                width: auto;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            /* Kitchen Cards - Desktop */
+            .kitchen-card {
+                background: white;
+                border-radius: 12px;
+                padding: 1.5rem;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                margin-bottom: 1rem;
+                transition: box-shadow 0.2s ease;
+            }
+
+            .kitchen-card:hover {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            }
+
+            /* Kitchen Card Content - Desktop */
+            .kitchen-card > div[style*="display: flex"] {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: flex-start !important;
+                margin-bottom: 1rem;
+            }
+
+            .kitchen-card h4 {
+                color: #1e293b;
+                margin-bottom: 0.5rem;
+                font-size: 1.2rem;
+                font-weight: 600;
+            }
+
+            /* Kitchen Info Section */
+            .kitchen-card div[style*="display: flex; gap: 1rem"] {
+                display: flex !important;
+                gap: 1rem !important;
+                flex-wrap: wrap !important;
+                margin-bottom: 0.5rem !important;
+            }
+
+            /* Kitchen Action Buttons - Desktop */
+            .kitchen-card div[style*="display: flex; gap: 0.5rem"] {
+                display: flex !important;
+                gap: 0.5rem !important;
+                flex-shrink: 0 !important;
+            }
+
+            .kitchen-card .btn-sm {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.75rem;
+                border-radius: 6px;
+                border: none;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 36px;
+                height: 32px;
+            }
+
+            .kitchen-card .btn-sm:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            }
+
+            /* Empty State - Kitchen Management - Desktop */
+            #kitchen-management .empty-state {
+                padding: 3rem 2rem;
+                text-align: center;
+                background: #f8fafc;
+                border-radius: 8px;
+                border: 2px dashed #cbd5e1;
+            }
+
+            #kitchen-management .empty-state i {
+                font-size: 3rem;
+                color: #94a3b8;
+                margin-bottom: 1rem;
+            }
+
+            #kitchen-management .empty-state p {
+                font-size: 1rem;
+                color: #6b7280;
+                margin: 0;
             }
         }
     </style>
@@ -3888,6 +6346,10 @@
                 <i class="fas fa-qrcode"></i>
                 <span>Table Orders</span>
             </a>
+            <a href="#" class="menu-item" onclick="showSection('manage-tables')">
+                <i class="fas fa-table-cells"></i>
+                <span>Manage Tables</span>
+            </a>
             <a href="#" class="menu-item" onclick="showSection('menu')">
                 <i class="fas fa-utensils"></i>
                 <span>Menu Management</span>
@@ -3954,7 +6416,7 @@
         <div class="header-right">
             <div class="header-info">
                 <!-- Wallet Balance Display -->
-                <div class="header-wallet-balance" id="header-wallet-balance" onclick="showSection('wallet-balance')">
+                <div class="header-wallet-balance" id="header-wallet-balance" onclick="showSection('wallet')">
                     <i class="fas fa-wallet"></i>
                     <span class="wallet-amount">₹0.00</span>
                 </div>
@@ -4121,7 +6583,7 @@
 
                 {% if food_enabled %}
                 <!-- Tables Card -->
-                <a href="#" onclick="showSection('table-orders'); setTimeout(() => showTableSubSection('manage-tables'), 100); return false;" class="dashboard-card dashboard-card-tables">
+                <a href="#" onclick="showSection('manage-tables'); return false;" class="dashboard-card dashboard-card-tables">
                     <div class="dashboard-card-bg">
                         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="50" cy="100" r="80" fill="rgba(255,255,255,0.1)"/>
@@ -4190,7 +6652,7 @@
             <div class="page-header waiters-page-header">
                 <div class="page-header-content">
                     <h1><i class="fas fa-user-tie"></i> Waiters Management</h1>
-                    <p>Add, manage and track your restaurant staff with QR-based login</p>
+                    
                 </div>
                 <button class="btn-primary btn-add-waiter" onclick="openAddWaiterModal()">
                     <i class="fas fa-plus"></i> Add Waiter
@@ -4323,7 +6785,7 @@
         <div id="waiter-tips" class="content-section">
             <div class="page-header">
                 <h1><i class="fas fa-hand-holding-heart"></i> Waiter Tips</h1>
-                <p>View and manage tip distribution across all waiters</p>
+                
             </div>
             
             <!-- Tip Visibility Toggle Card -->
@@ -4335,7 +6797,7 @@
                             Show Tips to Waiters
                         </h3>
                         <p style="color: #6b7280; font-size: 0.85rem; margin: 0.25rem 0 0 0;">
-                            When enabled, waiters can see their tip amounts on their dashboard
+                           
                         </p>
                     </div>
                     <label class="toggle-switch">
@@ -4361,7 +6823,7 @@
                     </div>
                 </div>
                 <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">
-                    <i class="fas fa-info-circle"></i> View tip breakdown by waiter. Only paid bills with tips are included.
+                    
                 </p>
                 <div id="waiter-tips-list">
                     <div class="empty-state">
@@ -4377,7 +6839,7 @@
             <div id="kitchen-management" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-fire-burner"></i> Kitchen Management</h1>
-                    <p>Create and manage kitchen accounts with login credentials and category assignments</p>
+                    
                 </div>
 
                 <!-- Add Kitchen Form -->
@@ -4459,7 +6921,7 @@
             <div id="table-orders" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-qrcode"></i> Table Orders & Bills</h1>
-                    <p>Manage QR code-based table ordering and billing system</p>
+                    
                 </div>
                 
                 <!-- Sub-navigation -->
@@ -4469,9 +6931,6 @@
                     </button>
                     <button class="sub-nav-btn" onclick="showTableSubSection('active-bills')">
                         <i class="fas fa-file-invoice-dollar"></i> Active Bills
-                    </button>
-                    <button class="sub-nav-btn" onclick="showTableSubSection('manage-tables')">
-                        <i class="fas fa-table-cells"></i> Manage Tables
                     </button>
                 </div>
                 
@@ -4508,7 +6967,7 @@
                             </button>
                         </div>
                         <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">
-                            <i class="fas fa-info-circle"></i> Each table has only ONE active bill until payment is completed. All orders placed during the session are merged into the same bill.
+                        
                         </p>
                         <div id="active-bills-list">
                             <div class="empty-state">
@@ -4519,32 +6978,38 @@
                     </div>
                 </div>
 
-                <!-- Manage Tables Sub-section -->
-                <div id="manage-tables" class="sub-section">
-                    <div class="form-card">
-                        <h3><i class="fas fa-plus-circle"></i> Add New Table</h3>
-                        <div id="table-message" class="message"></div>
-                        <form onsubmit="handleAddTable(event)" class="table-form">
-                            <div class="form-group">
-                                <label for="table-number">Table Number</label>
-                                <input type="text" id="table-number" required placeholder="Enter table number (e.g., 1, A1, VIP-1)">
-                            </div>
-                            <button type="submit" class="btn-primary"><i class="fas fa-plus"></i> Add Table</button>
-                        </form>
-                    </div>
+                
+            </div>
+
+            <!-- Manage Tables Section (Standalone) -->
+            <div id="manage-tables" class="content-section">
+                <div class="page-header">
+                    <h1><i class="fas fa-table-cells"></i> Manage Tables</h1>
                     
-                    <!-- Tables List -->
-                    <div class="table-card">
-                        <h3><i class="fas fa-chair"></i> All Tables</h3>
-                        <div id="tables-list">
-                            <div class="empty-state">
-                                <i class="fas fa-spinner fa-spin"></i>
-                                <p>Loading tables...</p>
-                            </div>
+                </div>
+                
+                <div class="form-card">
+                    <h3><i class="fas fa-plus-circle"></i> Add New Table</h3>
+                    <div id="table-message" class="message"></div>
+                    <form onsubmit="handleAddTable(event)" class="table-form">
+                        <div class="form-group">
+                            <label for="table-number">Table Number</label>
+                            <input type="text" id="table-number" required placeholder="Enter table number (e.g., 1, A1, VIP-1)">
+                        </div>
+                        <button type="submit" class="btn-primary"><i class="fas fa-plus"></i> Add Table</button>
+                    </form>
+                </div>
+                
+                <!-- Tables List -->
+                <div class="table-card">
+                    <h3><i class="fas fa-chair"></i> All Tables</h3>
+                    <div id="tables-list">
+                        <div class="empty-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading tables...</p>
                         </div>
                     </div>
                 </div>
-                
             </div>
             {% endif %}
 
@@ -4723,7 +7188,7 @@
             <div id="daily-special" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-star"></i> Today's Special Menu</h1>
-                    <p>Add multiple special dishes for today. These will be shown as a carousel when guests scan the table QR code.</p>
+                    
                 </div>
 
                 <div class="special-section-layout">
@@ -4970,7 +7435,7 @@
             <div id="reports" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-chart-line"></i> Reports & Analytics</h1>
-                    <p>View detailed revenue reports and analytics</p>
+                    
                 </div>
 
                 <!-- Revenue Summary Cards - Modern Design -->
@@ -5143,7 +7608,7 @@
             <div id="wallet" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-wallet"></i> Wallet & Balance</h1>
-                    <p>Manage your hotel wallet balance and view transaction history</p>
+                   
                 </div>
 
                 <!-- Wallet Overview Cards - Modern Design -->
@@ -5561,6 +8026,8 @@
                 loadMenuDishes(1); // Load starters by default
             } else if (sectionId === 'table-orders') {
                 loadOrdersData(); // Load View Orders by default (first tab)
+            } else if (sectionId === 'manage-tables') {
+                loadTablesData(); // Load tables when accessing from sidebar
             } else if (sectionId === 'waiters') {
                 loadWaitersList();
                 // Table assignments and checkboxes loaded on-demand when user clicks buttons
@@ -8064,7 +10531,7 @@
                 const statusClass = table.status === 'BUSY' ? 'busy' : 'available';
                 const statusText = table.status === 'BUSY' ? 'BUSY' : 'AVAILABLE';
                 const qrPreview = table.qr_code_path ? 
-                    `<img src="/${table.qr_code_path}" alt="QR Code for Table ${table.table_number}">` :
+                    `<img src="/${table.qr_code_path}" alt="QR Code for Table ${table.table_number}" onclick="showQRPreview('/${table.qr_code_path}', '${table.table_number}', ${table.id})">` :
                     '<div class="table-qr-placeholder"><i class="fas fa-qrcode"></i></div>';
                 
                 tablesHTML += `
@@ -8154,6 +10621,7 @@
                 return;
             }
             
+            // Desktop Table Layout
             let ordersHTML = `
                 <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse; min-width: 900px;">
@@ -8172,6 +10640,9 @@
                     </thead>
                     <tbody>
             `;
+            
+            // Mobile Card Layout
+            let mobileCardsHTML = '<div class="mobile-order-cards">';
             
             orders.forEach((order, index) => {
                 const orderTime = formatDateTime(order.created_at);
@@ -8197,6 +10668,7 @@
                     methodIcon = '';
                 }
                 
+                // Desktop Table Row
                 ordersHTML += `
                     <tr style="border-bottom: 1px solid #e2e8f0; background: ${rowBg};" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='${rowBg}'">
                         <td style="padding: 1rem;">
@@ -8259,10 +10731,119 @@
                         </td>
                     </tr>
                 `;
+                
+                // Mobile Card
+                mobileCardsHTML += `
+                    <div class="mobile-order-card">
+                        <div class="mobile-order-header">
+                            <div class="mobile-order-number">#${order.id}</div>
+                            <div class="mobile-order-total">₹${parseFloat(order.total_amount).toFixed(2)}</div>
+                        </div>
+                        
+                        <div class="mobile-order-info">
+                            <div class="mobile-info-item">
+                                <div class="mobile-info-label">Table & Guest</div>
+                                <div class="mobile-info-value">
+                                    <div class="mobile-table-guest">
+                                        <span class="mobile-table-badge">T${order.table_number}</span>
+                                        <span>${guestName}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mobile-info-item">
+                                <div class="mobile-info-label">Items</div>
+                                <div class="mobile-info-value">${itemCount} item(s)</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mobile-status-badges">
+                            <div class="mobile-status-row">
+                                <span class="mobile-info-label">Order Status</span>
+                                <span class="status-badge status-${orderStatusClass}" style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem;">${order.order_status}</span>
+                            </div>
+                            <div class="mobile-status-row">
+                                <span class="mobile-info-label">Payment Status</span>
+                                <span class="status-badge status-${paymentClass}" style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem; ${paymentStatus === 'PAID' ? 'background: #d1fae5; color: #065f46;' : 'background: #fef3c7; color: #92400e;'}">
+                                    <i class="fas ${paymentStatus === 'PAID' ? 'fa-check-circle' : 'fa-clock'}" style="margin-right: 0.25rem;"></i>${paymentStatus}
+                                </span>
+                            </div>
+                            <div class="mobile-status-row">
+                                <span class="mobile-info-label">Payment Method</span>
+                                <span class="mobile-payment-method" style="${methodStyle}">
+                                    ${methodIcon}${paymentMethod === '-' ? '-' : paymentMethod}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="mobile-order-time">
+                            <i class="fas fa-calendar" style="margin-right: 0.5rem;"></i>${formatDate(order.created_at)}
+                            <span style="margin: 0 0.5rem;">•</span>
+                            <i class="fas fa-clock" style="margin-right: 0.5rem;"></i>${formatTime(order.created_at)}
+                        </div>
+                        
+                        <div class="mobile-order-actions">
+                            ${order.order_status !== 'COMPLETED' ? `
+                                <div class="mobile-action-row">
+                                    <button onclick="updateOrderStatus(${order.id}, 'PREPARING')" class="btn-secondary btn-sm" ${order.order_status === 'PREPARING' ? 'disabled style="opacity: 0.5;"' : ''}>
+                                        <i class="fas fa-fire"></i> Preparing
+                                    </button>
+                                    <button onclick="updateOrderStatus(${order.id}, 'COMPLETED')" class="btn-primary btn-sm">
+                                        <i class="fas fa-check"></i> Complete
+                                    </button>
+                                </div>
+                            ` : `
+                                ${paymentStatus === 'PENDING' ? `
+                                    <button onclick="markPaymentDone(${order.id}, ${order.table_id})" class="btn-sm" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
+                                        <i class="fas fa-check-circle"></i> Mark Payment Done
+                                    </button>
+                                ` : `
+                                    <div style="text-align: center; color: #10b981; font-weight: 600; padding: 12px;">
+                                        <i class="fas fa-check-circle"></i> Payment Completed
+                                    </div>
+                                `}
+                            `}
+                            <button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
+                                <i class="fas fa-file-invoice"></i>
+                                ${paymentStatus === 'PAID' ? 'View Bill' : 'Generate Bill'}
+                            </button>
+                        </div>
+                    </div>
+                `;
             });
             
             ordersHTML += '</tbody></table></div>';
-            container.innerHTML = ordersHTML;
+            mobileCardsHTML += '</div>';
+            
+            // Combine both layouts
+            container.innerHTML = ordersHTML + mobileCardsHTML;
+            
+            // Add window resize listener to handle layout switching
+            window.addEventListener('resize', function() {
+                const isMobile = window.innerWidth <= 768;
+                const table = container.querySelector('table');
+                const mobileCards = container.querySelector('.mobile-order-cards');
+                
+                if (isMobile) {
+                    if (table && table.parentElement) table.parentElement.style.display = 'none';
+                    if (mobileCards) mobileCards.style.display = 'block';
+                } else {
+                    if (table && table.parentElement) table.parentElement.style.display = 'block';
+                    if (mobileCards) mobileCards.style.display = 'none';
+                }
+            });
+            
+            // Initial layout setup
+            const isMobile = window.innerWidth <= 768;
+            const table = container.querySelector('table');
+            const mobileCards = container.querySelector('.mobile-order-cards');
+            
+            if (isMobile) {
+                if (table && table.parentElement) table.parentElement.style.display = 'none';
+                if (mobileCards) mobileCards.style.display = 'block';
+            } else {
+                if (table && table.parentElement) table.parentElement.style.display = 'block';
+                if (mobileCards) mobileCards.style.display = 'none';
+            }
         }
         
         function clearCompletedOrders() {
@@ -9676,6 +12257,12 @@
         function displayCategoryCheckboxes() {
             const container = document.getElementById('kitchen-categories-checkboxes');
             
+            // Check if container exists before trying to set innerHTML
+            if (!container) {
+                console.warn('kitchen-categories-checkboxes element not found');
+                return;
+            }
+            
             if (!allCategories || allCategories.length === 0) {
                 container.innerHTML = '<div style="color: #64748b; text-align: center; padding: 1rem;">No categories available. Please create menu categories first.</div>';
                 return;
@@ -9741,9 +12328,6 @@
                                     <span style="background: ${statusColor}20; color: ${statusColor}; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
                                         <i class="fas fa-${statusIcon}"></i> ${statusText}
                                     </span>
-                                </div>
-                                <div style="color: #64748b; font-size: 0.85rem;">
-                                    <i class="fas fa-utensils"></i> <strong>Categories:</strong> ${kitchen.categories || 'None assigned'}
                                 </div>
                             </div>
                             <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
@@ -10053,7 +12637,111 @@
             if (e.target === modal) {
                 closeKitchenQRModal();
             }
+            
+            // Close QR preview modal when clicking outside
+            const qrModal = document.getElementById('qr-preview-modal');
+            if (e.target === qrModal) {
+                closeQRPreview();
+            }
         });
+
+        // QR Preview Modal Functions
+        function showQRPreview(imagePath, tableNumber, tableId) {
+            const modal = document.getElementById('qr-preview-modal');
+            const qrImage = document.getElementById('qr-preview-image');
+            const modalTitle = document.getElementById('qr-preview-title');
+            
+            // Set modal content
+            modalTitle.textContent = `QR Code for Table ${tableNumber}`;
+            qrImage.src = imagePath;
+            qrImage.alt = `QR Code for Table ${tableNumber}`;
+            
+            // Store table info for download
+            modal.setAttribute('data-table-id', tableId);
+            modal.setAttribute('data-table-number', tableNumber);
+            
+            // Show modal
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            
+            // Handle image load error
+            qrImage.onerror = function() {
+                this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUwIiBoZWlnaHQ9IjI1MCIgdmlld0JveD0iMCAwIDI1MCAyNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyNTAiIGhlaWdodD0iMjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMjUgNzVWMTc1TTc1IDEyNUgxNzUiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPHN2Zz4K';
+                this.alt = 'QR Code not found';
+                
+                // Show regenerate option
+                showQRRegenerateOption(tableId, tableNumber);
+            };
+        }
+        
+        function closeQRPreview() {
+            const modal = document.getElementById('qr-preview-modal');
+            modal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+            
+            // Hide regenerate option if visible
+            const regenerateDiv = document.getElementById('qr-regenerate-option');
+            if (regenerateDiv) {
+                regenerateDiv.style.display = 'none';
+            }
+        }
+        
+        function downloadQRFromPreview() {
+            const modal = document.getElementById('qr-preview-modal');
+            const tableId = modal.getAttribute('data-table-id');
+            
+            if (tableId) {
+                downloadTableQR(tableId);
+            }
+        }
+        
+        function showQRRegenerateOption(tableId, tableNumber) {
+            const regenerateDiv = document.getElementById('qr-regenerate-option');
+            const regenerateBtn = document.getElementById('qr-regenerate-btn');
+            
+            regenerateDiv.style.display = 'block';
+            regenerateBtn.onclick = () => regenerateQR(tableId, tableNumber);
+        }
+        
+        function regenerateQR(tableId, tableNumber) {
+            const regenerateBtn = document.getElementById('qr-regenerate-btn');
+            const originalText = regenerateBtn.innerHTML;
+            
+            regenerateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Regenerating...';
+            regenerateBtn.disabled = true;
+            
+            fetch(`/orders/api/regenerate-qr/${tableId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the preview image
+                    const qrImage = document.getElementById('qr-preview-image');
+                    qrImage.src = `/${data.qr_path}?t=${Date.now()}`; // Add timestamp to force reload
+                    
+                    // Hide regenerate option
+                    document.getElementById('qr-regenerate-option').style.display = 'none';
+                    
+                    // Refresh the tables list to show updated QR
+                    loadTablesData();
+                    
+                    // Show success message
+                    alert('QR code regenerated successfully!');
+                } else {
+                    alert('Error regenerating QR code: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error regenerating QR:', error);
+                alert('Error regenerating QR code. Please try again.');
+            })
+            .finally(() => {
+                regenerateBtn.innerHTML = originalText;
+                regenerateBtn.disabled = false;
+            });
+        }
 
     </script>
 </body>
