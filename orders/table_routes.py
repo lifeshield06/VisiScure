@@ -624,14 +624,14 @@ def get_waiter_tip_statistics(waiter_id):
         
         print(f"[TIP_STATS] waiter_id={waiter_id}, hotel_id={hotel_id}")
         
-        # Check if tips should be shown to waiters from hotels table
+        # Check if tips should be shown to waiters from hotel_modules table
         if hotel_id:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             cursor.execute("""
                 SELECT COALESCE(show_waiter_tips, 1) as show_waiter_tips
-                FROM hotels
-                WHERE id = %s
+                FROM hotel_modules
+                WHERE hotel_id = %s
             """, (hotel_id,))
             visibility_result = cursor.fetchone()
             cursor.close()

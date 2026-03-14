@@ -64,14 +64,14 @@ class GuestVerification:
         return '.' in filename and filename.rsplit('.', 1)[1].lower() in GuestVerification.ALLOWED_EXTENSIONS
     
     @staticmethod
-    def save_uploaded_file(file, manager_id):
+    def save_uploaded_file(file, manager_id, file_prefix='doc'):
         """Save uploaded identity file and return the file path"""
         try:
             if file and GuestVerification.allowed_file(file.filename):
                 filename = secure_filename(file.filename)
                 # Add timestamp to filename to avoid conflicts
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                filename = f"{manager_id}_{timestamp}_{filename}"
+                filename = f"{manager_id}_{file_prefix}_{timestamp}_{filename}"
                 
                 # Ensure upload directory exists
                 upload_path = GuestVerification.UPLOAD_FOLDER
@@ -115,6 +115,106 @@ class GuestVerification:
                 'success': False,
                 'message': f'Failed to submit verification: {str(e)}'
             }
+    
+    @staticmethod
+    def submit_multistep_verification(manager_id, guest_name, phone, address, kyc_number, kyc_type, 
+                                     selfie_path=None, kyc_document_path=None, aadhaar_path=None, hotel_id=None):
+        """Submit multi-step guest verification with selfie, KYC document, and Aadhaar"""
+        try:
+            print(f"\n[MODEL] submit_multistep_verification called")
+            print(f"[MODEL] Parameters received:")
+            print(f"  - manager_id: {manager_id}")
+            print(f"  - guest_name: {guest_name}")
+            print(f"  - phone: {phone}")
+            print(f"  - address: {address[:50]}..." if len(address) > 50 else f"  - address: {address}")
+            print(f"  - kyc_number: {kyc_number}")
+            print(f"  - kyc_type: {kyc_type}")
+            print(f"  - selfie_path: {selfie_path}")
+            print(f"  - kyc_document_path: {kyc_document_path}")
+            print(f"  - aadhaar_path: {aadhaar_path}")
+            print(f"  - hotel_id: {hotel_id}")
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            print(f"[MODEL] Executing INSERT query with status='approved'...")
+            cursor.execute("""
+                INSERT INTO guest_verifications 
+                (manager_id, hotel_id, guest_name, phone, address, kyc_number, kyc_type, 
+                 selfie_path, kyc_document_path, aadhaar_path, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'approved')
+            """, (manager_id, hotel_id, guest_name, phone, address, kyc_number, kyc_type, 
+                  selfie_path, kyc_document_path, aadhaar_path))
+            
+            verification_id = cursor.lastrowid
+            print(f"[MODEL] INSERT successful, verification_id: {verification_id}, status: approved")
+            
+            conn.commit()
+            print(f"[MODEL] Transaction committed")
+            
+            cursor.close()
+            conn.close()
+            print(f"[MODEL] Database connection closed")
+            
+            return {
+                'success': True,
+                'message': 'Multi-step verification submitted and approved successfully',
+                'id': verification_id
+            }
+        except Error as e:
+            print(f"[MODEL] ❌ Database Error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                'success': False,
+                'message': f'Failed to submit verification: {str(e)}'
+            }
+        except Exception as e:
+            print(f"[MODEL] ❌ Unexpected Error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                'success': False,
+                'message': f'Failed to submit verification: {str(e)}'
+            }
+    
+    @staticmethod
+    def save_selfie_from_base64(base64_data, manager_id):
+        """Save selfie from base64 data and return file path"""
+        try:
+            import base64
+            import re
+            
+            # Extract base64 data (remove data:image/jpeg;base64, prefix)
+            base64_match = re.match(r'data:image/(\w+);base64,(.+)', base64_data)
+            if not base64_match:
+                return None
+            
+            image_format = base64_match.group(1)
+            image_data = base64_match.group(2)
+            
+            # Decode base64
+            image_bytes = base64.b64decode(image_data)
+            
+            # Generate filename
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"selfie_{manager_id}_{timestamp}.{image_format}"
+            
+            # Ensure upload directory exists
+            upload_path = GuestVerification.UPLOAD_FOLDER
+            if not os.path.exists(upload_path):
+                os.makedirs(upload_path)
+            
+            file_path = os.path.join(upload_path, filename)
+            
+            # Save file
+            with open(file_path, 'wb') as f:
+                f.write(image_bytes)
+            
+            return file_path
+        except Exception as e:
+            print(f"Error saving selfie: {e}")
+            return None
     
     @staticmethod
     def get_verifications_by_manager(manager_id):

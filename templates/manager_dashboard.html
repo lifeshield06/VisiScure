@@ -498,6 +498,306 @@
         .preview-cart-btn i {
             font-size: 0.7rem;
         }
+
+        /* ===== NEW VERIFICATION DASHBOARD STYLES ===== */
+        
+        /* Header Row Layout */
+        .verification-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        /* Guest Access Card - Top Right */
+        .guest-access-card-top {
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Verification Card */
+        .verification-card-new {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .card-header-verification {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .card-header-verification h3 {
+            color: #2d3748;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        /* Search Bar */
+        .search-container-verification {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            position: relative;
+        }
+        .search-input-verification {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+        .search-input-verification:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .search-icon-verification {
+            position: absolute;
+            left: 2.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #718096;
+        }
+        
+        /* Guest Access Button - Compact Top Version */
+        .open-access-btn-new {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.875rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+        .open-access-btn-new:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        /* Modal Styles */
+        .modal-verification {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeInModal 0.3s ease;
+        }
+        .modal-dialog-verification {
+            width: 90%;
+            max-width: 500px;
+            animation: slideDownModal 0.3s ease;
+        }
+        .modal-content-verification {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal-header-verification {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header-verification h5 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .btn-close-verification {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .btn-close-verification:hover {
+            background: rgba(255,255,255,0.3);
+            transform: rotate(90deg);
+        }
+        .modal-body-verification {
+            padding: 2rem;
+        }
+        .qr-container-verification {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .qr-container-verification img {
+            max-width: 250px;
+            border: 3px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            background: white;
+        }
+        .url-container-verification {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .url-text-verification {
+            font-size: 0.9rem;
+            color: #4a5568;
+            word-break: break-all;
+            margin-top: 0.5rem;
+        }
+        .modal-btn-verification {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .btn-copy-verification {
+            background: #667eea;
+            color: white;
+            margin-bottom: 0.75rem;
+        }
+        .btn-copy-verification:hover {
+            background: #764ba2;
+        }
+        .btn-download-verification {
+            background: #10b981;
+            color: white;
+        }
+        .btn-download-verification:hover {
+            background: #059669;
+        }
+        
+        /* Verification Table Styles */
+        .verification-table-new {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .verification-table-new thead th {
+            background: #f8fafc;
+            color: #4a5568;
+            padding: 1rem 1.5rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .verification-table-new tbody td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        .verification-table-new tbody tr {
+            transition: background 0.2s ease;
+        }
+        .verification-table-new tbody tr:hover {
+            background: #f8fafc;
+        }
+        .btn-view-verification {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .btn-view-verification:hover {
+            background: #764ba2;
+            transform: translateY(-1px);
+        }
+        .status-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status-approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status-rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        @keyframes fadeInModal {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideDownModal {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .verification-header-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .guest-access-card-top {
+                width: 100%;
+            }
+            .open-access-btn-new {
+                width: 100%;
+            }
+        }
+        @media (max-width: 768px) {
+            .verification-table-new thead th,
+            .verification-table-new tbody td {
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+            .verification-header-row {
+                gap: 1rem;
+            }
+        }
+
         .preview-note {
             margin: 0.5rem 0 0 0;
             color: #94a3b8;
@@ -1973,9 +2273,1010 @@
         .toggle-switch input:focus + .toggle-slider {
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
+
+        /* ========================================
+           MOBILE RESPONSIVE STYLES
+           ======================================== */
+        
+        /* Mobile Hamburger Menu Button */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .mobile-menu-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .mobile-menu-btn i {
+            font-size: 20px;
+        }
+        
+        /* Sidebar Overlay */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar-overlay.show {
+            display: block;
+            opacity: 1;
+        }
+        
+        /* Desktop Breakpoint (≥992px) - Default styles apply */
+        
+        /* Tablet Breakpoint (768px - 991px) */
+        @media (max-width: 991px) {
+            .main-content {
+                margin-left: 0;
+                padding: 20px 15px;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .mobile-menu-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+        
+        /* Mobile Breakpoint (≤767px) */
+        @media (max-width: 767px) {
+            /* ===== SINGLE ROW MOBILE HEADER - NO WRAPPING ===== */
+            
+            /* Header - Single Row Flexbox Layout */
+            .header {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                padding: 8px 10px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 8px !important;
+                background: white !important;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+                z-index: 998 !important;
+                height: 56px !important;
+                min-height: 56px !important;
+                flex-wrap: nowrap !important;
+            }
+            
+            /* Hamburger Menu - Fixed Width */
+            .mobile-menu-btn {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 40px !important;
+                height: 40px !important;
+                min-width: 40px !important;
+                flex-shrink: 0 !important;
+                background: #f1f5f9 !important;
+                border: none !important;
+                border-radius: 10px !important;
+                cursor: pointer !important;
+                transition: all 0.2s ease !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                order: 1 !important;
+            }
+            
+            .mobile-menu-btn:active {
+                background: #e2e8f0 !important;
+                transform: scale(0.95) !important;
+            }
+            
+            .mobile-menu-btn i {
+                font-size: 20px !important;
+                color: #334155 !important;
+            }
+            
+            /* Header Left - VisiScure Logo */
+            .header-left {
+                display: flex !important;
+                align-items: center !important;
+                width: 32px !important;
+                min-width: 32px !important;
+                flex-shrink: 0 !important;
+                order: 2 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            
+            .header-left .project-logo {
+                width: 32px !important;
+                height: 32px !important;
+                min-width: 32px !important;
+                flex-shrink: 0 !important;
+                border-radius: 6px !important;
+                object-fit: contain !important;
+                display: block !important;
+            }
+            
+            /* Header Center - Hotel Info (Flexible) */
+            .header-center {
+                display: flex !important;
+                align-items: center !important;
+                flex: 1 !important;
+                min-width: 0 !important;
+                overflow: hidden !important;
+                order: 3 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            
+            .header-brand {
+                display: flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                overflow: hidden !important;
+            }
+            
+            /* Hotel Logo - Small */
+            .hotel-logo,
+            .hotel-logo-placeholder {
+                width: 28px !important;
+                height: 28px !important;
+                min-width: 28px !important;
+                flex-shrink: 0 !important;
+                border-radius: 6px !important;
+                object-fit: contain !important;
+            }
+            
+            .hotel-logo-placeholder {
+                background: #f1f5f9 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                color: #64748b !important;
+                font-size: 14px !important;
+            }
+            
+            /* Header Title - Truncate */
+            .header-title {
+                display: flex !important;
+                flex-direction: column !important;
+                min-width: 0 !important;
+                overflow: hidden !important;
+            }
+            
+            .hotel-name {
+                font-size: 13px !important;
+                font-weight: 700 !important;
+                color: #1e293b !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                line-height: 1.2 !important;
+            }
+            
+            .dashboard-title {
+                font-size: 10px !important;
+                font-weight: 500 !important;
+                color: #64748b !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                line-height: 1.2 !important;
+            }
+            
+            /* Header Right - Fixed Width Container */
+            .header-right {
+                display: flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+                flex-shrink: 0 !important;
+                flex-wrap: nowrap !important;
+                order: 4 !important;
+            }
+            
+            .header-info {
+                display: flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+                flex-shrink: 0 !important;
+            }
+            
+            /* Hide header divider on mobile */
+            .header-divider {
+                display: none !important;
+            }
+            
+            /* Wallet Balance - Compact */
+            .header-wallet-balance {
+                font-size: 11px !important;
+                padding: 6px 8px !important;
+                border-radius: 8px !important;
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+                color: white !important;
+                font-weight: 700 !important;
+                white-space: nowrap !important;
+                box-shadow: 0 2px 4px rgba(16, 185, 129, 0.25) !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 3px !important;
+                height: 32px !important;
+                flex-shrink: 0 !important;
+                cursor: pointer !important;
+            }
+            
+            .header-wallet-balance i {
+                font-size: 12px !important;
+            }
+            
+            .wallet-amount {
+                font-size: 11px !important;
+            }
+            
+            /* Profile Dropdown */
+            .profile-dropdown {
+                flex-shrink: 0 !important;
+            }
+            
+            .profile-btn {
+                padding: 0 !important;
+                border-radius: 50% !important;
+                background: transparent !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                cursor: pointer !important;
+                transition: all 0.2s ease !important;
+                width: 36px !important;
+                height: 36px !important;
+                min-width: 36px !important;
+                flex-shrink: 0 !important;
+            }
+            
+            .profile-btn:active {
+                transform: scale(0.95) !important;
+            }
+            
+            .profile-avatar {
+                width: 36px !important;
+                height: 36px !important;
+                min-width: 36px !important;
+                border-radius: 50% !important;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                color: white !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-weight: 700 !important;
+                font-size: 14px !important;
+                box-shadow: 0 2px 4px rgba(102, 126, 234, 0.25) !important;
+                flex-shrink: 0 !important;
+            }
+            
+            /* Hide Text Elements */
+            .profile-info,
+            .profile-chevron {
+                display: none !important;
+            }
+            
+            /* Ensure no wrapping on very small screens */
+            @media (max-width: 360px) {
+                .header {
+                    padding: 6px 8px !important;
+                    gap: 6px !important;
+                }
+                
+                .mobile-menu-btn {
+                    width: 36px !important;
+                    height: 36px !important;
+                    min-width: 36px !important;
+                }
+                
+                .mobile-menu-btn i {
+                    font-size: 18px !important;
+                }
+                
+                .header-left .project-logo {
+                    width: 28px !important;
+                    height: 28px !important;
+                    min-width: 28px !important;
+                }
+                
+                .hotel-logo,
+                .hotel-logo-placeholder {
+                    width: 24px !important;
+                    height: 24px !important;
+                    min-width: 24px !important;
+                }
+                
+                .hotel-name {
+                    font-size: 12px !important;
+                }
+                
+                .dashboard-title {
+                    font-size: 9px !important;
+                }
+                
+                .header-wallet-balance {
+                    font-size: 10px !important;
+                    padding: 5px 7px !important;
+                    height: 28px !important;
+                }
+                
+                .header-wallet-balance i {
+                    font-size: 11px !important;
+                }
+                
+                .wallet-amount {
+                    font-size: 10px !important;
+                }
+                
+                .profile-avatar {
+                    width: 32px !important;
+                    height: 32px !important;
+                    min-width: 32px !important;
+                    font-size: 13px !important;
+                }
+                
+                .profile-btn {
+                    width: 32px !important;
+                    height: 32px !important;
+                    min-width: 32px !important;
+                }
+            }
+            
+            /* ===== SIDEBAR - MOBILE SLIDE-IN ===== */
+            
+            /* Sidebar Mobile Behavior */
+            .sidebar {
+                position: fixed !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 80% !important;
+                max-width: 320px !important;
+                height: 100vh !important;
+                transform: translateX(-100%) !important;
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                z-index: 1000 !important;
+                overflow-y: auto !important;
+                box-shadow: 4px 0 20px rgba(0,0,0,0.15) !important;
+                background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0) !important;
+            }
+            
+            /* Sidebar Overlay */
+            .sidebar-overlay {
+                display: none !important;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                background: rgba(0, 0, 0, 0.6) !important;
+                z-index: 999 !important;
+                opacity: 0 !important;
+                transition: opacity 0.3s ease !important;
+            }
+            
+            .sidebar-overlay.show {
+                display: block !important;
+                opacity: 1 !important;
+            }
+            
+            /* Sidebar Brand */
+            .sidebar-brand {
+                padding: 20px 15px !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+            }
+            
+            .sidebar-brand h3 {
+                font-size: 18px !important;
+            }
+            
+            /* Sidebar Menu Items */
+            .sidebar-menu a {
+                padding: 14px 15px !important;
+                font-size: 15px !important;
+                min-height: 50px !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 12px !important;
+            }
+            
+            .sidebar-menu a i {
+                font-size: 20px !important;
+                width: 24px !important;
+                text-align: center !important;
+            }
+            
+            /* ===== MAIN CONTENT ===== */
+            
+            /* Main Content */
+            .main-content {
+                margin-left: 0 !important;
+                margin-top: 56px !important;
+                padding: 15px 12px 20px 12px !important;
+                width: 100% !important;
+            }
+            
+            /* Show hamburger menu */
+            .mobile-menu-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            /* Sidebar Mobile Behavior */
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 80%;
+                max-width: 300px;
+                height: 100vh;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 1000;
+                overflow-y: auto;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            /* Main Content */
+            .main-content {
+                margin-left: 0;
+                padding: 70px 10px 20px 10px;
+                width: 100%;
+            }
+            
+            /* Top Header */
+            .top-header {
+                padding: 10px 15px;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .header-left {
+                flex: 1;
+                min-width: 150px;
+            }
+            
+            .header-left h2 {
+                font-size: 16px;
+            }
+            
+            .header-right {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            .wallet-balance {
+                font-size: 14px;
+                padding: 8px 12px;
+            }
+            
+            .user-profile {
+                padding: 6px 10px;
+            }
+            
+            .user-avatar {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .user-name {
+                font-size: 13px;
+            }
+            
+            /* Dashboard Cards - Single Column */
+            .stats-grid,
+            .revenue-cards-container,
+            .verify-cards-container {
+                grid-template-columns: 1fr !important;
+                gap: 15px;
+            }
+            
+            .stat-card,
+            .revenue-card,
+            .verify-card {
+                min-height: auto;
+                padding: 18px 15px !important;
+                border-radius: 14px !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+            }
+            
+            /* Stat Card Values - Larger */
+            .stat-value {
+                font-size: 2rem !important;
+                font-weight: 800 !important;
+            }
+            
+            .stat-label {
+                font-size: 0.95rem !important;
+                font-weight: 600 !important;
+            }
+            
+            .stat-icon {
+                width: 52px !important;
+                height: 52px !important;
+                font-size: 1.5rem !important;
+            }
+            
+            /* Page Headers */
+            .page-header {
+                margin-bottom: 20px !important;
+            }
+            
+            .page-header h1 {
+                font-size: 24px !important;
+                font-weight: 700 !important;
+                margin-bottom: 8px !important;
+            }
+            
+            .page-header p {
+                font-size: 14px !important;
+                color: #64748b !important;
+            }
+            
+            /* Tables - Responsive */
+            .table-card,
+            .verification-card-new,
+            .revenue-table-card {
+                overflow-x: auto !important;
+                border-radius: 14px !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+            }
+            
+            table {
+                min-width: 600px !important;
+            }
+            
+            table th,
+            table td {
+                padding: 12px 10px !important;
+                font-size: 14px !important;
+            }
+            
+            table th {
+                font-weight: 700 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.5px !important;
+            }
+            
+            /* Buttons - Full Width with Better Touch Targets */
+            .btn-primary,
+            .btn-success,
+            .btn-danger,
+            .btn-custom,
+            .action-btn {
+                width: 100% !important;
+                margin-bottom: 10px !important;
+                min-height: 48px !important;
+                font-size: 15px !important;
+                font-weight: 600 !important;
+                border-radius: 10px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 8px !important;
+                transition: all 0.2s ease !important;
+            }
+            
+            .btn-primary:active,
+            .btn-success:active,
+            .btn-danger:active,
+            .btn-custom:active,
+            .action-btn:active {
+                transform: scale(0.98) !important;
+            }
+            
+            .action-buttons {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+            
+            /* Forms - Full Width Inputs with Better Touch */
+            .form-group {
+                margin-bottom: 18px !important;
+            }
+            
+            .form-group label {
+                font-size: 15px !important;
+                font-weight: 600 !important;
+                margin-bottom: 8px !important;
+                display: block !important;
+                color: #334155 !important;
+            }
+            
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                width: 100% !important;
+                min-height: 48px !important;
+                font-size: 15px !important;
+                padding: 12px 14px !important;
+                border-radius: 10px !important;
+                border: 2px solid #e2e8f0 !important;
+                transition: all 0.2s ease !important;
+            }
+            
+            .form-group input:focus,
+            .form-group select:focus,
+            .form-group textarea:focus {
+                border-color: #667eea !important;
+                box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1) !important;
+                outline: none !important;
+            }
+            
+            .form-row {
+                flex-direction: column !important;
+            }
+            
+            .form-col {
+                width: 100% !important;
+                margin-bottom: 15px !important;
+            }
+            
+            /* Modal Adjustments - Full Screen on Mobile */
+            .modal {
+                padding: 0 !important;
+            }
+            
+            .modal-content {
+                margin: 0 !important;
+                max-height: 100vh !important;
+                height: 100vh !important;
+                border-radius: 0 !important;
+                overflow-y: auto !important;
+            }
+            
+            .modal-header {
+                padding: 18px 15px !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+                position: sticky !important;
+                top: 0 !important;
+                background: white !important;
+                z-index: 10 !important;
+            }
+            
+            .modal-header h3 {
+                font-size: 18px !important;
+                font-weight: 700 !important;
+            }
+            
+            .modal-close {
+                width: 40px !important;
+                height: 40px !important;
+                font-size: 24px !important;
+                border-radius: 10px !important;
+            }
+            
+            .modal-body {
+                padding: 18px 15px !important;
+            }
+            
+            .modal-footer {
+                padding: 15px !important;
+                flex-direction: column !important;
+                gap: 10px !important;
+                border-top: 1px solid #e2e8f0 !important;
+                position: sticky !important;
+                bottom: 0 !important;
+                background: white !important;
+            }
+            
+            .modal-footer button {
+                width: 100% !important;
+                margin: 0 !important;
+                min-height: 48px !important;
+            }
+            
+            /* Menu Grid */
+            .menu-grid {
+                grid-template-columns: 1fr !important;
+                gap: 15px !important;
+            }
+            
+            .menu-item-card {
+                padding: 15px !important;
+                border-radius: 14px !important;
+            }
+            
+            /* QR Code Sections */
+            .qr-section {
+                flex-direction: column !important;
+                gap: 15px !important;
+            }
+            
+            .qr-code-container {
+                max-width: 100% !important;
+            }
+            
+            /* Verification Dashboard */
+            .verification-header-row {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 15px !important;
+            }
+            
+            .guest-access-card-top {
+                width: 100% !important;
+            }
+            
+            .open-access-btn-new {
+                width: 100% !important;
+                min-height: 52px !important;
+                font-size: 16px !important;
+            }
+            
+            /* Search Bars */
+            .search-container,
+            .search-container-verification {
+                padding: 15px !important;
+            }
+            
+            .search-input,
+            .search-input-verification {
+                font-size: 15px !important;
+                min-height: 48px !important;
+                padding: 12px 14px 12px 42px !important;
+            }
+            
+            /* Charts */
+            .chart-container {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            
+            /* Spacing */
+            .content-section {
+                padding: 15px 10px !important;
+            }
+            
+            .section-card {
+                margin-bottom: 15px !important;
+                padding: 18px 15px !important;
+                border-radius: 14px !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+            }
+            
+            /* Hide desktop-only elements */
+            .desktop-only {
+                display: none !important;
+            }
+            
+            /* Revenue Chart */
+            .revenue-chart-section {
+                padding: 15px !important;
+            }
+            
+            .chart-bars {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            
+            /* Waiter Tips Section */
+            .tips-grid {
+                grid-template-columns: 1fr !important;
+                gap: 15px !important;
+            }
+            
+            .tip-card {
+                padding: 15px !important;
+                border-radius: 14px !important;
+            }
+            
+            /* Kitchen Management */
+            .kitchen-grid {
+                grid-template-columns: 1fr !important;
+                gap: 15px !important;
+            }
+            
+            .kitchen-card {
+                padding: 15px !important;
+                border-radius: 14px !important;
+            }
+            
+            /* Table Orders */
+            .tables-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 12px !important;
+            }
+            
+            .table-card-item {
+                padding: 15px !important;
+                border-radius: 12px !important;
+                min-height: 100px !important;
+            }
+            
+            /* Card Headers */
+            .card-header {
+                padding: 15px !important;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 12px !important;
+            }
+            
+            .card-header h3 {
+                font-size: 17px !important;
+                font-weight: 700 !important;
+            }
+            
+            .card-header .btn {
+                width: 100% !important;
+            }
+            
+            /* Empty States */
+            .empty-state {
+                padding: 40px 20px !important;
+            }
+            
+            .empty-state i {
+                font-size: 3.5rem !important;
+            }
+            
+            .empty-state h3 {
+                font-size: 20px !important;
+                font-weight: 700 !important;
+            }
+            
+            .empty-state p {
+                font-size: 15px !important;
+            }
+            
+            /* Status Badges - Larger */
+            .status-badge {
+                padding: 6px 12px !important;
+                font-size: 12px !important;
+                font-weight: 700 !important;
+                border-radius: 8px !important;
+            }
+            
+            /* Dropdown Menus */
+            .dropdown-menu {
+                min-width: 200px !important;
+                border-radius: 12px !important;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+            }
+            
+            .dropdown-menu a {
+                padding: 12px 15px !important;
+                font-size: 15px !important;
+                min-height: 48px !important;
+            }
+            
+            /* Notifications */
+            .notification {
+                left: 10px !important;
+                right: 10px !important;
+                top: 80px !important;
+                padding: 15px !important;
+                border-radius: 12px !important;
+            }
+            
+            /* Touch Feedback */
+            * {
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.05) !important;
+            }
+            
+            /* Smooth Scrolling */
+            html {
+                scroll-behavior: smooth !important;
+            }
+            
+            /* Ensure all interactive elements have proper touch targets */
+            button,
+            .btn,
+            a.menu-item,
+            .clickable {
+                min-height: 44px !important;
+                min-width: 44px !important;
+            }
+                padding: 12px;
+            }
+            
+            /* Menu Management */
+            .menu-categories {
+                flex-direction: column;
+            }
+            
+            .category-btn {
+                width: 100%;
+                margin-bottom: 8px;
+            }
+            
+            /* Settings Page */
+            .settings-grid {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Reports */
+            .report-filters {
+                flex-direction: column;
+            }
+            
+            .filter-group {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+        
+        /* Extra Small Mobile (≤480px) */
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 65px 8px 15px 8px;
+            }
+            
+            .page-header h1 {
+                font-size: 20px;
+            }
+            
+            .stat-card,
+            .revenue-card {
+                padding: 15px;
+            }
+            
+            .stat-value,
+            .revenue-card-value {
+                font-size: 24px;
+            }
+            
+            table {
+                font-size: 12px;
+            }
+            
+            table th,
+            table td {
+                padding: 8px 5px;
+            }
+            
+            .tables-grid {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .wallet-balance {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+            
+            .user-name {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Mobile Hamburger Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Toggle Menu">
+        <i class="fas fa-bars"></i>
+    </button>
+
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -3069,44 +4370,76 @@
 
             {% if kyc_enabled %}
             <div id="verification" class="content-section">
-                <div class="page-header">
-                    <h1><i class="fas fa-id-card"></i> Guest Verification Dashboard</h1>
-                    <p>Manage guest verification requests and share QR code for submissions</p>
+                <!-- Header Row with Title and Guest Access Button -->
+                <div class="verification-header-row">
+                    <div class="page-header" style="margin-bottom: 0;">
+                        <h1><i class="fas fa-id-card"></i> Guest Verification Dashboard</h1>
+                    </div>
+                    
+                    <!-- Guest Access Card - Top Right -->
+                    <div class="guest-access-card-top">
+                        <button class="open-access-btn-new" onclick="openGuestAccessModal()">
+                            <i class="fas fa-qrcode"></i> Open Guest Access
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Main Verification Content -->
-                <div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem;">
-                    <!-- Left Section - Verification Table -->
-                    <div class="table-card">
+                <!-- Full Width Verification Requests Table -->
+                <div class="verification-card-new" style="margin-top: 2rem;">
+                    <div class="card-header-verification">
                         <h3><i class="fas fa-list-check"></i> Verification Requests</h3>
-                        <div id="verification-content">
-                            <div class="empty-state">
-                                <i class="fas fa-spinner fa-spin"></i>
-                                <p>Loading verification requests...</p>
-                            </div>
+                    </div>
+                    
+                    <!-- Search Bar -->
+                    <div class="search-container-verification">
+                        <i class="fas fa-search search-icon-verification"></i>
+                        <input type="text" id="verificationSearchInput" class="search-input-verification" placeholder="Search by name, phone, or date...">
+                    </div>
+                    
+                    <div id="verification-content">
+                        <div class="empty-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading verification requests...</p>
                         </div>
                     </div>
-
-                    <!-- Right Section - QR Code -->
-                    <div class="form-card" style="text-align: center; height: fit-content;">
-                        <h3><i class="fas fa-qrcode"></i> Guest Access QR</h3>
-                        <p style="color: var(--gray); margin-bottom: 1.5rem; font-size: 0.9rem;">Share this QR code with guests</p>
-                        
-                        <div id="qr-code-container">
-                            <div class="empty-state">
-                                <i class="fas fa-spinner fa-spin"></i>
-                                <p>Generating QR Code...</p>
+                </div>
+                
+                <!-- Guest Access Modal -->
+                <div id="guestAccessModalVerification" class="modal-verification" style="display: none;">
+                    <div class="modal-dialog-verification">
+                        <div class="modal-content-verification">
+                            <div class="modal-header-verification">
+                                <h5><i class="fas fa-qrcode"></i> Guest Access QR Code</h5>
+                                <button type="button" class="btn-close-verification" onclick="closeGuestAccessModal()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="modal-body-verification">
+                                <!-- QR Code -->
+                                <div class="qr-container-verification" id="qr-code-container">
+                                    <div class="empty-state">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        <p>Generating QR Code...</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Public Form URL -->
+                                <div class="url-container-verification" id="public-url-container" style="display: none;">
+                                    <label style="font-weight: 600; color: #2d3748; margin-bottom: 0.5rem; display: block;">
+                                        <i class="fas fa-link"></i> Public Form URL:
+                                    </label>
+                                    <div class="url-text-verification" id="public-url-text"></div>
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <button class="modal-btn-verification btn-copy-verification" onclick="copyVerificationLink()">
+                                    <i class="fas fa-copy"></i> Copy Link
+                                </button>
+                                <button class="modal-btn-verification btn-download-verification" id="download-verification-qr-btn" onclick="downloadVerificationQR()">
+                                    <i class="fas fa-download"></i> Download QR Code
+                                </button>
                             </div>
                         </div>
-                        
-                        <div id="public-url-container" style="background: var(--bg-light); padding: 1rem; border-radius: 10px; margin: 1.5rem 0; word-break: break-all; font-size: 0.8rem; text-align: left; display: none;">
-                            <strong>Public Form URL:</strong><br>
-                            <a href="#" target="_blank" style="color: var(--primary); text-decoration: none;" id="public-url-link"></a>
-                        </div>
-                        
-                        <button id="download-verification-qr-btn" class="btn-primary" style="display: none; width: 100%; margin-top: 1rem;">
-                            <i class="fas fa-download"></i> Download QR Code
-                        </button>
                     </div>
                 </div>
             </div>
@@ -4550,31 +5883,19 @@
                 return;
             }
             
-            // Show all verifications (not just pending)
-            console.log('Total verifications:', verifications.length);
-            
-            if (verifications.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 3rem; color: #718096;">
-                        <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                        <h3>No Verifications Yet</h3>
-                        <p>No guest verification requests received</p>
-                    </div>
-                `;
-                return;
-            }
-            
             let tableHTML = `
-                <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
-                    <thead>
-                        <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                            <th style="padding: 1rem; text-align: left; font-weight: 600; color: #4a5568; width: 80px;">Sr No</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600; color: #4a5568;">Date</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600; color: #4a5568;">Guest Name</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600; color: #4a5568;">Phone</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div class="table-responsive">
+                    <table class="verification-table-new">
+                        <thead>
+                            <tr>
+                                <th>Sr No</th>
+                                <th>Date</th>
+                                <th>Guest Name</th>
+                                <th>Phone</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="verificationTableBody">
             `;
             
             verifications.forEach((verification, index) => {
@@ -4584,26 +5905,53 @@
                     month: 'short', 
                     year: 'numeric' 
                 });
+                const formattedTime = submittedDate.toLocaleTimeString('en-IN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
                 
                 tableHTML += `
-                    <tr style="border-bottom: 1px solid #f1f5f9; cursor: pointer;" 
-                        onmouseover="this.style.background='#f8fafc'" 
-                        onmouseout="this.style.background='white'"
-                        onclick="showVerificationDetails(${verification.id})">
-                        <td style="padding: 1rem; color: #718096; font-weight: 500;">${index + 1}</td>
-                        <td style="padding: 1rem; color: #2d3748;">${formattedDate}</td>
-                        <td style="padding: 1rem;">
-                            <div style="font-weight: 600; color: #667eea; text-decoration: underline; cursor: pointer;">
-                                ${verification.guest_name}
-                            </div>
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>
+                            <div>${formattedDate}</div>
+                            <div style="font-size: 0.75rem; color: #718096;">${formattedTime}</div>
                         </td>
-                        <td style="padding: 1rem; color: #2d3748;">${verification.phone}</td>
+                        <td>
+                            <div style="font-weight: 600; color: #2d3748;">${verification.guest_name}</div>
+                            <div style="font-size: 0.75rem; color: #718096;">Phone: ${verification.phone}</div>
+                        </td>
+                        <td>${verification.phone}</td>
+                        <td>
+                            <button class="btn-view-verification" onclick="showVerificationDetails(${verification.id})">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </td>
                     </tr>
                 `;
             });
             
-            tableHTML += '</tbody></table>';
+            tableHTML += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
             container.innerHTML = tableHTML;
+            
+            // Add search functionality
+            const searchInput = document.getElementById('verificationSearchInput');
+            if (searchInput) {
+                searchInput.addEventListener('keyup', function() {
+                    const searchValue = this.value.toLowerCase();
+                    const tableRows = document.querySelectorAll('#verificationTableBody tr');
+                    
+                    tableRows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(searchValue) ? '' : 'none';
+                    });
+                });
+            }
             
             // Store verifications data globally for modal access
             window.verificationsData = verifications;
@@ -4613,24 +5961,101 @@
             fetch(`/guest-verification/api/qr-code/${managerId}`)
                 .then(response => response.json())
                 .then(data => {
-                    const qrContainer = document.getElementById('qr-code-container');
-                    const urlContainer = document.getElementById('public-url-container');
-                    const downloadBtn = document.getElementById('download-verification-qr-btn');
-                    const urlLink = document.getElementById('public-url-link');
-                    
-                    qrContainer.innerHTML = `<img src="data:image/png;base64,${data.qr_code}" alt="QR Code" style="max-width: 200px; border: 3px solid #e2e8f0; border-radius: 12px;">`;
-                    urlLink.href = data.public_url;
-                    urlLink.textContent = data.public_url;
-                    urlContainer.style.display = 'block';
-                    downloadBtn.style.display = 'inline-block';
-                    downloadBtn.onclick = () => window.open(`/guest-verification/download-qr/${managerId}`, '_blank');
+                    // Store QR data globally for modal
+                    window.verificationQRData = data;
                 })
                 .catch(error => {
                     console.error('Error loading QR code:', error);
-                    document.getElementById('qr-code-container').innerHTML = 
-                        '<div style="background: #fee2e2; border: 2px dashed #fca5a5; border-radius: 8px; padding: 2rem; color: #991b1b;"><i class="fas fa-exclamation-triangle" style="font-size: 2rem;"></i><p style="margin-top: 1rem;">Error loading QR code</p></div>';
                 });
         }
+        
+        // Modal functions
+        function openGuestAccessModal() {
+            const modal = document.getElementById('guestAccessModalVerification');
+            const qrContainer = document.getElementById('qr-code-container');
+            const urlContainer = document.getElementById('public-url-container');
+            const urlText = document.getElementById('public-url-text');
+            
+            if (window.verificationQRData) {
+                qrContainer.innerHTML = `<img src="data:image/png;base64,${window.verificationQRData.qr_code}" alt="QR Code" style="max-width: 250px; border: 3px solid #e2e8f0; border-radius: 12px; padding: 1rem; background: white;">`;
+                urlText.textContent = window.verificationQRData.public_url;
+                urlContainer.style.display = 'block';
+            } else {
+                qrContainer.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading QR Code...</p></div>';
+                // Try to load QR code again
+                fetch(`/guest-verification/api/qr-code/${managerId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        window.verificationQRData = data;
+                        qrContainer.innerHTML = `<img src="data:image/png;base64,${data.qr_code}" alt="QR Code" style="max-width: 250px; border: 3px solid #e2e8f0; border-radius: 12px; padding: 1rem; background: white;">`;
+                        urlText.textContent = data.public_url;
+                        urlContainer.style.display = 'block';
+                    })
+                    .catch(error => {
+                        qrContainer.innerHTML = '<div style="color: #ef4444;"><i class="fas fa-exclamation-triangle"></i><p>Error loading QR code</p></div>';
+                    });
+            }
+            
+            modal.style.display = 'flex';
+        }
+        
+        function closeGuestAccessModal() {
+            const modal = document.getElementById('guestAccessModalVerification');
+            modal.style.display = 'none';
+        }
+        
+        function copyVerificationLink() {
+            // Try to get URL from the modal text element first
+            const urlText = document.getElementById('public-url-text');
+            let url = urlText ? urlText.textContent : null;
+            
+            // Fallback to global data if available
+            if (!url && window.verificationQRData) {
+                url = window.verificationQRData.public_url;
+            }
+            
+            if (url) {
+                navigator.clipboard.writeText(url).then(() => {
+                    const btn = event.target.closest('button');
+                    const originalHTML = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    btn.style.background = '#10b981';
+                    
+                    setTimeout(() => {
+                        btn.innerHTML = originalHTML;
+                        btn.style.background = '#667eea';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Clipboard error:', err);
+                    // Fallback: show alert with URL to copy manually
+                    alert('Failed to copy automatically. Please copy this URL manually:\n\n' + url);
+                });
+            } else {
+                alert('URL not available. Please try opening the modal again.');
+            }
+        }
+        
+        function downloadVerificationQR() {
+            if (window.verificationQRData) {
+                window.open(`/guest-verification/download-qr/${managerId}`, '_blank');
+                
+                const btn = event.target.closest('button');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Downloaded!';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                }, 2000);
+            }
+        }
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('guestAccessModalVerification');
+            if (event.target === modal) {
+                closeGuestAccessModal();
+            }
+        });
         
         function updateVerificationStatus(verificationId, status) {
             fetch('/guest-verification/update-status', {
@@ -4799,7 +6224,7 @@
                             </div>
                         </div>
                         <div class="bill-modal-footer">
-                            <button onclick="closeVerificationModal()" style="width: 100%; background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            <button onclick="closeVerificationModal()" style="width: 100%; background: #6b7280; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                 <i class="fas fa-times-circle"></i> Close
                             </button>
                         </div>

@@ -35,6 +35,12 @@ class OTPService:
             dict: {success: bool, message: str}
         """
         try:
+            # Ensure hotel_name is not empty or None
+            if not hotel_name or not hotel_name.strip():
+                hotel_name = "VisiScure Order"
+            else:
+                hotel_name = hotel_name.strip()
+            
             # Get MSG91 credentials from environment
             MSG91_AUTH_KEY = os.getenv('MSG91_AUTH_KEY', '451618A0Y44msLOxW685a4c6aP1')
             MSG91_TEMPLATE_ID = os.getenv('MSG91_TEMPLATE_ID', '69b244d394b176db2203e483')
@@ -56,14 +62,20 @@ class OTPService:
             # Template format: Welcome to ##var1##. Your verification OTP is ##OTP##. Please enter this code to complete guest verification. VisiScure Order
             # Variables: var1 = hotel_name, OTP = otp_code
             
-            # URL encode the hotel name to handle spaces and special characters
+            # For MSG91 API v5, template variables should be passed as extra_param in JSON format
+            # Format: extra_param={"var1":"hotel_name"}
+            import json
             from urllib.parse import quote
-            hotel_name_encoded = quote(hotel_name)
             
-            url = f"https://control.msg91.com/api/v5/otp?template_id={MSG91_TEMPLATE_ID}&mobile={phone_number}&authkey={MSG91_AUTH_KEY}&var1={hotel_name_encoded}&otp={otp_code}"
+            # Create extra_param JSON with var1
+            extra_param = json.dumps({"var1": hotel_name})
+            extra_param_encoded = quote(extra_param)
+            
+            url = f"https://control.msg91.com/api/v5/otp?template_id={MSG91_TEMPLATE_ID}&mobile={phone_number}&authkey={MSG91_AUTH_KEY}&extra_param={extra_param_encoded}&otp={otp_code}"
             
             print(f"[MSG91] Hotel name (original): {hotel_name}")
-            print(f"[MSG91] Hotel name (encoded): {hotel_name_encoded}")
+            print(f"[MSG91] Extra param JSON: {extra_param}")
+            print(f"[MSG91] Extra param (encoded): {extra_param_encoded}")
             
             print(f"[MSG91] Sending request to: {url}")
             
@@ -132,6 +144,12 @@ class OTPService:
     def send_otp(phone_number, hotel_name="VisiScure Order"):
         """Send OTP to phone number via SMS with hotel name for ##var1##"""
         try:
+            # Ensure hotel_name is not empty or None
+            if not hotel_name or not hotel_name.strip():
+                hotel_name = "VisiScure Order"
+            else:
+                hotel_name = hotel_name.strip()
+            
             # Store original 10-digit number for database and display
             original_phone = phone_number.strip()
             

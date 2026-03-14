@@ -13,6 +13,11 @@ def check_kyc_module():
         return False
     return session.get('kyc_enabled', False)
 
+@guest_verification_bp.route('/test-api')
+def test_api_page():
+    """Test page for verification API"""
+    return render_template('test_verification_api.html')
+
 @guest_verification_bp.route('/dashboard/<int:manager_id>')
 def verification_dashboard(manager_id):
     """Verification dashboard for managers"""
@@ -104,49 +109,72 @@ def public_form(manager_id):
 def submit_verification(manager_id):
     """Handle verification form submission with automatic wallet deduction"""
     try:
+        print("\n" + "="*80)
+        print("GUEST VERIFICATION FORM SUBMISSION RECEIVED")
+        print("="*80)
+        
         # Get form data
         guest_name = request.form.get('guest_name', '').strip()
         phone = request.form.get('phone', '').strip()
-        address = request.form.get('address')
-        kyc_number = request.form.get('kyc_number')
-        kyc_type = request.form.get('kyc_type')  # Get the selected ID type
+        address = request.form.get('address', '')
+        kyc_number = request.form.get('kyc_number', '')
+        kyc_type = request.form.get('kyc_type', '')
+        selfie_data = request.form.get('selfie_data', '')
         hotel_id = request.form.get('hotel_id') or request.args.get('hotel_id')
         
-        print(f"[VERIFICATION SUBMIT] Raw hotel_id from form: {request.form.get('hotel_id')}")
-        print(f"[VERIFICATION SUBMIT] Raw hotel_id from args: {request.args.get('hotel_id')}")
-        print(f"[VERIFICATION SUBMIT] Combined hotel_id: {hotel_id}")
+        print(f"[FORM DATA] manager_id: {manager_id}")
+        print(f"[FORM DATA] guest_name: {guest_name}")
+        print(f"[FORM DATA] phone: {phone}")
+        print(f"[FORM DATA] address: {address[:50]}..." if len(address) > 50 else f"[FORM DATA] address: {address}")
+        print(f"[FORM DATA] kyc_type: {kyc_type}")
+        print(f"[FORM DATA] kyc_number: {kyc_number}")
+        print(f"[FORM DATA] selfie_data length: {len(selfie_data) if selfie_data else 0}")
+        print(f"[FORM DATA] hotel_id from form: {request.form.get('hotel_id')}")
+        print(f"[FORM DATA] hotel_id from args: {request.args.get('hotel_id')}")
+        print(f"[FORM DATA] Combined hotel_id: {hotel_id}")
+        
+        # Check uploaded files
+        print(f"[FILES] identity_file: {request.files.get('identity_file').filename if request.files.get('identity_file') else 'None'}")
+        print(f"[FILES] aadhaar_file: {request.files.get('aadhaar_file').filename if request.files.get('aadhaar_file') else 'None'}")
         
         # Convert hotel_id to int or None
         if hotel_id:
             try:
                 hotel_id = int(hotel_id)
-                print(f"[VERIFICATION SUBMIT] Converted hotel_id to int: {hotel_id}")
+                print(f"[HOTEL_ID] Converted to int: {hotel_id}")
             except (ValueError, TypeError):
                 hotel_id = None
-                print(f"[VERIFICATION SUBMIT] Failed to convert hotel_id to int, set to None")
+                print(f"[HOTEL_ID] Failed to convert, set to None")
         else:
             hotel_id = None
-            print(f"[VERIFICATION SUBMIT] hotel_id is empty, set to None")
+            print(f"[HOTEL_ID] Empty, set to None")
+        
+        # Validate required fields
+        print(f"\n[VALIDATION] Checking required fields...")
+        if not guest_name:
+            print(f"[VALIDATION] ❌ guest_name is missing")
+            hotel_name, hotel_logo = get_hotel_data(hotel_id)
+            return render_template('guest_verification_form.html', 
+                                 manager_id=manager_id, 
+                                 hotel_id=hotel_id,
+                                 hotel_name=hotel_name,
+                                 hotel_logo=hotel_logo,
+                                 error='Guest name is required')
+        
+        if not phone:
+            print(f"[VALIDATION] ❌ phone is missing")
+            hotel_name, hotel_logo = get_hotel_data(hotel_id)
+            return render_template('guest_verification_form.html', 
+                                 manager_id=manager_id, 
+                                 hotel_id=hotel_id,
+                                 hotel_name=hotel_name,
+                                 hotel_logo=hotel_logo,
+                                 error='Phone number is required')
         
         # Validate phone: exactly 10 digits, numbers only
         if not phone.isdigit() or len(phone) != 10:
-            # Fetch hotel data for error display
-            hotel_name = None
-            hotel_logo = None
-            if hotel_id:
-                try:
-                    conn = get_db_connection()
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
-                    result = cursor.fetchone()
-                    if result:
-                        hotel_name = result[0]
-                        hotel_logo = result[1]
-                    cursor.close()
-                    conn.close()
-                except Exception as e:
-                    print(f"Error fetching hotel data: {e}")
-            
+            print(f"[VALIDATION] ❌ phone format invalid: {phone}")
+            hotel_name, hotel_logo = get_hotel_data(hotel_id)
             return render_template('guest_verification_form.html', 
                                  manager_id=manager_id, 
                                  hotel_id=hotel_id,
@@ -154,81 +182,131 @@ def submit_verification(manager_id):
                                  hotel_logo=hotel_logo,
                                  error='Phone number must be exactly 10 digits (numbers only)')
         
+        if not address:
+            print(f"[VALIDATION] ❌ address is missing")
+            hotel_name, hotel_logo = get_hotel_data(hotel_id)
+            return render_template('guest_verification_form.html', 
+                                 manager_id=manager_id, 
+                                 hotel_id=hotel_id,
+                                 hotel_name=hotel_name,
+                                 hotel_logo=hotel_logo,
+                                 error='Address is required')
+        
+        if not selfie_data:
+            print(f"[VALIDATION] ❌ selfie_data is missing")
+            hotel_name, hotel_logo = get_hotel_data(hotel_id)
+            return render_template('guest_verification_form.html', 
+                                 manager_id=manager_id, 
+                                 hotel_id=hotel_id,
+                                 hotel_name=hotel_name,
+                                 hotel_logo=hotel_logo,
+                                 error='Selfie capture is required')
+        
+        print(f"[VALIDATION] ✅ All required fields present")
+        
         # Check wallet balance BEFORE accepting submission (if hotel_id exists)
         if hotel_id:
+            print(f"\n[WALLET] Checking balance for hotel_id={hotel_id}")
             from wallet.models import HotelWallet
             balance_check = HotelWallet.check_balance_for_verification(hotel_id)
+            print(f"[WALLET] Balance check result: {balance_check}")
             if not balance_check.get('sufficient', True):
-                # Fetch hotel data for error display
-                hotel_name = None
-                hotel_logo = None
-                try:
-                    conn = get_db_connection()
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
-                    result = cursor.fetchone()
-                    if result:
-                        hotel_name = result[0]
-                        hotel_logo = result[1]
-                    cursor.close()
-                    conn.close()
-                except Exception as e:
-                    print(f"Error fetching hotel data: {e}")
-                
+                print(f"[WALLET] ❌ Insufficient balance")
+                hotel_name, hotel_logo = get_hotel_data(hotel_id)
                 return render_template('guest_verification_form.html', 
                                      manager_id=manager_id, 
                                      hotel_id=hotel_id,
                                      hotel_name=hotel_name,
                                      hotel_logo=hotel_logo,
                                      error=f"Cannot submit verification: Insufficient wallet balance. Required: ₹{balance_check.get('charge', 0):.2f}, Available: ₹{balance_check.get('balance', 0):.2f}. Please contact restaurant management.")
+            print(f"[WALLET] ✅ Sufficient balance")
         
-        # Handle file upload
+        # Save selfie from base64
+        print(f"\n[FILE PROCESSING] Saving selfie...")
+        selfie_path = None
+        if selfie_data:
+            selfie_path = GuestVerification.save_selfie_from_base64(selfie_data, manager_id)
+            print(f"[FILE PROCESSING] Selfie saved: {selfie_path}")
+        else:
+            print(f"[FILE PROCESSING] No selfie data")
+        
+        # Handle file upload (KYC document)
+        print(f"[FILE PROCESSING] Processing KYC document...")
         identity_file = request.files.get('identity_file')
         file_path = None
-        
         if identity_file and identity_file.filename:
             file_path = GuestVerification.save_uploaded_file(identity_file, manager_id)
+            print(f"[FILE PROCESSING] KYC document saved: {file_path}")
+        else:
+            print(f"[FILE PROCESSING] No KYC document uploaded")
         
-        # Submit verification with hotel_id and kyc_type (use file_path, not identity_file)
-        result = GuestVerification.submit_verification(
-            manager_id, guest_name, phone, address, kyc_number, file_path, hotel_id, kyc_type
+        # Handle Aadhaar file upload (MANDATORY)
+        print(f"[FILE PROCESSING] Processing Aadhaar...")
+        aadhaar_file = request.files.get('aadhaar_file')
+        aadhaar_path = None
+        if aadhaar_file and aadhaar_file.filename:
+            aadhaar_path = GuestVerification.save_uploaded_file(aadhaar_file, manager_id, file_prefix='aadhaar')
+            print(f"[FILE PROCESSING] Aadhaar saved: {aadhaar_path}")
+        else:
+            # Aadhaar is mandatory - return error if not provided
+            print(f"[FILE PROCESSING] ❌ Aadhaar missing")
+            hotel_name, hotel_logo = get_hotel_data(hotel_id)
+            return render_template('guest_verification_form.html', 
+                                 manager_id=manager_id, 
+                                 hotel_id=hotel_id,
+                                 hotel_name=hotel_name,
+                                 hotel_logo=hotel_logo,
+                                 error='Aadhaar card upload is mandatory. Please upload your Aadhaar card.')
+        
+        # Submit verification with selfie, KYC, and Aadhaar
+        print(f"\n[DATABASE] Submitting verification to database...")
+        print(f"[DATABASE] Parameters:")
+        print(f"  - manager_id: {manager_id}")
+        print(f"  - hotel_id: {hotel_id}")
+        print(f"  - guest_name: {guest_name}")
+        print(f"  - phone: {phone}")
+        print(f"  - kyc_type: {kyc_type}")
+        print(f"  - kyc_number: {kyc_number}")
+        print(f"  - selfie_path: {selfie_path}")
+        print(f"  - kyc_document_path: {file_path}")
+        print(f"  - aadhaar_path: {aadhaar_path}")
+        
+        result = GuestVerification.submit_multistep_verification(
+            manager_id=manager_id,
+            guest_name=guest_name,
+            phone=phone,
+            address=address,
+            kyc_number=kyc_number,
+            kyc_type=kyc_type,
+            selfie_path=selfie_path,
+            kyc_document_path=file_path,
+            aadhaar_path=aadhaar_path,
+            hotel_id=hotel_id
         )
+        
+        print(f"[DATABASE] Submission result: {result}")
         
         if result['success']:
             verification_id = result.get('id')
             
-            print(f"[VERIFICATION] Submission successful - verification_id: {verification_id}, hotel_id: {hotel_id}")
+            print(f"\n[SUCCESS] ✅ Verification submitted successfully!")
+            print(f"[SUCCESS] verification_id: {verification_id}")
+            print(f"[SUCCESS] hotel_id: {hotel_id}")
             
             # Automatically deduct wallet balance on submission (if hotel_id exists)
             if hotel_id and verification_id:
-                print(f"[VERIFICATION] Attempting wallet deduction for hotel_id={hotel_id}, verification_id={verification_id}")
+                print(f"[WALLET DEDUCTION] Attempting deduction...")
                 from wallet.models import HotelWallet
                 deduct_result = HotelWallet.deduct_for_verification(hotel_id, verification_id)
-                print(f"[VERIFICATION] Deduction result: {deduct_result}")
+                print(f"[WALLET DEDUCTION] Result: {deduct_result}")
                 if not deduct_result.get('success'):
-                    print(f"[VERIFICATION] Warning: Verification submitted but wallet deduction failed: {deduct_result.get('message')}")
+                    print(f"[WALLET DEDUCTION] ⚠️ Warning: {deduct_result.get('message')}")
             else:
-                print(f"[VERIFICATION] Skipping wallet deduction - hotel_id={hotel_id}, verification_id={verification_id}")
-            
-            # Fetch hotel data for success page
-            success_hotel_name = None
-            success_hotel_logo = None
-            if hotel_id:
-                try:
-                    conn = get_db_connection()
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
-                    result_data = cursor.fetchone()
-                    if result_data:
-                        success_hotel_name = result_data[0]
-                        success_hotel_logo = result_data[1]
-                    cursor.close()
-                    conn.close()
-                except Exception as e:
-                    print(f"Error fetching hotel data for success: {e}")
+                print(f"[WALLET DEDUCTION] Skipped (hotel_id={hotel_id}, verification_id={verification_id})")
             
             # Log activity with hotel_id
             if hotel_id:
+                print(f"[ACTIVITY LOG] Logging activity...")
                 try:
                     conn = get_db_connection()
                     cursor = conn.cursor()
@@ -239,30 +317,21 @@ def submit_verification(manager_id):
                     conn.commit()
                     cursor.close()
                     conn.close()
+                    print(f"[ACTIVITY LOG] ✅ Activity logged")
                 except Exception as e:
-                    print(f"Error logging activity: {e}")
+                    print(f"[ACTIVITY LOG] ❌ Error: {e}")
             
+            # Fetch hotel data for success page
+            success_hotel_name, success_hotel_logo = get_hotel_data(hotel_id)
+            print(f"\n[REDIRECT] Redirecting to success page")
+            print("="*80 + "\n")
             return render_template('verification_success.html',
                                  hotel_name=success_hotel_name,
                                  hotel_logo=success_hotel_logo)
         else:
-            # Fetch hotel data for error display
-            hotel_name = None
-            hotel_logo = None
-            if hotel_id:
-                try:
-                    conn = get_db_connection()
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
-                    result = cursor.fetchone()
-                    if result:
-                        hotel_name = result[0]
-                        hotel_logo = result[1]
-                    cursor.close()
-                    conn.close()
-                except Exception as e:
-                    print(f"Error fetching hotel data: {e}")
-            
+            print(f"\n[ERROR] ❌ Submission failed: {result['message']}")
+            print("="*80 + "\n")
+            hotel_name, hotel_logo = get_hotel_data(hotel_id)
             return render_template('guest_verification_form.html', 
                                  manager_id=manager_id,
                                  hotel_id=hotel_id,
@@ -271,33 +340,37 @@ def submit_verification(manager_id):
                                  error=result['message'])
     
     except Exception as e:
-        print(f"Error in submit_verification: {e}")
+        print(f"\n[EXCEPTION] ❌ Error in submit_verification: {e}")
         import traceback
         traceback.print_exc()
+        print("="*80 + "\n")
         
-        # Fetch hotel data for error display
-        hotel_name = None
-        hotel_logo = None
-        if hotel_id:
-            try:
-                conn = get_db_connection()
-                cursor = conn.cursor()
-                cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
-                result = cursor.fetchone()
-                if result:
-                    hotel_name = result[0]
-                    hotel_logo = result[1]
-                cursor.close()
-                conn.close()
-            except Exception as ex:
-                print(f"Error fetching hotel data: {ex}")
-        
+        hotel_name, hotel_logo = get_hotel_data(hotel_id if 'hotel_id' in locals() else None)
         return render_template('guest_verification_form.html', 
                              manager_id=manager_id,
-                             hotel_id=hotel_id,
+                             hotel_id=hotel_id if 'hotel_id' in locals() else None,
                              hotel_name=hotel_name,
                              hotel_logo=hotel_logo,
                              error=f"Error: {str(e)}")
+
+def get_hotel_data(hotel_id):
+    """Helper function to fetch hotel name and logo"""
+    hotel_name = None
+    hotel_logo = None
+    if hotel_id:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
+            result = cursor.fetchone()
+            if result:
+                hotel_name = result[0]
+                hotel_logo = result[1]
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"Error fetching hotel data: {e}")
+    return hotel_name, hotel_logo
 
 @guest_verification_bp.route('/update-status', methods=['POST'])
 def update_status():
@@ -448,8 +521,13 @@ def send_otp():
                     result = cursor.fetchone()
                     
                     if result and result[0]:
-                        hotel_name = result[0].strip()  # Remove any whitespace
-                        print(f"[ROUTE] ✅ Found hotel name from DB: '{hotel_name}'")
+                        fetched_name = result[0].strip()  # Remove any whitespace
+                        # Only use fetched name if it's not empty
+                        if fetched_name:
+                            hotel_name = fetched_name
+                            print(f"[ROUTE] ✅ Found hotel name from DB: '{hotel_name}'")
+                        else:
+                            print(f"[ROUTE] ⚠️ Hotel name is empty in DB for ID {hotel_id}, using default: '{hotel_name}'")
                     else:
                         print(f"[ROUTE] ⚠️ No hotel found with ID {hotel_id}, using default: '{hotel_name}'")
                     
@@ -459,6 +537,8 @@ def send_otp():
                     print(f"[ROUTE] ⚠️ Invalid hotel_id, using default: '{hotel_name}'")
             except Exception as e:
                 print(f"[ROUTE] ❌ Error fetching hotel name: {e}")
+                import traceback
+                traceback.print_exc()
                 print(f"[ROUTE] Using default hotel name: '{hotel_name}'")
         else:
             print(f"[ROUTE] ⚠️ No hotel_id provided, using default: '{hotel_name}'")
@@ -555,3 +635,8 @@ def check_otp_status():
             'success': False,
             'message': f'Failed to check OTP status: {str(e)}'
         }), 500
+
+@guest_verification_bp.route('/success')
+def verification_success():
+    """Success page after verification submission"""
+    return render_template('verification_success.html')
