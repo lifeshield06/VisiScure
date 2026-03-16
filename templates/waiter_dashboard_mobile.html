@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Waiter Dashboard - VisiScure Order</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='waiter_mobile.css') }}">
+</head>
+<body>
+    <!-- Mobile App Container -->
+    <div class="mobile-app">
+        
+        <!-- Compact Top Bar -->
+        <header class="app-header">
+            <div class="header-left">
+                {% if hotel_logo and logo_file_exists(hotel_logo) %}
+                <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel_logo) }}" 
+                     alt="{{ hotel_name }} Logo" 
+                     class="header-hotel-logo">
+                {% else %}
+                <div class="waiter-avatar">{{ waiter_name[:1]|upper if waiter_name else 'W' }}</div>
+                {% endif %}
+                <div class="waiter-info">
+                    <span class="waiter-name">{{ waiter_name }}</span>
+                    <span class="hotel-name">{{ hotel_name }}</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="icon-btn" onclick="refreshAll()" id="refreshBtn">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <a href="/" class="icon-btn logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Scrollable Content -->
+        <main class="app-content">
+            
+            <!-- Quick Stats Row -->
+            <div class="quick-stats">
+                <div class="stat-pill active-stat" onclick="scrollToSection('active-orders')">
+                    <i class="fas fa-fire"></i>
+                    <span id="activeCount">{{ active_count }}</span>
+                    <label>Active</label>
+                </div>
+                <div class="stat-pill preparing-stat" onclick="scrollToSection('preparing-orders')">
+                    <i class="fas fa-clock"></i>
+                    <span id="preparingCount">{{ preparing_count }}</span>
+                    <label>Preparing</label>
+                </div>
+                <div class="stat-pill completed-stat" onclick="scrollToSection('completed-orders')">
+                    <i class="fas fa-check"></i>
+                    <span id="completedCount">{{ completed_count }}</span>
+                    <label>Done</label>
+                </div>
+                <div class="stat-pill tables-stat" onclick="scrollToSection('my-tables')">
+                    <i class="fas fa-chair"></i>
+                    <span id="tablesCount">{{ tables|length }}</span>
+                    <label>Tables</label>
+                </div>
+                <div id="tips-stat-pill" class="stat-pill tips-card-hidden" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
+                    <i class="fas fa-hand-holding-heart"></i>
+                    <span id="todayTipsCount">₹0</span>
+                    <label>Today's Tips</label>
+                </div>
+            </div>
+
+            <!-- My Tables Section -->
+            <section class="card-section" id="my-tables">
+                <div class="section-header">
+                    <h2><i class="fas fa-chair"></i> My Tables</h2>
+                    <span class="badge">{{ tables|length }} assigned</span>
+                </div>
+                <div class="tables-scroll">
+                    {% for table in tables %}
+                    <div class="table-chip {{ 'occupied' if table.status == 'BUSY' else 'available' }}">
+                        <div class="table-number">T{{ table.table_number }}</div>
+                        <div class="table-status">
+                            {% if table.status == 'BUSY' %}
+                            <i class="fas fa-user"></i> Occupied
+                            {% else %}
+                            <i class="fas fa-check"></i> Free
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="empty-state" style="padding: 20px; text-align: center; color: var(--gray-400);">
+                        <p>No tables assigned yet</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Waiter Call Assistance Requests Section -->
+            <div class="assistance-banner" id="assistance-banner" style="display: none;">
+                <div class="banner-content">
+                    <i class="fas fa-bell"></i>
+                    <span id="banner-message">🔔 TABLE CALLING WAITER</span>
+                </div>
+            </div>
+
+            <section class="card-section" id="assistance-requests-section" style="display: none;">
+                <div class="section-header">
+                    <h2><i class="fas fa-hand-paper"></i> Table Assistance Requests</h2>
+                    <span class="badge badge-danger" id="assistance-count">0</span>
+                </div>
+                <div class="assistance-requests-container" id="assistance-requests">
+                    <!-- Assistance requests will be loaded via JavaScript -->
+                </div>
+            </section>
+
+            <!-- Active Orders Section -->
+            <section class="card-section" id="active-orders">
+                <div class="section-header">
+                    <h2><i class="fas fa-fire"></i> Active Orders</h2>
+                    <span class="badge badge-danger" id="activeBadge">{{ active_count }}</span>
+                </div>
+                <div class="orders-list" id="activeOrdersList">
+                    <!-- Orders will be loaded dynamically -->
+                    <div class="loading-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading orders...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Preparing Orders Section -->
+            <section class="card-section" id="preparing-orders">
+                <div class="section-header">
+                    <h2><i class="fas fa-clock"></i> Preparing</h2>
+                    <span class="badge badge-warning" id="preparingBadge">{{ preparing_count }}</span>
+                </div>
+                <div class="orders-list" id="preparingOrdersList">
+                    <!-- Orders will be loaded dynamically -->
+                    <div class="loading-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading orders...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Completed Orders Section -->
+            <section class="card-section collapsed" id="completed-orders">
+                <div class="section-header" onclick="toggleSection('completed-orders')">
+                    <h2><i class="fas fa-check-circle"></i> Completed Today</h2>
+                    <div class="section-toggle">
+                        <span class="badge badge-success" id="completedBadge">{{ completed_count }}</span>
+                        <i class="fas fa-chevron-down toggle-icon"></i>
+                    </div>
+                </div>
+                <div class="orders-list collapsible-content" id="completedOrdersList">
+                    <!-- Orders will be loaded dynamically -->
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section class="card-section collapsed" id="settings-section">
+                <div class="section-header" onclick="toggleSection('settings-section')">
+                    <h2><i class="fas fa-cog"></i> Settings</h2>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="settings-content collapsible-content">
+                    <div class="settings-item">
+                        <div class="setting-info">
+                            <i class="fas fa-user"></i>
+                            <div>
+                                <label>Name</label>
+                                <span>{{ waiter_name }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="setting-info">
+                            <i class="fas fa-id-badge"></i>
+                            <div>
+                                <label>Waiter ID</label>
+                                <span>{{ waiter_id }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="setting-info">
+                            <i class="fas fa-hotel"></i>
+                            <div>
+                                <label>Hotel</label>
+                                <span>{{ hotel_name }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+        </main>
+
+        <!-- Bottom Quick Actions Bar -->
+        <nav class="bottom-actions">
+            <button class="action-card" onclick="scrollToSection('active-orders')">
+                <div class="action-icon active-icon">
+                    <i class="fas fa-fire"></i>
+                </div>
+                <span>Active</span>
+                <div class="action-badge" id="activeActionBadge">{{ active_count }}</div>
+            </button>
+            <button class="action-card" onclick="scrollToSection('preparing-orders')">
+                <div class="action-icon preparing-icon">
+                    <i class="fas fa-utensils"></i>
+                </div>
+                <span>Preparing</span>
+                <div class="action-badge warning" id="preparingActionBadge">{{ preparing_count }}</div>
+            </button>
+            <button class="action-card" onclick="refreshAll()">
+                <div class="action-icon refresh-icon">
+                    <i class="fas fa-sync-alt"></i>
+                </div>
+                <span>Refresh</span>
+            </button>
+            <button class="action-card" onclick="scrollToSection('my-tables')">
+                <div class="action-icon tables-icon">
+                    <i class="fas fa-chair"></i>
+                </div>
+                <span>Tables</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <!-- Order Detail Modal -->
+    <div class="modal-overlay" id="orderModal">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+            <div class="modal-header">
+                <h3 id="modalTitle">Order Details</h3>
+                <button class="close-btn" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic content -->
+            </div>
+            <div class="modal-actions" id="modalActions">
+                <!-- Dynamic buttons -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bill Modal -->
+    <div class="bill-overlay" id="billModal" style="display: none;">
+        <div class="bill-sheet">
+            <div class="modal-handle"></div>
+            <div class="bill-header">
+                <h3><i class="fas fa-receipt"></i> Bill Details</h3>
+                <button class="close-btn" onclick="closeBillModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="bill-body" id="billBody">
+                <!-- Dynamic content -->
+            </div>
+            <div class="bill-footer" id="billFooter">
+                <!-- Dynamic buttons -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="toast-icon fas fa-check-circle"></i>
+        <span class="toast-message">Success!</span>
+    </div>
+
+    <script>
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
+        let autoRefreshInterval;
+        const REFRESH_INTERVAL = 30000; // 30 seconds
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllOrders();
+            startAutoRefresh();
+        });
+
+
+
+        // ============================================
+        // SECTION NAVIGATION
+        // ============================================
+        function scrollToSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                // Expand if collapsed
+                if (section.classList.contains('collapsed')) {
+                    toggleSection(sectionId);
+                }
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.classList.toggle('collapsed');
+                const icon = section.querySelector('.toggle-icon');
+                if (icon) {
+                    icon.style.transform = section.classList.contains('collapsed') ? 'rotate(0deg)' : 'rotate(180deg)';
+                }
+            }
+        }
+
+        // ============================================
+        // DATA LOADING
+        // ============================================
+        async function loadAllOrders() {
+            await Promise.all([
+                loadActiveOrders(),
+                loadPreparingOrders(),
+                loadCompletedOrders(),
+                loadTipStatistics()
+            ]);
+        }
+
+        async function loadActiveOrders() {
+            try {
+                const response = await fetch('/waiter/api/orders?status=ACTIVE');
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderOrders('activeOrdersList', data.orders, 'active');
+                    updateCount('activeCount', data.orders.length);
+                    updateCount('activeBadge', data.orders.length);
+                    updateCount('activeActionBadge', data.orders.length);
+                }
+            } catch (error) {
+                console.error('Error loading active orders:', error);
+                showToast('Failed to load active orders', 'error');
+            }
+        }
+
+        async function loadPreparingOrders() {
+            try {
+                const response = await fetch('/waiter/api/orders?status=PREPARING');
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderOrders('preparingOrdersList', data.orders, 'preparing');
+                    updateCount('preparingCount', data.orders.length);
+                    updateCount('preparingBadge', data.orders.length);
+                    updateCount('preparingActionBadge', data.orders.length);
+                }
+            } catch (error) {
+                console.error('Error loading preparing orders:', error);
+                showToast('Failed to load preparing orders', 'error');
+            }
+        }
+
+        async function loadCompletedOrders() {
+            try {
+                const response = await fetch('/waiter/api/orders?status=COMPLETED');
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderOrders('completedOrdersList', data.orders, 'completed');
+                    updateCount('completedCount', data.orders.length);
+                    updateCount('completedBadge', data.orders.length);
+                }
+            } catch (error) {
+                console.error('Error loading completed orders:', error);
+            }
+        }
+        
+        async function loadTipStatistics() {
+            try {
+                const waiterId = {{ waiter_id }};
+                const tipStatPill = document.getElementById('tips-stat-pill');
+                
+                console.log('[TIPS DEBUG] Loading tips for waiter:', waiterId);
+                
+                const response = await fetch(`/orders/api/tip-statistics/waiter/${waiterId}?period=today`);
+                const data = await response.json();
+                
+                console.log('[TIPS DEBUG] API Response:', data);
+                
+                if (data.success) {
+                    // Check if tips should be visible to waiters
+                    if (data.tips_visible === false) {
+                        // Hide the tip card
+                        console.log('[TIPS DEBUG] Hiding tips card - tips_visible is false');
+                        if (tipStatPill) {
+                            tipStatPill.classList.add('tips-card-hidden');
+                        }
+                    } else {
+                        // Show tips - tips_visible is true
+                        console.log('[TIPS DEBUG] Showing tips card - tips_visible is true');
+                        if (tipStatPill) {
+                            tipStatPill.classList.remove('tips-card-hidden');
+                        }
+                        if (data.statistics) {
+                            const totalTips = data.statistics.total_tips || 0;
+                            document.getElementById('todayTipsCount').textContent = `₹${Math.round(totalTips)}`;
+                        }
+                    }
+                } else {
+                    // API failed - keep hidden
+                    console.log('[TIPS DEBUG] API failed, keeping tips hidden');
+                    if (tipStatPill) {
+                        tipStatPill.classList.add('tips-card-hidden');
+                    }
+                }
+            } catch (error) {
+                console.error('[TIPS DEBUG] Error loading tip statistics:', error);
+                // On error - keep hidden
+                const tipStatPill = document.getElementById('tips-stat-pill');
+                if (tipStatPill) {
+                    tipStatPill.classList.add('tips-card-hidden');
+                }
+            }
+        }
+
+        function updateCount(elementId, count) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.textContent = count;
+                // Add pulse animation for non-zero counts
+                if (count > 0) {
+                    el.classList.add('has-count');
+                } else {
+                    el.classList.remove('has-count');
+                }
+            }
+        }
+
+        // ============================================
+        // ORDER RENDERING
+        // ============================================
+        function renderOrders(containerId, orders, type) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            if (orders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-${type === 'active' ? 'fire-alt' : type === 'preparing' ? 'utensils' : 'clipboard-check'}"></i>
+                        <p>No ${type} orders</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = orders.map(order => createOrderCard(order, type)).join('');
+        }
+
+        function createOrderCard(order, type) {
+            const status = order.status || order.order_status || 'pending';
+            const statusClass = getStatusClass(status);
+            const timeAgo = getTimeAgo(order.created_at);
+            const paymentStatus = order.payment_status || 'pending';
+            const orderId = order.id || order.order_id;
+            const items = order.items || [];
+            const totalAmount = order.total_amount || order.total || 0;
+            
+            let actionButtons = '';
+            const upperStatus = status.toUpperCase();
+            if (type === 'active' || upperStatus === 'ACTIVE') {
+                actionButtons = `
+                    <button class="order-action-btn preparing" onclick="updateStatus(${orderId}, 'PREPARING')">
+                        <i class="fas fa-clock"></i> Start Preparing
+                    </button>
+                `;
+            } else if (type === 'preparing' || upperStatus === 'PREPARING') {
+                actionButtons = `
+                    <button class="order-action-btn complete" onclick="updateStatus(${orderId}, 'COMPLETED')">
+                        <i class="fas fa-check"></i> Mark Complete
+                    </button>
+                `;
+            }
+
+            return `
+                <div class="order-card ${statusClass}" onclick="showOrderDetails(${orderId})">
+                    <div class="order-card-header">
+                        <div class="order-info">
+                            <span class="table-badge">T${order.table_number}</span>
+                            <span class="order-id">#${orderId}</span>
+                        </div>
+                        <div class="order-badges">
+                            <span class="status-badge ${statusClass}">${status}</span>
+                            <span class="payment-badge ${paymentStatus}">${paymentStatus}</span>
+                        </div>
+                    </div>
+                    <div class="order-card-body">
+                        <div class="order-items">
+                            ${items.length > 0 ? items.slice(0, 3).map(item => 
+                                `<span class="item-tag">${item.quantity}× ${item.name || item.item_name}</span>`
+                            ).join('') : '<span class="item-tag">No items</span>'}
+                            ${items.length > 3 ? `<span class="item-tag more">+${items.length - 3} more</span>` : ''}
+                        </div>
+                        <div class="order-meta">
+                            <span class="order-time"><i class="fas fa-clock"></i> ${timeAgo}</span>
+                            <span class="order-total">₹${totalAmount}</span>
+                        </div>
+                    </div>
+                    ${actionButtons ? `<div class="order-card-actions" onclick="event.stopPropagation()">${actionButtons}</div>` : ''}
+                </div>
+            `;
+        }
+
+        function getStatusClass(status) {
+            switch(status?.toUpperCase()) {
+                case 'PENDING': return 'status-pending';
+                case 'CONFIRMED': return 'status-confirmed';
+                case 'ACTIVE': return 'status-pending';
+                case 'PREPARING': return 'status-preparing';
+                case 'COMPLETED': return 'status-completed';
+                case 'CANCELLED': return 'status-cancelled';
+                default: return 'status-pending';
+            }
+        }
+
+        function getTimeAgo(dateStr) {
+            if (!dateStr) return 'Just now';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return `${Math.floor(diffHours / 24)}d ago`;
+        }
+
+        // ============================================
+        // ORDER ACTIONS
+        // ============================================
+        async function updateStatus(orderId, newStatus) {
+            try {
+                const response = await fetch(`/waiter/api/orders/${orderId}/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus.toUpperCase() })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showToast(`Order #${orderId} marked as ${newStatus}`, 'success');
+                    await loadAllOrders();
+                } else {
+                    showToast(data.message || 'Failed to update order', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating status:', error);
+                showToast('Failed to update order status', 'error');
+            }
+        }
+
+        async function showOrderDetails(orderId) {
+            try {
+                // Fetch all orders and find the specific one
+                const response = await fetch('/waiter/api/orders');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const order = data.orders.find(o => o.id === orderId || o.order_id === orderId);
+                    if (!order) {
+                        showToast('Order not found', 'error');
+                        return;
+                    }
+                    
+                    document.getElementById('modalTitle').innerHTML = `
+                        <span class="table-badge large">T${order.table_number}</span>
+                        Order #${order.id || order.order_id}
+                    `;
+                    
+                    const status = order.status || order.order_status || 'pending';
+                    const items = order.items || [];
+                    const totalAmount = order.total_amount || order.total || 0;
+                    
+                    document.getElementById('modalBody').innerHTML = `
+                        <div class="order-detail-section">
+                            <div class="detail-row">
+                                <span class="label">Status</span>
+                                <span class="status-badge ${getStatusClass(status)}">${status}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Payment</span>
+                                <span class="payment-badge ${order.payment_status || 'pending'}">${order.payment_status || 'Pending'}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Time</span>
+                                <span>${getTimeAgo(order.created_at)}</span>
+                            </div>
+                        </div>
+                        <div class="items-section">
+                            <h4>Items</h4>
+                            <div class="items-list">
+                                ${items.length > 0 ? items.map(item => `
+                                    <div class="item-row">
+                                        <span class="qty">${item.quantity}×</span>
+                                        <span class="name">${item.name || item.item_name}</span>
+                                        <span class="price">₹${(item.price || 0) * item.quantity}</span>
+                                    </div>
+                                `).join('') : '<p>No items</p>'}
+                            </div>
+                        </div>
+                        <div class="total-section">
+                            <div class="total-row grand">
+                                <span>Total</span>
+                                <span>₹${totalAmount}</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    let actions = `<button class="action-btn secondary" onclick="viewBill(${order.table_id || 0})"><i class="fas fa-receipt"></i> View Bill</button>`;
+                    
+                    const orderStatus = (status || '').toUpperCase();
+                    if (orderStatus === 'ACTIVE' || orderStatus === 'PENDING' || orderStatus === 'CONFIRMED') {
+                        actions += `<button class="action-btn warning" onclick="updateStatus(${order.id || order.order_id}, 'PREPARING'); closeModal();"><i class="fas fa-clock"></i> Preparing</button>`;
+                    } else if (orderStatus === 'PREPARING') {
+                        actions += `<button class="action-btn success" onclick="updateStatus(${order.id || order.order_id}, 'COMPLETED'); closeModal();"><i class="fas fa-check"></i> Complete</button>`;
+                    }
+                    
+                    document.getElementById('modalActions').innerHTML = actions;
+                    openModal();
+                }
+            } catch (error) {
+                console.error('Error fetching order details:', error);
+                showToast('Failed to load order details', 'error');
+            }
+        }
+
+        async function viewBill(tableId) {
+            // For now, show a message since bill viewing needs table-specific implementation
+            // The waiter can see bills through order details
+            showToast('Bill feature coming soon', 'info');
+            closeModal();
+        }
+
+        function printBill(billId) {
+            showToast('Print feature coming soon', 'info');
+        }
+
+        // ============================================
+        // MODAL FUNCTIONS
+        // ============================================
+        function openModal() {
+            document.getElementById('orderModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('orderModal').classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        function closeBillModal() {
+            document.getElementById('billModal').style.display = 'none';
+        }
+
+        // ============================================
+        // REFRESH & AUTO-REFRESH
+        // ============================================
+        function refreshAll() {
+            const btn = document.getElementById('refreshBtn');
+            btn.classList.add('spinning');
+            
+            loadAllOrders().then(() => {
+                setTimeout(() => btn.classList.remove('spinning'), 500);
+                showToast('Data refreshed', 'success');
+            });
+        }
+
+        function startAutoRefresh() {
+            autoRefreshInterval = setInterval(loadAllOrders, REFRESH_INTERVAL);
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        }
+
+        // ============================================
+        // TOAST NOTIFICATIONS
+        // ============================================
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = toast.querySelector('.toast-icon');
+            const msg = toast.querySelector('.toast-message');
+            
+            icon.className = 'toast-icon fas ' + (type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle');
+            toast.className = 'toast ' + type;
+            msg.textContent = message;
+            
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ============================================
+        // LOGOUT
+        // ============================================
+        function logout() {
+            stopAutoRefresh();
+            window.location.href = '/';
+        }
+
+        // Close modals on backdrop click
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('show');
+                    document.body.style.overflow = '';
+                }
+            });
+        });
+
+        // Handle swipe down to close modals
+        let touchStartY = 0;
+        document.querySelectorAll('.modal-sheet, .bill-sheet').forEach(sheet => {
+            sheet.addEventListener('touchstart', e => {
+                touchStartY = e.touches[0].clientY;
+            });
+            sheet.addEventListener('touchend', e => {
+                const touchEndY = e.changedTouches[0].clientY;
+                if (touchEndY - touchStartY > 100) {
+                    sheet.closest('.modal-overlay, .bill-overlay').classList.remove('show');
+                    if (sheet.closest('.bill-overlay')) {
+                        sheet.closest('.bill-overlay').style.display = 'none';
+                    }
+                    document.body.style.overflow = '';
+                }
+            });
+        });
+
+        // ============================================
+        // WAITER CALL SYSTEM - Polling and UI
+        // ============================================
+        
+        let pollingInterval = null;
+        let previousRequestIds = new Set();
+        let voiceMessage = 'Table {table} is calling waiter'; // Default message
+        let speechSynthesisAvailable = false;
+        let userInteracted = false;
+
+        // Enable audio on user interaction (to bypass autoplay restrictions)
+        function enableAudioOnInteraction() {
+            if (!userInteracted) {
+                userInteracted = true;
+                console.log('[WAITER_CALL] User interaction detected - audio enabled');
+                
+                // Test speech synthesis
+                if (speechSynthesisAvailable) {
+                    speechSynthesis.cancel();
+                    const testUtterance = new SpeechSynthesisUtterance('');
+                    speechSynthesis.speak(testUtterance);
+                }
+            }
+        }
+
+        // Add event listeners for user interaction
+        document.addEventListener('click', enableAudioOnInteraction, { once: true });
+        document.addEventListener('touchstart', enableAudioOnInteraction, { once: true });
+        document.addEventListener('keydown', enableAudioOnInteraction, { once: true });
+
+        // Check if speech synthesis is available
+        function checkSpeechSynthesis() {
+            if ('speechSynthesis' in window) {
+                speechSynthesisAvailable = true;
+                console.log('[WAITER_CALL] Speech synthesis is available');
+                
+                // Load voices (some browsers need this)
+                if (speechSynthesis.getVoices().length === 0) {
+                    speechSynthesis.addEventListener('voiceschanged', function() {
+                        console.log('[WAITER_CALL] Voices loaded:', speechSynthesis.getVoices().length);
+                    });
+                } else {
+                    console.log('[WAITER_CALL] Voices already loaded:', speechSynthesis.getVoices().length);
+                }
+            } else {
+                console.warn('[WAITER_CALL] Speech synthesis not available in this browser');
+            }
+        }
+
+        // Fetch voice message from server
+        async function fetchVoiceMessage() {
+            try {
+                const response = await fetch('/waiter/api/waiter-calls/voice-message');
+                const data = await response.json();
+                
+                if (data.success && data.voice_message) {
+                    voiceMessage = data.voice_message;
+                    console.log('[WAITER_CALL] Voice message loaded:', voiceMessage);
+                }
+            } catch (error) {
+                console.error('[WAITER_CALL] Error fetching voice message:', error);
+            }
+        }
+
+        // Speak voice message using Web Speech API
+        function speakVoiceMessage(tableNumber) {
+            if (!speechSynthesisAvailable) {
+                console.log('[WAITER_CALL] Speech synthesis not available - skipping voice alert');
+                return;
+            }
+            
+            // Replace {table} with actual table number
+            const message = voiceMessage.replace(/{table}/g, tableNumber);
+            
+            // Cancel any ongoing speech first
+            speechSynthesis.cancel();
+            
+            // Small delay to ensure cancel completes
+            setTimeout(() => {
+                try {
+                    // Create speech utterance
+                    const utterance = new SpeechSynthesisUtterance(message);
+                    utterance.lang = 'en-US';
+                    utterance.rate = 0.9; // Slightly slower for clarity
+                    utterance.pitch = 1.0;
+                    utterance.volume = 1.0;
+                    
+                    // Try to use a clear voice if available
+                    const voices = speechSynthesis.getVoices();
+                    if (voices.length > 0) {
+                        const preferredVoice = voices.find(voice => 
+                            voice.name.toLowerCase().includes('female') || 
+                            voice.name.toLowerCase().includes('samantha') ||
+                            voice.name.toLowerCase().includes('zira') ||
+                            voice.name.toLowerCase().includes('google')
+                        );
+                        
+                        if (preferredVoice) {
+                            utterance.voice = preferredVoice;
+                            console.log('[WAITER_CALL] Using voice:', preferredVoice.name);
+                        } else {
+                            utterance.voice = voices[0];
+                            console.log('[WAITER_CALL] Using default voice:', voices[0].name);
+                        }
+                    }
+                    
+                    utterance.onstart = function() {
+                        console.log('[WAITER_CALL] Speaking:', message);
+                    };
+                    
+                    utterance.onend = function() {
+                        console.log('[WAITER_CALL] Speech completed');
+                    };
+                    
+                    utterance.onerror = function(event) {
+                        console.error('[WAITER_CALL] Speech error:', event.error);
+                        // Retry once if it fails
+                        if (event.error === 'interrupted' || event.error === 'canceled') {
+                            console.log('[WAITER_CALL] Retrying speech...');
+                            setTimeout(() => speechSynthesis.speak(utterance), 500);
+                        }
+                    };
+                    
+                    // Speak the message
+                    speechSynthesis.speak(utterance);
+                } catch (error) {
+                    console.error('[WAITER_CALL] Error creating speech:', error);
+                }
+            }, 100);
+        }
+
+        // Start polling for waiter calls
+        function startWaiterCallPolling() {
+            checkSpeechSynthesis();
+            fetchVoiceMessage();
+            pollWaiterCalls(); // Poll immediately
+            pollingInterval = setInterval(pollWaiterCalls, 5000); // Then every 5 seconds
+        }
+
+        // Stop polling
+        function stopWaiterCallPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        // Poll for pending waiter calls
+        async function pollWaiterCalls() {
+            try {
+                console.log('[WAITER_CALL] Polling for pending requests...');
+                const response = await fetch('/waiter/api/waiter-calls/pending');
+                const data = await response.json();
+                
+                console.log('[WAITER_CALL] Poll response:', data);
+                
+                if (data.success && data.requests) {
+                    console.log(`[WAITER_CALL] Found ${data.requests.length} pending request(s)`);
+                    const currentRequestIds = new Set(data.requests.map(r => r.id));
+                    
+                    // Check for new requests
+                    const newRequests = data.requests.filter(r => !previousRequestIds.has(r.id));
+                    
+                    if (newRequests.length > 0) {
+                        console.log(`[WAITER_CALL] ${newRequests.length} NEW request(s) detected!`);
+                        newRequests.forEach(request => {
+                            console.log('[WAITER_CALL] New request:', request);
+                            showPopupNotification(request);
+                            speakVoiceMessage(request.table_number); // Voice announcement only
+                        });
+                    }
+                    
+                    previousRequestIds = currentRequestIds;
+                    updateAssistanceRequestsUI(data.requests);
+                    updateBanner(data.requests);
+                } else if (!data.success && data.message && data.message.includes('Unauthorized')) {
+                    console.error('[WAITER_CALL] Unauthorized - waiter not logged in');
+                    stopWaiterCallPolling();
+                }
+            } catch (error) {
+                console.error('[WAITER_CALL] Error polling waiter calls:', error);
+            }
+        }
+
+        // Show popup notification
+        function showPopupNotification(request) {
+            const popup = document.createElement('div');
+            popup.className = 'waiter-call-popup';
+            popup.innerHTML = `
+                <div class="popup-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="popup-content">
+                    <h4>🔔 Table ${request.table_number} is calling you</h4>
+                    ${request.guest_name ? `<p>Guest: ${request.guest_name}</p>` : ''}
+                </div>
+            `;
+            
+            document.body.appendChild(popup);
+            setTimeout(() => popup.classList.add('show'), 100);
+            setTimeout(() => {
+                popup.classList.remove('show');
+                setTimeout(() => popup.remove(), 300);
+            }, 5000);
+        }
+
+        // Update assistance requests UI
+        function updateAssistanceRequestsUI(requests) {
+            const section = document.getElementById('assistance-requests-section');
+            const container = document.getElementById('assistance-requests');
+            const countBadge = document.getElementById('assistance-count');
+            
+            if (requests.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            countBadge.textContent = requests.length;
+            
+            container.innerHTML = requests.map(request => {
+                const elapsed = getElapsedTime(request.created_at);
+                return `
+                    <div class="assistance-request-item">
+                        <div class="request-info">
+                            <div class="request-table">
+                                <i class="fas fa-chair"></i>
+                                <strong>Table ${request.table_number}</strong>
+                            </div>
+                            ${request.guest_name ? `<div class="request-guest">${request.guest_name}</div>` : ''}
+                            <div class="request-time">
+                                <i class="fas fa-clock"></i>
+                                ${elapsed}
+                            </div>
+                        </div>
+                        <div class="request-actions">
+                            <button class="btn btn-primary btn-sm" onclick="acknowledgeRequest(${request.id})">
+                                <i class="fas fa-check"></i> Acknowledge
+                            </button>
+                            <button class="btn btn-success btn-sm" onclick="completeRequest(${request.id})">
+                                <i class="fas fa-check-double"></i> Complete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update banner
+        function updateBanner(requests) {
+            const banner = document.getElementById('assistance-banner');
+            const message = document.getElementById('banner-message');
+            
+            if (requests.length === 0) {
+                banner.style.display = 'none';
+                return;
+            }
+            
+            const oldestRequest = requests[0];
+            message.textContent = `🔔 TABLE ${oldestRequest.table_number} CALLING WAITER`;
+            banner.style.display = 'flex';
+        }
+
+        // Acknowledge request
+        async function acknowledgeRequest(requestId) {
+            try {
+                const response = await fetch('/waiter/api/waiter-calls/acknowledge', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ request_id: requestId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Request acknowledged!', 'success');
+                    pollWaiterCalls();
+                } else {
+                    showToast(data.message || 'Failed to acknowledge request', 'error');
+                }
+            } catch (error) {
+                console.error('Error acknowledging request:', error);
+                showToast('Error acknowledging request', 'error');
+            }
+        }
+
+        // Complete request
+        async function completeRequest(requestId) {
+            try {
+                const response = await fetch('/waiter/api/waiter-calls/complete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ request_id: requestId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Request completed!', 'success');
+                    pollWaiterCalls();
+                } else {
+                    showToast(data.message || 'Failed to complete request', 'error');
+                }
+            } catch (error) {
+                console.error('Error completing request:', error);
+                showToast('Error completing request', 'error');
+            }
+        }
+
+        // Get elapsed time
+        function getElapsedTime(createdAt) {
+            const now = new Date();
+            const created = new Date(createdAt);
+            const diffMs = now - created;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins === 1) return '1 minute ago';
+            if (diffMins < 60) return `${diffMins} minutes ago`;
+            
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours === 1) return '1 hour ago';
+            return `${diffHours} hours ago`;
+        }
+
+        // Start waiter call polling on page load
+        startWaiterCallPolling();
+
+        // Stop polling when page is unloaded
+        window.addEventListener('beforeunload', function() {
+            stopWaiterCallPolling();
+        });
+    </script>
+</body>
+</html>

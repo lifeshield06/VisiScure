@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waiter Login - VisiScure Order</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 2.5rem 2rem;
+            text-align: center;
+        }
+
+        .login-header .icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+        }
+
+        .login-header .icon i {
+            font-size: 2.5rem;
+        }
+
+        .login-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .hotel-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .hotel-badge i {
+            margin-right: 0.5rem;
+        }
+
+        .login-form {
+            padding: 2.5rem 2rem;
+        }
+
+        .qr-info {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .qr-info i {
+            color: #0284c7;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .qr-info p {
+            color: #0369a1;
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .form-group .input-wrapper {
+            position: relative;
+        }
+
+        .form-group .input-wrapper i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.875rem 1rem 0.875rem 2.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #9ca3af;
+        }
+
+        .form-hint {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn.loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .back-link a {
+            color: #4f46e5;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .back-link a:hover {
+            color: #7c3aed;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .alert.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .alert.success {
+            background: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .no-hotel-error {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .no-hotel-error i {
+            font-size: 3rem;
+            color: #f59e0b;
+            margin-bottom: 1rem;
+        }
+
+        .no-hotel-error h3 {
+            color: #92400e;
+            margin-bottom: 0.5rem;
+        }
+
+        .no-hotel-error p {
+            color: #78716c;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 1rem;
+            }
+
+            .login-header {
+                padding: 2rem 1.5rem;
+            }
+
+            .login-form {
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="icon">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <h1>Waiter Login</h1>
+            <p>Access your assigned tables and orders</p>
+            {% if hotel_name %}
+            <div class="hotel-badge">
+                <i class="fas fa-hotel"></i>{{ hotel_name }}
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if hotel_id %}
+        <form class="login-form" id="loginForm">
+            <div class="alert" id="alertBox"></div>
+            
+            <div class="qr-info">
+                <i class="fas fa-qrcode"></i>
+                <p>You scanned the QR code. Enter your Waiter ID and Name to continue.</p>
+            </div>
+            
+            <input type="hidden" id="hotelId" value="{{ hotel_id }}">
+            
+            <div class="form-group">
+                <label for="waiterId">Waiter ID</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-id-badge"></i>
+                    <input type="number" id="waiterId" name="waiterId" placeholder="Enter your Waiter ID" required min="1">
+                </div>
+                <p class="form-hint">Your Waiter ID was provided by your manager</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="waiterName">Your Name</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="waiterName" name="waiterName" placeholder="Enter your full name" required>
+                </div>
+                <p class="form-hint">Enter your name exactly as registered</p>
+            </div>
+            
+            <button type="submit" class="login-btn" id="loginBtn">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Login</span>
+            </button>
+            
+            <div class="back-link">
+                <a href="/">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Home
+                </a>
+            </div>
+        </form>
+        {% else %}
+        <div class="login-form">
+            <div class="no-hotel-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Invalid QR Code</h3>
+                <p>Please scan a valid QR code from your hotel manager to login.</p>
+            </div>
+            <div class="back-link">
+                <a href="/">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Home
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        {% if hotel_id %}
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const loginBtn = document.getElementById('loginBtn');
+            const alertBox = document.getElementById('alertBox');
+            
+            const waiterId = document.getElementById('waiterId').value.trim();
+            const waiterName = document.getElementById('waiterName').value.trim();
+            const hotelId = document.getElementById('hotelId').value;
+            
+            if (!waiterId || !waiterName) {
+                alertBox.className = 'alert error show';
+                alertBox.textContent = 'Please enter both Waiter ID and Name';
+                return;
+            }
+            
+            loginBtn.classList.add('loading');
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Logging in...</span>';
+            
+            try {
+                const response = await fetch('/waiter/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        waiter_id: parseInt(waiterId),
+                        name: waiterName,
+                        hotel_id: parseInt(hotelId)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alertBox.className = 'alert success show';
+                    alertBox.textContent = 'Login successful! Redirecting to dashboard...';
+                    setTimeout(() => {
+                        window.location.href = '/waiter/dashboard';
+                    }, 1000);
+                } else {
+                    alertBox.className = 'alert error show';
+                    alertBox.textContent = data.message;
+                    loginBtn.classList.remove('loading');
+                    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> <span>Login</span>';
+                }
+            } catch (error) {
+                alertBox.className = 'alert error show';
+                alertBox.textContent = 'An error occurred. Please try again.';
+                loginBtn.classList.remove('loading');
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> <span>Login</span>';
+            }
+        });
+        {% endif %}
+    </script>
+</body>
+</html>

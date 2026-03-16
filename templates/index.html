@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisiScure Order – Smart Restaurant Management System</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style_v3.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('home') }}" class="logo">
+                <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="VisiScure Order" class="logo-img">
+                <span class="logo-text">VisiScure Order</span>
+            </a>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#home" class="nav-link active">Home</a></li>
+                <li><a href="#features" class="nav-link">Features</a></li>
+                <li><a href="#benefits" class="nav-link">Benefits</a></li>
+                <li><a href="#terms" class="nav-link">Terms</a></li>
+                <li><a href="#contact" class="nav-link">Contact</a></li>
+                <li class="dropdown">
+                    <button class="login-btn" onclick="toggleDropdown()">
+                        <i class="fas fa-user-circle"></i> Login
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-menu" id="loginDropdown">
+                        <a href="{{ url_for('admin.login') }}">
+                            <i class="fas fa-user-shield"></i> Admin Login
+                        </a>
+                        <a href="{{ url_for('hotel_manager.login_page') }}">
+                            <i class="fas fa-hotel"></i> Manager Login
+                        </a>
+                    </div>
+                </li>
+            </ul>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-badge">
+                    <i class="fas fa-sparkles"></i>
+                    <span>Smart Restaurant Management</span>
+                </div>
+                <h1 class="hero-title">
+                    Transform Your Restaurant with <span class="highlight">VisiScure Order</span>
+                </h1>
+                <p class="hero-subtitle">
+                    Streamline your restaurant operations with our comprehensive management system. 
+                    Manage orders, staff, and customers seamlessly - all in one powerful platform.
+                </p>
+                <div class="hero-buttons">
+                    <button class="cta-btn primary" onclick="scrollToFeatures()">
+                        <i class="fas fa-rocket"></i> Explore Features
+                    </button>
+                    <a href="https://wa.me/7722021558?text=Hello%2C%20I%20want%20to%20book%20a%20demo%20for%20VisiScure%20Order." target="_blank" class="cta-btn secondary">
+                        <i class="fab fa-whatsapp"></i> Book Free Demo
+                    </a>
+                </div>
+            </div>
+            <div class="hero-right">
+                <div class="hero-illustration">
+                    <div class="dashboard-mockup">
+                        <div class="mockup-header">
+                            <div class="mockup-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                        <div class="mockup-content">
+                            <div class="mockup-sidebar">
+                                <div class="sidebar-item"></div>
+                                <div class="sidebar-item"></div>
+                                <div class="sidebar-item"></div>
+                                <div class="sidebar-item"></div>
+                            </div>
+                            <div class="mockup-main">
+                                <div class="chart-area">
+                                    <div class="chart-bars">
+                                        <div class="bar" style="height: 60%"></div>
+                                        <div class="bar" style="height: 80%"></div>
+                                        <div class="bar" style="height: 45%"></div>
+                                        <div class="bar" style="height: 90%"></div>
+                                        <div class="bar" style="height: 70%"></div>
+                                    </div>
+                                </div>
+                                <div class="stats-row">
+                                    <div class="stat-box"></div>
+                                    <div class="stat-box"></div>
+                                    <div class="stat-box"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="floating-element element-1">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="floating-element element-2">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div class="floating-element element-3">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat-card">
+                        <div class="stat-value">100+</div>
+                        <div class="stat-label">Restaurants</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">500+</div>
+                        <div class="stat-label">Staff Members</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">10K+</div>
+                        <div class="stat-label">Orders Daily</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES SECTION -->
+    <section class="features" id="features">
+        <div class="features-container">
+            <div class="section-header">
+                <span class="section-badge">Features</span>
+                <h2 class="section-title">Everything You Need to Run Your Restaurant</h2>
+                <p class="section-subtitle">Powerful tools designed to simplify restaurant management</p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon admin">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <h3>Admin Control</h3>
+                    <p>Complete oversight with powerful administrative tools for managing hotels, staff, and operations efficiently.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> Multi-hotel management</li>
+                        <li><i class="fas fa-check"></i> Staff & role management</li>
+                        <li><i class="fas fa-check"></i> System configuration</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card featured">
+                    <div class="featured-badge">Most Popular</div>
+                    <div class="feature-icon manager">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Manager Dashboard</h3>
+                    <p>Streamlined daily operations with intuitive dashboards for seamless restaurant management and insights.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> Real-time order tracking</li>
+                        <li><i class="fas fa-check"></i> Menu management</li>
+                        <li><i class="fas fa-check"></i> Sales analytics</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon guest">
+                        <i class="fas fa-qrcode"></i>
+                    </div>
+                    <h3>QR Menu System</h3>
+                    <p>Modern contactless ordering experience with digital menus accessible via QR codes for enhanced guest satisfaction.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> Contactless ordering</li>
+                        <li><i class="fas fa-check"></i> Digital menu display</li>
+                        <li><i class="fas fa-check"></i> Instant updates</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon kitchen">
+                        <i class="fas fa-fire-burner"></i>
+                    </div>
+                    <h3>Kitchen Management</h3>
+                    <p>Efficient kitchen operations with order routing, status tracking, and category-based workflow management.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> Order routing</li>
+                        <li><i class="fas fa-check"></i> Status tracking</li>
+                        <li><i class="fas fa-check"></i> Category management</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon waiter">
+                        <i class="fas fa-concierge-bell"></i>
+                    </div>
+                    <h3>Waiter Dashboard</h3>
+                    <p>Mobile-friendly interface for waiters to manage tables, track orders, and provide excellent customer service.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> Table management</li>
+                        <li><i class="fas fa-check"></i> Order updates</li>
+                        <li><i class="fas fa-check"></i> Tip tracking</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon billing">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
+                    <h3>Billing & Payments</h3>
+                    <p>Integrated billing system with multiple payment options, GST calculation, and automated invoice generation.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> Multiple payment methods</li>
+                        <li><i class="fas fa-check"></i> GST calculation</li>
+                        <li><i class="fas fa-check"></i> Digital invoices</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ADDITIONAL FEATURES SECTION -->
+    <section class="additional-features">
+        <div class="features-container">
+            <div class="section-header">
+                <span class="section-badge">More Features</span>
+                <h2 class="section-title">Advanced Capabilities</h2>
+                <p class="section-subtitle">Additional features to enhance your restaurant operations</p>
+            </div>
+            
+            <div class="features-grid-simple">
+                <div class="simple-feature-card">
+                    <div class="simple-icon">
+                        <i class="fas fa-file-pdf"></i>
+                    </div>
+                    <h3>PDF Reports</h3>
+                    <p>Reports available instantly in PDF format</p>
+                </div>
+                
+                <div class="simple-feature-card">
+                    <div class="simple-icon">
+                        <i class="fas fa-cloud"></i>
+                    </div>
+                    <h3>Cloud Storage</h3>
+                    <p>Encrypted Cloud Storage</p>
+                </div>
+                
+                <div class="simple-feature-card">
+                    <div class="simple-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <h3>Payment Integration</h3>
+                    <p>Payment Wallets Integration for Fees</p>
+                </div>
+                
+                <div class="simple-feature-card">
+                    <div class="simple-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <h3>Multi-Language</h3>
+                    <p>Video & PDF Content in Regional Language</p>
+                </div>
+                
+                <div class="simple-feature-card">
+                    <div class="simple-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h3>Admin Dashboard</h3>
+                    <p>Restaurant Admin Dashboard</p>
+                </div>
+                
+                <div class="simple-feature-card">
+                    <div class="simple-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3>Mobile Optimized</h3>
+                    <p>Fully responsive mobile interface</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BENEFITS SECTION -->
+    <section class="benefits" id="benefits">
+        <div class="benefits-container">
+            <div class="section-header">
+                <span class="section-badge">Benefits</span>
+                <h2 class="section-title">Why Choose VisiScure Order?</h2>
+            </div>
+            
+            <div class="benefits-grid">
+                <div class="benefit-item">
+                    <div class="benefit-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3>Increase Efficiency</h3>
+                    <p>Automate workflows and reduce manual tasks by up to 70%</p>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-icon">
+                        <i class="fas fa-smile"></i>
+                    </div>
+                    <h3>Improve Customer Experience</h3>
+                    <p>Faster service and better accuracy lead to happier customers</p>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h3>Data-Driven Insights</h3>
+                    <p>Make informed decisions with real-time analytics and reports</p>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3>Mobile-First Design</h3>
+                    <p>Access from any device, anywhere, anytime</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TERMS AND POLICIES SECTION -->
+    <section class="terms-policies" id="terms">
+        <div class="terms-container">
+            <div class="section-header">
+                <h2 class="section-title">Terms and Policies</h2>
+            </div>
+            
+            <div class="accordion-container">
+                <!-- Terms & Conditions -->
+                <div class="accordion-item">
+                    <button class="accordion-header" onclick="toggleAccordion(0)">
+                        <span>Terms & Conditions</span>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="accordion-body">
+                            <p><strong>Welcome to VisiScure Order!</strong></p>
+                            <p>By accessing and using our restaurant management system, you agree to comply with and be bound by the following terms and conditions:</p>
+                            <ul>
+                                <li><strong>Service Usage:</strong> VisiScure Order provides a comprehensive restaurant management platform. You agree to use the service only for lawful purposes and in accordance with these terms.</li>
+                                <li><strong>User Responsibilities:</strong> You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</li>
+                                <li><strong>Intellectual Property:</strong> All content, features, and functionality of VisiScure Order are owned by us and are protected by international copyright, trademark, and other intellectual property laws.</li>
+                                <li><strong>Service Modifications:</strong> We reserve the right to modify, suspend, or discontinue any part of the service at any time without prior notice.</li>
+                                <li><strong>Limitation of Liability:</strong> VisiScure Order shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the service.</li>
+                                <li><strong>Governing Law:</strong> These terms shall be governed by and construed in accordance with the laws of India.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Privacy Policy -->
+                <div class="accordion-item">
+                    <button class="accordion-header" onclick="toggleAccordion(1)">
+                        <span>Privacy Policy</span>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="accordion-body">
+                            <p><strong>At VisiScure Order, we respect your privacy and are committed to protecting your personal information.</strong></p>
+                            <ul>
+                                <li><strong>Data Collection:</strong> We collect personal data to provide and improve our services. This data may include your name, contact information, and usage details.</li>
+                                <li><strong>Data Usage:</strong> Your data is stored securely and will not be sold, shared, or disclosed to third parties without your consent, except as required by law.</li>
+                                <li><strong>Data Protection:</strong> We implement industry-standard measures to ensure the safety and confidentiality of your data.</li>
+                                <li><strong>User Rights:</strong> You can contact us to access, update, or delete your information at any time.</li>
+                                <li><strong>Cookies:</strong> We may use cookies and similar technologies to enhance your experience and analyze usage patterns.</li>
+                                <li><strong>Third-Party Services:</strong> Our service may contain links to third-party websites. We are not responsible for their privacy practices.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cancellation / Return / Refund Policy -->
+                <div class="accordion-item">
+                    <button class="accordion-header" onclick="toggleAccordion(2)">
+                        <span>Cancellation / Return / Refund Policy</span>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="accordion-body">
+                            <p><strong>We aim to provide a transparent and hassle-free experience. Please review our policies below:</strong></p>
+                            <ul>
+                                <li><strong>Service Cancellation:</strong> You may cancel your subscription or service within 7 days of activation. Cancellations beyond this period may not be eligible for a refund.</li>
+                                <li><strong>Refunds:</strong> Refunds are issued only for eligible cancellations, as per the terms of the specific service agreement.</li>
+                                <li><strong>Non-Refundable Items:</strong> Completed services and customized software products are non-refundable.</li>
+                                <li><strong>Processing Time:</strong> Approved refunds will be processed within 7-10 business days.</li>
+                                <li><strong>Contact Information:</strong> For assistance, please contact us at <a href="mailto:info@visiscure.com">info@visiscure.com</a> or call <a href="tel:+911234567890">+91 1234567890</a>.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA SECTION -->
+    <section class="cta-section">
+        <div class="cta-content">
+            <h2>Ready to Transform Your Restaurant?</h2>
+            <p>Join hundreds of restaurants already using VisiScure Order</p>
+            <a href="https://wa.me/919403893436?text=Hello%2C%20I%20want%20to%20book%20a%20demo%20for%20VisiScure%20Order." target="_blank" class="cta-btn primary large">
+                <i class="fab fa-whatsapp"></i> Book Free Demo
+            </a>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer" id="contact">
+        <div class="footer-content">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="VisiScure Order">
+                    <span>VisiScure Order</span>
+                </div>
+                <p class="footer-desc">Smart restaurant management made simple and efficient</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#benefits">Benefits</a></li>
+                    <li><a href="#terms">Terms</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <ul>
+                    <li><i class="fas fa-map-marker-alt"></i> KK Market, D Wing, Office No. 87–88, Dhankawadi, Pune – 411043, Maharashtra, India</li>
+                    <li><i class="fas fa-phone"></i> <a href="tel:+919403893436">+91 9403893436</a></li>
+                    <li><i class="fas fa-envelope"></i> <a href="mailto:info@attendx.aryaneelinfotex.in">info@attendx.aryaneelinfotex.in
+
+                      aryaneelinfotex@gmail.com
+</a></li>
+                    <li><i class="fas fa-globe"></i> <a href="https://aryaneelinfotex.in" target="_blank">aryaneelinfotex.in</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy;  2026 VisiScure Order©. All rights reserved.
+Powered By, Aryaneel Infotex</p>
+        </div>
+    </footer>
+
+    <script>
+        // Dropdown toggle
+        function toggleDropdown() {
+            document.getElementById('loginDropdown').classList.toggle('show');
+        }
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            document.getElementById('navMenu').classList.toggle('active');
+        }
+
+        // Smooth scroll
+        function scrollToFeatures() {
+            document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Show login options
+        function showLoginOptions() {
+            toggleDropdown();
+        }
+
+        // Accordion toggle
+        function toggleAccordion(index) {
+            const accordionItems = document.querySelectorAll('.accordion-item');
+            const currentItem = accordionItems[index];
+            const currentContent = currentItem.querySelector('.accordion-content');
+            const currentIcon = currentItem.querySelector('.accordion-icon');
+            const isActive = currentItem.classList.contains('active');
+            
+            // Close all accordion items
+            accordionItems.forEach((item, i) => {
+                const content = item.querySelector('.accordion-content');
+                const icon = item.querySelector('.accordion-icon');
+                item.classList.remove('active');
+                content.style.maxHeight = null;
+                icon.style.transform = 'rotate(0deg)';
+            });
+            
+            // Open clicked item if it wasn't active
+            if (!isActive) {
+                currentItem.classList.add('active');
+                currentContent.style.maxHeight = currentContent.scrollHeight + 'px';
+                currentIcon.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        window.onclick = function(event) {
+            if (!event.target.closest('.dropdown')) {
+                var dropdown = document.getElementById('loginDropdown');
+                if (dropdown && dropdown.classList.contains('show')) {
+                    dropdown.classList.remove('show');
+                }
+            }
+        }
+
+        // Active nav link on scroll
+        window.addEventListener('scroll', function() {
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= (sectionTop - 200)) {
+                    current = section.getAttribute('id');
+                }
+            });
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Smooth scroll for all anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>

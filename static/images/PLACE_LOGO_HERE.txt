@@ -1,0 +1,28 @@
+========================================
+   PLACE YOUR LOGO HERE
+========================================
+
+IMPORTANT: Save your VisiScure Order logo as:
+   
+   logo.png
+
+In this exact location:
+   
+   Hotel/static/images/logo.png
+
+Requirements:
+- Filename must be exactly: logo.png (lowercase)
+- Format: PNG (with transparent background recommended)
+- The logo should include the full branding text
+- Recommended height: 50px or higher
+
+After placing the logo:
+1. Refresh your browser (Ctrl + F5 or Cmd + Shift + R)
+2. The logo will appear in the sidebar header
+3. The blue background has been removed (now white)
+
+If you don't have the logo yet:
+- A fallback will show: Icon + "VisiScure Order" text
+- The sidebar will have a clean white background
+
+========================================

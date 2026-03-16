@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - VisiScure Order</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}?v={{ range(10000, 99999) | random }}">
+</head>
+<body>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message {{ category }}">
+                    <i class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                 alt="VisiScure Order" 
+                 class="project-logo">
+        </div>
+        <div class="header-center">
+            <div class="header-brand">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                     alt="VisiScure Order" 
+                     class="hotel-logo">
+                <div class="header-title">
+                    <span class="hotel-name">VisiScure Order</span>
+                    <span class="dashboard-title">Admin Dashboard</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="header-info">
+                <div class="profile-dropdown">
+                    <div class="profile-btn" onclick="toggleDropdown()">
+                        <div class="profile-avatar">
+                            {{ session.admin_name[:1]|upper if session.admin_name else 'A' }}
+                        </div>
+                        <div class="profile-info">
+                            <div class="profile-name">{{ session.admin_name or 'Admin' }}</div>
+                            <div class="profile-role">Administrator</div>
+                        </div>
+                        <i class="fas fa-chevron-down" style="color: var(--gray); font-size: 0.8rem;"></i>
+                    </div>
+                    <div class="dropdown-menu" id="dropdownMenu">
+                        <a href="{{ url_for('admin.account_settings') }}"><i class="fas fa-user"></i> Account Settings</a>
+                        <a href="{{ url_for('admin.logout') }}" class="danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="VisiScure Order" class="brand-logo">
+        </div>
+        <nav class="sidebar-menu">
+            <div class="menu-label">Main Menu</div>
+            <a href="{{ url_for('admin.dashboard') }}" class="menu-item active">
+                <i class="fas fa-chart-pie"></i>
+                <span>Dashboard</span>
+            </a>
+            
+            <div class="menu-label">Restaurant Management</div>
+            <a href="{{ url_for('admin.create_hotel') }}" class="menu-item">
+                <i class="fas fa-plus-circle"></i>
+                <span>Create Hotel</span>
+            </a>
+            <a href="{{ url_for('admin.all_hotels') }}" class="menu-item">
+                <i class="fas fa-building"></i>
+                <span>All Hotels</span>
+            </a>
+            
+            <div class="menu-label">Manager Management</div>
+            <a href="{{ url_for('admin.add_manager') }}" class="menu-item">
+                <i class="fas fa-user-plus"></i>
+                <span>Add Manager</span>
+            </a>
+            <a href="{{ url_for('admin.all_managers') }}" class="menu-item">
+                <i class="fas fa-users"></i>
+                <span>All Managers</span>
+            </a>
+            
+            <div class="menu-label">Settings</div>
+            <a href="{{ url_for('admin.account_settings') }}" class="menu-item">
+                <i class="fas fa-cog"></i>
+                <span>Account Settings</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h2>Welcome back, {{ session.admin_name or 'Admin' }}! 👋</h2>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="admin-cards-container">
+            <a href="{{ url_for('admin.all_hotels') }}" class="admin-card admin-card-hotels">
+                <div class="card-bg-icon">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="100" cy="100" r="80" fill="white"/>
+                    </svg>
+                </div>
+                <div class="card-icon-wrapper">
+                    <i class="fas fa-hotel"></i>
+                </div>
+                <div class="card-value">{{ total_hotels or 0 }}</div>
+                <div class="card-label">Total Hotels</div>
+            </a>
+
+            <a href="{{ url_for('admin.all_managers') }}" class="admin-card admin-card-managers">
+                <div class="card-bg-icon">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="100" cy="100" r="80" fill="white"/>
+                    </svg>
+                </div>
+                <div class="card-icon-wrapper">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div class="card-value">{{ total_managers or 0 }}</div>
+                <div class="card-label">Active Managers</div>
+            </a>
+
+            <a href="#" class="admin-card admin-card-pending">
+                <div class="card-bg-icon">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="100" cy="100" r="80" fill="white"/>
+                    </svg>
+                </div>
+                <div class="card-icon-wrapper">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="card-value">{{ pending_approvals or 0 }}</div>
+                <div class="card-label">Pending Approvals</div>
+            </a>
+        </div>
+
+        <!-- Activity & Status -->
+        <div class="activity-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Recent Activity</h3>
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <button onclick="fetchActivities()" style="background: none; border: none; color: var(--gray); cursor: pointer; font-size: 1rem;" title="Refresh">
+                            <i class="fas fa-sync-alt" id="refreshIcon"></i>
+                        </button>
+                        <button onclick="openViewAllModal()" style="background: var(--primary); color: white; border: none; padding: 0.4rem 0.85rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 500;">View All</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <ul class="activity-list" id="activityList">
+                        <li class="activity-item">
+                            <div class="activity-icon" style="background: rgba(79, 70, 229, 0.1); color: var(--primary);">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </div>
+                            <div class="activity-content">
+                                <p>Loading activities...</p>
+                                <span>Please wait</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- <div class="card">
+                <div class="card-header">
+                    <h3>System Status</h3>
+                </div>
+                <div class="card-body">
+                    <ul class="status-list">
+                        <li class="status-item">
+                            <div class="status-name">
+                                <span class="status-indicator online"></span>
+                                Database
+                            </div>
+                            <span class="status-value">Operational</span>
+                        </li>
+                        <li class="status-item">
+                            <div class="status-name">
+                                <span class="status-indicator online"></span>
+                                API Server
+                            </div>
+                            <span class="status-value">Operational</span>
+                        </li>
+                        <li class="status-item">
+                            <div class="status-name">
+                                <span class="status-indicator online"></span>
+                                Authentication
+                            </div>
+                            <span class="status-value">Operational</span>
+                        </li>
+                        <li class="status-item">
+                            <div class="status-name">
+                                <span class="status-indicator online"></span>
+                                File Storage
+                            </div>
+                            <span class="status-value">Operational</span>
+                        </li>
+                        <li class="status-item">
+                            <div class="status-name">
+                                <span class="status-indicator online"></span>
+                                Email Service
+                            </div>
+                            <span class="status-value">Operational</span>
+                        </li>
+                    </ul>
+                </div>
+            </div> -->
+        </div>
+    </main>
+
+    <!-- View All Activities Modal -->
+    <div id="viewAllModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 16px; width: 90%; max-width: 600px; max-height: 80vh; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+            <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #1f2937;">All Recent Activities</h3>
+                <button onclick="closeViewAllModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #9ca3af; line-height: 1;">&times;</button>
+            </div>
+            <div style="padding: 1rem 1.5rem; overflow-y: auto; max-height: calc(80vh - 120px);">
+                <ul class="activity-list" id="allActivityList" style="list-style: none; padding: 0; margin: 0;"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleDropdown() {
+            document.getElementById('dropdownMenu').classList.toggle('show');
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.closest('.profile-dropdown')) {
+                document.getElementById('dropdownMenu').classList.remove('show');
+            }
+        }
+
+        // Activity icon mapping
+        const activityIcons = {
+            'hotel': { icon: 'fa-hotel', color: 'rgba(16, 185, 129, 0.1)', iconColor: 'var(--success)' },
+            'manager': { icon: 'fa-user-tie', color: 'rgba(79, 70, 229, 0.1)', iconColor: 'var(--primary)' },
+            'settings': { icon: 'fa-cog', color: 'rgba(245, 158, 11, 0.1)', iconColor: 'var(--warning)' },
+            'kyc': { icon: 'fa-id-card', color: 'rgba(6, 182, 212, 0.1)', iconColor: 'var(--secondary)' },
+            'default': { icon: 'fa-bell', color: 'rgba(156, 163, 175, 0.1)', iconColor: 'var(--gray)' }
+        };
+
+        // Time formatting
+        function timeAgo(dateString) {
+            const now = new Date();
+            const past = new Date(dateString);
+            const seconds = Math.floor((now - past) / 1000);
+
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return Math.floor(seconds / 60) + ' minutes ago';
+            if (seconds < 86400) return Math.floor(seconds / 3600) + ' hours ago';
+            if (seconds < 172800) return 'Yesterday';
+            return Math.floor(seconds / 86400) + ' days ago';
+        }
+
+        // Fetch and update activities
+        function fetchActivities() {
+            const refreshIcon = document.getElementById('refreshIcon');
+            if (refreshIcon) refreshIcon.classList.add('fa-spin');
+            
+            fetch('{{ url_for("admin.get_recent_activities") }}')
+                .then(response => response.json())
+                .then(data => {
+                    if (refreshIcon) setTimeout(() => refreshIcon.classList.remove('fa-spin'), 300);
+                    const activityList = document.getElementById('activityList');
+                    
+                    if (!data || data.length === 0 || data.error) {
+                        activityList.innerHTML = `
+                            <li class="activity-item">
+                                <div class="activity-icon" style="background: rgba(156, 163, 175, 0.1); color: var(--gray);">
+                                    <i class="fas fa-info-circle"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>No recent activities</p>
+                                    <span>Start by creating a hotel or adding a manager</span>
+                                </div>
+                            </li>
+                        `;
+                        return;
+                    }
+
+                    activityList.innerHTML = data.map(activity => {
+                        const iconData = activityIcons[activity.activity_type] || activityIcons['default'];
+                        return `
+                            <li class="activity-item">
+                                <div class="activity-icon" style="background: ${iconData.color}; color: ${iconData.iconColor};">
+                                    <i class="fas ${iconData.icon}"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>${activity.message}</p>
+                                    <span>${timeAgo(activity.created_at)}</span>
+                                </div>
+                            </li>
+                        `;
+                    }).join('');
+                })
+                .catch(error => {
+                    if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+                    console.error('Error fetching activities:', error);
+                });
+        }
+
+        // View All Modal functions
+        function openViewAllModal() {
+            const modal = document.getElementById('viewAllModal');
+            modal.style.display = 'flex';
+            
+            fetch('{{ url_for("admin.get_all_activities") }}')
+                .then(response => response.json())
+                .then(data => {
+                    const allList = document.getElementById('allActivityList');
+                    
+                    if (!data || data.length === 0 || data.error) {
+                        allList.innerHTML = '<li style="padding: 1rem; text-align: center; color: var(--gray);">No activities found</li>';
+                        return;
+                    }
+
+                    allList.innerHTML = data.map(activity => {
+                        const iconData = activityIcons[activity.activity_type] || activityIcons['default'];
+                        return `
+                            <li class="activity-item" style="display: flex; align-items: flex-start; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #f3f4f6;">
+                                <div class="activity-icon" style="width: 36px; height: 36px; border-radius: 10px; background: ${iconData.color}; color: ${iconData.iconColor}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <i class="fas ${iconData.icon}"></i>
+                                </div>
+                                <div class="activity-content" style="flex: 1;">
+                                    <p style="margin: 0; font-size: 0.9rem; color: #374151;">${activity.message}</p>
+                                    <span style="font-size: 0.8rem; color: #9ca3af;">${timeAgo(activity.created_at)}</span>
+                                </div>
+                            </li>
+                        `;
+                    }).join('');
+                })
+                .catch(error => console.error('Error fetching all activities:', error));
+        }
+
+        function closeViewAllModal() {
+            document.getElementById('viewAllModal').style.display = 'none';
+        }
+
+        // Close modal on backdrop click
+        document.getElementById('viewAllModal').addEventListener('click', function(e) {
+            if (e.target === this) closeViewAllModal();
+        });
+
+        // Initial load
+        fetchActivities();
+
+        // Poll every 10 seconds
+        setInterval(fetchActivities, 10000);
+    </script>
+</body>
+</html>

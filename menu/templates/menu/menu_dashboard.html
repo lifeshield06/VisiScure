@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='menu_dashboard.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+<body>
+    <div class="menu-container">
+        <div class="menu-header-main">
+            <h1><i class="fas fa-utensils"></i> Menu Management</h1>
+            <div class="alert" id="alert" style="display: none;"></div>
+        </div>
+
+        <div class="menu-tabs" id="menu-tabs">
+            <button class="tab active" data-category="1" onclick="showMenuCategory(1, this)">Starters</button>
+            <button class="tab" data-category="2" onclick="showMenuCategory(2, this)">Main Course</button>
+            <button class="tab" data-category="4" onclick="showMenuCategory(4, this)">aa bereges</button>
+            <button class="tab add-tab" onclick="showAddCategoryModal()">+ Add Category</button>
+        </div>
+
+        <div class="menu-content">
+            <div class="menu-header">
+                <h3 id="category-title">Starters</h3>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div class="category-actions" id="category-actions">
+                        <button class="btn-action btn-edit" onclick="editCategory()" title="Edit Category">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-action btn-delete" onclick="deleteCategory()" title="Delete Category">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <button class="btn-primary" id="add-dish-btn" onclick="showAddDishModal()">+ Add Dish</button>
+                </div>
+            </div>
+            
+            <div id="dishes-container">
+                <table class="dishes-table" id="dishes-table">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Dish Name</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dishes-tbody">
+                    </tbody>
+                </table>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <i class="fas fa-utensils"></i>
+                    <p>No dishes in this category yet</p>
+                    <button class="btn-primary" onclick="showAddDishModal()">Add First Dish</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Dish Modal -->
+    <div id="dish-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add New Dish</h3>
+                <button class="modal-close" onclick="closeDishModal()">&times;</button>
+            </div>
+            <form id="dish-form" enctype="multipart/form-data">
+                <input type="hidden" id="dish-id" name="dish_id">
+                <input type="hidden" id="category-id" name="category_id">
+                
+                <div class="form-group">
+                    <label for="dish-name">Dish Name *</label>
+                    <input type="text" id="dish-name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dish-kitchen">Assign Kitchen</label>
+                    <select id="dish-kitchen" name="kitchen_id" class="form-select">
+                        <option value="">-- Select Kitchen (Optional) --</option>
+                    </select>
+                    <small>Select which kitchen should prepare this dish</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dish-price">Price (₹) *</label>
+                    <input type="number" id="dish-price" name="price" step="0.01" min="0.01" required>
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="dish-cgst">CGST %</label>
+                        <input type="number" id="dish-cgst" name="cgst" step="0.1" min="0" max="100" value="2.5">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="dish-sgst">SGST %</label>
+                        <input type="number" id="dish-sgst" name="sgst" step="0.1" min="0" max="100" value="2.5">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dish-quantity">Quantity</label>
+                    <input type="text" id="dish-quantity" name="quantity" placeholder="e.g., 100ml, 250gm, 1 plate, 2 pcs">
+                    <small>You can enter text like "100ml", "250gm", "1 plate", "2 pcs", etc.</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dish-description">Description</label>
+                    <textarea id="dish-description" name="description" rows="3" placeholder="Optional description of the dish"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dish-images">Upload Images (Optional – Max 3)</label>
+                    <input type="file" id="dish-images" name="images" multiple accept="image/*">
+                    <div id="image-selection-info" class="image-info"></div>
+                    <small>Hold Ctrl and click to select multiple images. Supported formats: PNG, JPG, JPEG, GIF</small>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeDishModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="submit-btn">Add Dish</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Category Modal -->
+    <div id="category-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="category-modal-title">Add New Category</h3>
+                <button class="modal-close" onclick="closeCategoryModal()">&times;</button>
+            </div>
+            <form id="category-form">
+                <input type="hidden" id="edit-category-id" name="category_id">
+                <div class="form-group">
+                    <label for="category-name">Category Name *</label>
+                    <input type="text" id="category-name" name="name" required placeholder="e.g., Beverages, Appetizers">
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeCategoryModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="category-submit-btn">Add Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Image Viewer Modal -->
+    <div id="images-modal" class="modal" style="display: none;">
+        <div class="modal-content images-modal-content">
+            <div class="modal-header">
+                <h3 id="images-modal-title">Dish Images</h3>
+                <button class="modal-close" onclick="closeImagesModal()">&times;</button>
+            </div>
+            <div class="images-modal-body">
+                <div id="dish-details"></div>
+                <div id="image-slider-container">
+                    <div class="image-slider">
+                        <div class="slider-nav prev" onclick="prevImage()">
+                            <i class="fas fa-chevron-left"></i>
+                        </div>
+                        <div class="slider-images" id="slider-images">
+                        </div>
+                        <div class="slider-nav next" onclick="nextImage()">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+                    <div class="slider-dots" id="slider-dots"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentCategoryId = 1;
+        let isEditMode = false;
+        let categories = {1: 'Starters', 2: 'Main Course', 3: 'Desserts', 4: 'aa bereges'};
+        let kitchens = [];
+        let currentImageIndex = 0;
+        let currentImages = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCategories();
+            loadKitchens();
+            loadDishes(1);
+        });
+
+        function showAlert(message, type = 'success') {
+            const alert = document.getElementById('alert');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alert.style.display = 'block';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 4000);
+        }
+
+        function loadKitchens() {
+            fetch('/api/kitchens')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        kitchens = data.kitchens;
+                        updateKitchenDropdown();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading kitchens:', error);
+                });
+        }
+
+        function updateKitchenDropdown() {
+            const select = document.getElementById('dish-kitchen');
+            // Keep the first option (placeholder)
+            select.innerHTML = '<option value="">-- Select Kitchen (Optional) --</option>';
+            
+            kitchens.forEach(kitchen => {
+                const option = document.createElement('option');
+                option.value = kitchen.id;
+                option.textContent = kitchen.name;
+                select.appendChild(option);
+            });
+        }
+
+        function loadCategories() {
+            fetch('/api/categories')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        categories = data.categories;
+                        updateCategoryTabs();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading categories:', error);
+                    showAlert('Error loading categories', 'error');
+                });
+        }
+
+        function updateCategoryTabs() {
+            const tabsContainer = document.getElementById('menu-tabs');
+            const addButton = tabsContainer.querySelector('.add-tab');
+            
+            const existingTabs = tabsContainer.querySelectorAll('.tab:not(.add-tab)');
+            existingTabs.forEach(tab => tab.remove());
+            
+            Object.entries(categories).forEach(([id, name]) => {
+                const tab = document.createElement('button');
+                tab.className = 'tab';
+                tab.setAttribute('data-category', id);
+                tab.textContent = name;
+                tab.onclick = function() { showMenuCategory(parseInt(id), this); };
+                
+                if (parseInt(id) === currentCategoryId) {
+                    tab.classList.add('active');
+                }
+                
+                tabsContainer.insertBefore(tab, addButton);
+            });
+        }
+
+        function showMenuCategory(categoryId, tabElement) {
+            currentCategoryId = categoryId;
+            
+            document.querySelectorAll('.menu-tabs .tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            tabElement.classList.add('active');
+            
+            document.getElementById('add-dish-btn').style.display = 'block';
+            document.getElementById('dishes-table').style.display = 'table';
+            
+            // Show category actions for all categories
+            const categoryActions = document.getElementById('category-actions');
+            categoryActions.style.display = 'flex';
+            
+            loadDishes(categoryId);
+        }
+
+        function loadDishes(categoryId) {
+            fetch(`/api/dishes/${categoryId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderDishes(data.dishes);
+                        updateCategoryTitle(categoryId);
+                    } else {
+                        showAlert('Error loading dishes: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading dishes:', error);
+                    showAlert('Error loading dishes', 'error');
+                });
+        }
+
+        function renderDishes(dishes) {
+            const tbody = document.getElementById('dishes-tbody');
+            const table = document.getElementById('dishes-table');
+            const emptyState = document.getElementById('empty-state');
+            
+            if (dishes.length === 0) {
+                table.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            table.style.display = 'table';
+            emptyState.style.display = 'none';
+            
+            tbody.innerHTML = dishes.map(dish => `
+                <tr>
+                    <td class="image-cell">
+                        ${dish.images && dish.images.length > 0 ? `
+                            <div class="dish-thumbnail" onclick="viewDishImages(${dish.id})" title="Click to view all images">
+                                <img src="${dish.image_urls ? dish.image_urls[0] : '/static/uploads/' + dish.images[0]}" alt="${escapeHtml(dish.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                            </div>
+                        ` : `
+                            <div class="no-image">
+                                <i class="fas fa-image"></i>
+                            </div>
+                        `}
+                    </td>
+                    <td>
+                        <div class="dish-name">${escapeHtml(dish.name)}</div>
+                        <div class="dish-desc">${escapeHtml(dish.description || 'No description')}</div>
+                    </td>
+                    <td class="price">₹${dish.price.toFixed(2)}</td>
+                    <td class="quantity">${escapeHtml(dish.quantity)}</td>
+                    <td class="actions">
+                        <button class="btn-action btn-edit" onclick="editDish(${dish.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-action btn-delete" onclick="deleteDish(${dish.id})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updateCategoryTitle(categoryId) {
+            document.getElementById('category-title').textContent = categories[categoryId] || 'Category';
+        }
+
+        function showAddDishModal() {
+            isEditMode = false;
+            document.getElementById('modal-title').textContent = 'Add New Dish';
+            document.getElementById('submit-btn').textContent = 'Add Dish';
+            document.getElementById('dish-form').reset();
+            document.getElementById('dish-id').value = '';
+            document.getElementById('category-id').value = currentCategoryId;
+            document.getElementById('dish-kitchen').value = '';
+            document.getElementById('dish-cgst').value = '2.5';
+            document.getElementById('dish-sgst').value = '2.5';
+            updateImageSelectionInfo([]);
+            document.getElementById('dish-modal').style.display = 'flex';
+        }
+
+        function showAddCategoryModal() {
+            document.getElementById('category-modal-title').textContent = 'Add New Category';
+            document.getElementById('category-submit-btn').textContent = 'Add Category';
+            document.getElementById('category-form').reset();
+            document.getElementById('edit-category-id').value = '';
+            document.getElementById('category-modal').style.display = 'flex';
+        }
+
+        function editCategory() {
+            const categoryName = categories[currentCategoryId];
+            document.getElementById('category-modal-title').textContent = 'Edit Category';
+            document.getElementById('category-submit-btn').textContent = 'Update Category';
+            document.getElementById('edit-category-id').value = currentCategoryId;
+            document.getElementById('category-name').value = categoryName;
+            document.getElementById('category-modal').style.display = 'flex';
+        }
+
+        function deleteCategory() {
+            const categoryName = categories[currentCategoryId];
+            const dishCount = document.querySelectorAll('#dishes-tbody tr').length;
+            
+            let confirmMessage = `Are you sure you want to delete the category "${categoryName}"?`;
+            if (dishCount > 0) {
+                confirmMessage += ` This will also delete ${dishCount} dish(es) in this category.`;
+            }
+            confirmMessage += ' This action cannot be undone.';
+            
+            if (confirm(confirmMessage)) {
+                fetch('/api/delete-category', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({category_id: currentCategoryId})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert(data.message);
+                        delete categories[currentCategoryId];
+                        
+                        // Switch to first available category
+                        const firstCategoryId = parseInt(Object.keys(categories)[0]);
+                        currentCategoryId = firstCategoryId;
+                        updateCategoryTabs();
+                        
+                        const firstTab = document.querySelector(`[data-category="${firstCategoryId}"]`);
+                        if (firstTab) {
+                            showMenuCategory(firstCategoryId, firstTab);
+                        }
+                    } else {
+                        showAlert('Error: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting category:', error);
+                    showAlert('Error deleting category', 'error');
+                });
+            }
+        }
+
+        function editDish(dishId) {
+            isEditMode = true;
+            document.getElementById('modal-title').textContent = 'Edit Dish';
+            document.getElementById('submit-btn').textContent = 'Update Dish';
+            
+            fetch(`/api/dish/${dishId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const dish = data.dish;
+                        document.getElementById('dish-id').value = dish.id;
+                        document.getElementById('dish-name').value = dish.name;
+                        document.getElementById('dish-price').value = dish.price;
+                        document.getElementById('dish-quantity').value = dish.quantity;
+                        document.getElementById('dish-description').value = dish.description || '';
+                        document.getElementById('dish-kitchen').value = dish.kitchen_id || '';
+                        document.getElementById('dish-cgst').value = dish.cgst || 2.5;
+                        document.getElementById('dish-sgst').value = dish.sgst || 2.5;
+                        document.getElementById('dish-images').removeAttribute('required');
+                        updateImageSelectionInfo([]);
+                        document.getElementById('dish-modal').style.display = 'flex';
+                    } else {
+                        showAlert('Error: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading dish:', error);
+                    showAlert('Error loading dish details', 'error');
+                });
+        }
+
+        function viewDishImages(dishId) {
+            fetch(`/api/dish/${dishId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const dish = data.dish;
+                        document.getElementById('images-modal-title').textContent = dish.name;
+                        
+                        document.getElementById('dish-details').innerHTML = `
+                            <div class="dish-info">
+                                <h4>${escapeHtml(dish.name)}</h4>
+                                <p class="price">Price: ₹${dish.price.toFixed(2)}</p>
+                                <p class="quantity">Quantity: ${escapeHtml(dish.quantity)}</p>
+                                <p class="description">${escapeHtml(dish.description || 'No description available')}</p>
+                            </div>
+                        `;
+                        
+                        if (dish.images && dish.images.length > 0) {
+                            currentImages = dish.image_urls || dish.images.map(img => '/static/uploads/' + img);
+                            currentImageIndex = 0;
+                            setupImageSlider();
+                        } else {
+                            document.getElementById('image-slider-container').innerHTML = `
+                                <div class="no-images">
+                                    <i class="fas fa-image"></i>
+                                    <p>No images uploaded for this dish</p>
+                                </div>
+                            `;
+                        }
+                        
+                        document.getElementById('images-modal').style.display = 'flex';
+                    } else {
+                        showAlert('Error: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading dish images:', error);
+                    showAlert('Error loading dish details', 'error');
+                });
+        }
+
+        function setupImageSlider() {
+            const sliderImages = document.getElementById('slider-images');
+            const sliderDots = document.getElementById('slider-dots');
+            
+            sliderImages.innerHTML = currentImages.map((image, index) => `
+                <div class="slider-image ${index === 0 ? 'active' : ''}" data-index="${index}">
+                    <img src="${image}" alt="Dish image" style="width: 100%; height: 100%; object-fit: contain;">
+                </div>
+            `).join('');
+            
+            sliderDots.innerHTML = currentImages.map((_, index) => `
+                <div class="dot ${index === 0 ? 'active' : ''}" onclick="goToImage(${index})"></div>
+            `).join('');
+            
+            updateSliderNavigation();
+        }
+
+        function prevImage() {
+            if (currentImageIndex > 0) {
+                currentImageIndex--;
+                updateSlider();
+            }
+        }
+
+        function nextImage() {
+            if (currentImageIndex < currentImages.length - 1) {
+                currentImageIndex++;
+                updateSlider();
+            }
+        }
+
+        function goToImage(index) {
+            currentImageIndex = index;
+            updateSlider();
+        }
+
+        function updateSlider() {
+            document.querySelectorAll('.slider-image').forEach((img, index) => {
+                img.classList.toggle('active', index === currentImageIndex);
+            });
+            
+            document.querySelectorAll('.dot').forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentImageIndex);
+            });
+            
+            updateSliderNavigation();
+        }
+
+        function updateSliderNavigation() {
+            const prevBtn = document.querySelector('.slider-nav.prev');
+            const nextBtn = document.querySelector('.slider-nav.next');
+            
+            if (prevBtn) prevBtn.style.opacity = currentImageIndex === 0 ? '0.3' : '1';
+            if (nextBtn) nextBtn.style.opacity = currentImageIndex === currentImages.length - 1 ? '0.3' : '1';
+        }
+
+        function deleteDish(dishId) {
+            if (confirm('Are you sure you want to delete this dish? This action cannot be undone.')) {
+                fetch('/api/delete-dish', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({dish_id: dishId})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Dish deleted successfully');
+                        loadDishes(currentCategoryId);
+                    } else {
+                        showAlert('Error: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting dish:', error);
+                    showAlert('Error deleting dish', 'error');
+                });
+            }
+        }
+
+        function closeDishModal() {
+            document.getElementById('dish-modal').style.display = 'none';
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('category-modal').style.display = 'none';
+        }
+
+        function closeImagesModal() {
+            document.getElementById('images-modal').style.display = 'none';
+        }
+
+        function updateImageSelectionInfo(files) {
+            const infoDiv = document.getElementById('image-selection-info');
+            
+            if (files.length === 0) {
+                infoDiv.innerHTML = '';
+                return;
+            }
+            
+            let infoHTML = `<div class="selected-images">`;
+            for (let i = 0; i < files.length; i++) {
+                infoHTML += `<span class="image-selected"><i class="fas fa-check-circle"></i> ${escapeHtml(files[i].name)}</span>`;
+            }
+            infoHTML += `</div><small class="image-count">${files.length}/3 images selected ✓</small>`;
+            infoDiv.innerHTML = infoHTML;
+        }
+
+        // Form submissions
+        document.getElementById('dish-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const url = isEditMode ? '/api/edit-dish' : '/api/add-dish';
+            
+            const submitBtn = document.getElementById('submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+            
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message);
+                    closeDishModal();
+                    loadDishes(currentCategoryId);
+                } else {
+                    showAlert('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving dish:', error);
+                showAlert('Error saving dish', 'error');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            });
+        });
+
+        document.getElementById('category-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const categoryName = document.getElementById('category-name').value.trim();
+            const categoryId = document.getElementById('edit-category-id').value;
+            const isEdit = categoryId !== '';
+            
+            if (!categoryName) {
+                showAlert('Category name is required', 'error');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('category-submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = isEdit ? 'Updating...' : 'Adding...';
+            
+            const url = isEdit ? '/api/edit-category' : '/api/add-category';
+            const payload = isEdit ? 
+                {name: categoryName, category_id: parseInt(categoryId)} : 
+                {name: categoryName};
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message);
+                    closeCategoryModal();
+                    
+                    categories[data.category.id] = data.category.name;
+                    updateCategoryTabs();
+                    
+                    if (isEdit) {
+                        updateCategoryTitle(data.category.id);
+                    } else {
+                        currentCategoryId = data.category.id;
+                        const newTab = document.querySelector(`[data-category="${data.category.id}"]`);
+                        if (newTab) {
+                            document.querySelectorAll('.menu-tabs .tab').forEach(tab => {
+                                tab.classList.remove('active');
+                            });
+                            newTab.classList.add('active');
+                            loadDishes(data.category.id);
+                        }
+                    }
+                } else {
+                    showAlert('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving category:', error);
+                showAlert('Error saving category', 'error');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            });
+        });
+
+        document.getElementById('dish-images').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            
+            if (files.length > 3) {
+                showAlert('Maximum 3 images allowed. Please select only 3 images.', 'error');
+                e.target.value = '';
+                updateImageSelectionInfo([]);
+                return;
+            }
+            
+            const invalidFiles = files.filter(file => {
+                const extension = file.name.split('.').pop().toLowerCase();
+                return !['png', 'jpg', 'jpeg', 'gif'].includes(extension);
+            });
+            
+            if (invalidFiles.length > 0) {
+                showAlert('Only PNG, JPG, JPEG, and GIF files are allowed.', 'error');
+                e.target.value = '';
+                updateImageSelectionInfo([]);
+                return;
+            }
+            
+            updateImageSelectionInfo(files);
+        });
+
+        // Close modals when clicking outside
+        window.addEventListener('click', function(e) {
+            const modals = ['dish-modal', 'category-modal', 'images-modal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

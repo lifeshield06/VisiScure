@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ section_name }} - Kitchen Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .kitchen-header {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .kitchen-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .kitchen-title h1 {
+            color: #1e293b;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .kitchen-title h1 i {
+            color: #f59e0b;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        }
+        
+        /* Modern Gradient Cards */
+        .kitchen-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+        }
+        
+        .kitchen-card {
+            position: relative;
+            border-radius: 20px;
+            padding: 1.5rem;
+            overflow: hidden;
+            color: white;
+            min-height: 130px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .kitchen-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .kitchen-card-bg {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .kitchen-card-bg svg {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .kitchen-card-active { background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%); }
+        .kitchen-card-preparing { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%); }
+        .kitchen-card-ready { background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%); }
+        
+        .kitchen-card-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .kitchen-card-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        
+        .kitchen-card-value {
+            font-size: 2.25rem;
+            font-weight: 800;
+            line-height: 1.2;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .kitchen-card-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        @media (max-width: 768px) {
+            .kitchen-cards-container {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .kitchen-card {
+                min-height: 110px;
+                padding: 1rem;
+            }
+            .kitchen-card-value {
+                font-size: 1.75rem;
+            }
+        }
+        
+        .orders-container {
+            display: grid;
+            gap: 2rem;
+        }
+        
+        .category-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .category-header h2 {
+            color: #1e293b;
+            font-size: 1.5rem;
+        }
+        
+        .category-header .count {
+            background: #f1f5f9;
+            color: #64748b;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .orders-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .order-card {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+        
+        .order-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        
+        .order-card.active { border-color: #f59e0b; }
+        .order-card.preparing { border-color: #3b82f6; }
+        .order-card.ready { border-color: #10b981; }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+        
+        .order-item-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+        
+        .order-table-info {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        .status-badge {
+            padding: 0.4rem 0.85rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        
+        .status-badge.active {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-badge.preparing {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .status-badge.ready {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .order-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .detail-item {
+            text-align: center;
+        }
+        
+        .detail-label {
+            color: #64748b;
+            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .detail-value {
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 1.1rem;
+        }
+        
+        .order-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-ready {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .btn-ready:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
+        .ready-indicator {
+            flex: 1;
+            text-align: center;
+            padding: 0.75rem;
+            background: #dcfce7;
+            color: #166534;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .no-orders {
+            text-align: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+        
+        .no-orders i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+            opacity: 0.5;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+        
+        .loading i {
+            font-size: 2rem;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .kitchen-title {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .orders-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="kitchen-header">
+        <div class="kitchen-title">
+            <h1>
+                {% if hotel_logo and logo_file_exists(hotel_logo) %}
+                    <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel_logo) }}" 
+                         alt="{{ hotel_name or 'Hotel' }} Logo" 
+                         style="height: 50px; width: auto; object-fit: contain; margin-right: 0.5rem;">
+                {% else %}
+                    <i class="fas fa-fire-burner"></i>
+                {% endif %}
+                {{ hotel_name or section_name }} - {{ section_name }}
+            </h1>
+            <button class="refresh-btn" onclick="loadOrders()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+        </div>
+        
+        <div class="kitchen-cards-container">
+            <div class="kitchen-card kitchen-card-active">
+                <div class="kitchen-card-bg">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="150" cy="50" r="80" fill="rgba(255,255,255,0.1)"/>
+                    </svg>
+                </div>
+                <div class="kitchen-card-content">
+                    <div class="kitchen-card-icon"><i class="fas fa-fire"></i></div>
+                    <div class="kitchen-card-value" id="stat-active">0</div>
+                    <div class="kitchen-card-label">Active Orders</div>
+                </div>
+            </div>
+            <div class="kitchen-card kitchen-card-preparing">
+                <div class="kitchen-card-bg">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="150" r="70" fill="rgba(255,255,255,0.1)"/>
+                    </svg>
+                </div>
+                <div class="kitchen-card-content">
+                    <div class="kitchen-card-icon"><i class="fas fa-utensils"></i></div>
+                    <div class="kitchen-card-value" id="stat-preparing">0</div>
+                    <div class="kitchen-card-label">Preparing</div>
+                </div>
+            </div>
+            <div class="kitchen-card kitchen-card-ready">
+                <div class="kitchen-card-bg">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="100" cy="100" r="90" fill="rgba(255,255,255,0.1)"/>
+                    </svg>
+                </div>
+                <div class="kitchen-card-content">
+                    <div class="kitchen-card-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="kitchen-card-value" id="stat-ready">0</div>
+                    <div class="kitchen-card-label">Ready to Serve</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="orders-container" id="orders-container">
+        <div class="loading">
+            <i class="fas fa-spinner"></i>
+            <p>Loading orders...</p>
+        </div>
+    </div>
+    
+    <script>
+        const sectionId = {{ section_id }};
+        
+        function loadOrders() {
+            fetch(`/orders/api/kitchen-section-orders/${sectionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayOrders(data.orders_by_category, data.stats);
+                    } else {
+                        document.getElementById('orders-container').innerHTML = 
+                            `<div class="no-orders"><i class="fas fa-exclamation-circle"></i><p>${data.message}</p></div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading orders:', error);
+                    document.getElementById('orders-container').innerHTML = 
+                        '<div class="no-orders"><i class="fas fa-exclamation-circle"></i><p>Error loading orders</p></div>';
+                });
+        }
+        
+        function displayOrders(ordersByCategory, stats) {
+            // Update stats
+            document.getElementById('stat-active').textContent = stats.active || 0;
+            document.getElementById('stat-preparing').textContent = stats.preparing || 0;
+            document.getElementById('stat-ready').textContent = stats.ready || 0;
+            
+            const container = document.getElementById('orders-container');
+            
+            if (!ordersByCategory || Object.keys(ordersByCategory).length === 0) {
+                container.innerHTML = '<div class="no-orders"><i class="fas fa-check-circle"></i><p>No pending orders</p></div>';
+                return;
+            }
+            
+            let html = '';
+            
+            for (const [categoryName, orders] of Object.entries(ordersByCategory)) {
+                html += `
+                    <div class="category-section">
+                        <div class="category-header">
+                            <i class="fas fa-utensils" style="color: #f59e0b;"></i>
+                            <h2>${categoryName}</h2>
+                            <span class="count">${orders.length} item${orders.length > 1 ? 's' : ''}</span>
+                        </div>
+                        <div class="orders-grid">
+                `;
+                
+                orders.forEach(order => {
+                    const statusClass = order.order_status.toLowerCase();
+                    const statusIcon = {
+                        'ACTIVE': 'clock',
+                        'PREPARING': 'fire',
+                        'READY': 'check-circle'
+                    }[order.order_status] || 'circle';
+                    
+                    html += `
+                        <div class="order-card ${statusClass}">
+                            <div class="order-header">
+                                <div>
+                                    <div class="order-item-name">${order.item_name}</div>
+                                    <div class="order-table-info">
+                                        <i class="fas fa-table"></i> Table ${order.table_number}
+                                        ${order.guest_name ? ` • ${order.guest_name}` : ''}
+                                    </div>
+                                </div>
+                                <div class="status-badge ${statusClass}">
+                                    <i class="fas fa-${statusIcon}"></i>
+                                    ${order.order_status}
+                                </div>
+                            </div>
+                            
+                            <div class="order-details">
+                                <div class="detail-item">
+                                    <div class="detail-label">Quantity</div>
+                                    <div class="detail-value">${order.quantity}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Order Time</div>
+                                    <div class="detail-value" style="font-size: 0.9rem;">${formatTime(order.created_at)}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="order-actions">
+                                ${order.order_status === 'ACTIVE' ? `
+                                    <button class="btn btn-start" onclick="updateStatus(${order.item_id}, 'PREPARING')">
+                                        <i class="fas fa-fire"></i> Start Preparing
+                                    </button>
+                                ` : ''}
+                                ${order.order_status === 'PREPARING' ? `
+                                    <button class="btn btn-ready" onclick="updateStatus(${order.item_id}, 'READY')">
+                                        <i class="fas fa-check"></i> Mark Ready
+                                    </button>
+                                ` : ''}
+                                ${order.order_status === 'READY' ? `
+                                    <div class="ready-indicator">
+                                        <i class="fas fa-check-circle"></i> Ready for Waiter
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function formatTime(timestamp) {
+            if (!timestamp) return 'N/A';
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            
+            const diffHours = Math.floor(diffMins / 60);
+            return `${diffHours}h ${diffMins % 60}m ago`;
+        }
+        
+        function updateStatus(itemId, newStatus) {
+            if (!confirm(`Change item status to ${newStatus}?`)) return;
+            
+            fetch('/orders/api/update-item-status', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    item_id: itemId,
+                    status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadOrders();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating status:', error);
+                alert('Error updating status');
+            });
+        }
+        
+        // Load orders on page load
+        loadOrders();
+        
+        // Auto-refresh every 15 seconds
+        setInterval(loadOrders, 15000);
+    </script>
+</body>
+</html>

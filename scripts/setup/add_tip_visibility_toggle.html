@@ -1,0 +1,213 @@
+<!-- 
+    WAITER TIP VISIBILITY TOGGLE
+    Add this code to Hotel/templates/manager_dashboard.html in the Settings section
+-->
+
+<!-- Waiter Tip Visibility Setting -->
+<div class="setting-card">
+    <div class="setting-header">
+        <div class="setting-icon">
+            <i class="fas fa-eye"></i>
+        </div>
+        <div class="setting-info">
+            <h3>Show Tips to Waiters</h3>
+            <p>Control whether waiters can see their tip amounts on their dashboard</p>
+        </div>
+    </div>
+    <div class="setting-control">
+        <label class="toggle-switch">
+            <input type="checkbox" id="showTipsToggle" checked>
+            <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-status" id="tipsToggleStatus">Enabled</span>
+    </div>
+</div>
+
+<style>
+.setting-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.setting-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.setting-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+}
+
+.setting-info h3 {
+    font-size: 1.1rem;
+    color: #2d3748;
+    margin-bottom: 0.25rem;
+}
+
+.setting-info p {
+    font-size: 0.9rem;
+    color: #718096;
+}
+
+.setting-control {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+    border-radius: 34px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+.toggle-status {
+    font-weight: 600;
+    color: #2d3748;
+    min-width: 80px;
+}
+</style>
+
+<script>
+// Load tip visibility setting on page load
+async function loadTipVisibilitySetting() {
+    try {
+        const response = await fetch('/hotel-manager/api/tip-visibility');
+        const data = await response.json();
+        
+        if (data.success) {
+            const toggle = document.getElementById('showTipsToggle');
+            const status = document.getElementById('tipsToggleStatus');
+            
+            toggle.checked = data.show_waiter_tips;
+            status.textContent = data.show_waiter_tips ? 'Enabled' : 'Disabled';
+            status.style.color = data.show_waiter_tips ? '#10b981' : '#ef4444';
+        }
+    } catch (error) {
+        console.error('Error loading tip visibility setting:', error);
+    }
+}
+
+// Toggle tip visibility
+async function toggleTipVisibility() {
+    const toggle = document.getElementById('showTipsToggle');
+    const status = document.getElementById('tipsToggleStatus');
+    const showTips = toggle.checked;
+    
+    try {
+        const response = await fetch('/hotel-manager/api/toggle-tip-visibility', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                show_waiter_tips: showTips
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            status.textContent = showTips ? 'Enabled' : 'Disabled';
+            status.style.color = showTips ? '#10b981' : '#ef4444';
+            
+            // Show success message
+            showNotification(data.message, 'success');
+        } else {
+            // Revert toggle on error
+            toggle.checked = !showTips;
+            showNotification(data.message || 'Failed to update setting', 'error');
+        }
+    } catch (error) {
+        console.error('Error toggling tip visibility:', error);
+        toggle.checked = !showTips;
+        showNotification('Network error. Please try again.', 'error');
+    }
+}
+
+// Add event listener
+document.getElementById('showTipsToggle').addEventListener('change', toggleTipVisibility);
+
+// Load setting on page load
+document.addEventListener('DOMContentLoaded', loadTipVisibilitySetting);
+
+// Notification function
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        background: ${type === 'success' ? '#10b981' : '#ef4444'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 10000;
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+</script>

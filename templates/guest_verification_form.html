@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Verification - {{ hotel_name or 'VisiScure Order' }}</title>
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+        }
+        .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .form-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px 20px;
+            text-align: center;
+            color: white;
+        }
+        .form-header img {
+            max-height: 50px;
+            margin-bottom: 12px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .form-header h1 { 
+            font-size: 24px; 
+            font-weight: 700; 
+            margin-bottom: 5px; 
+        }
+        .form-header p { 
+            opacity: 0.9; 
+            font-size: 14px; 
+            margin: 0;
+        }
+        .form-body { 
+            padding: 25px 20px; 
+            max-height: calc(100vh - 250px);
+            overflow-y: auto;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a202c;
+            margin: 25px 0 15px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title:first-child { margin-top: 0; }
+        .section-title i {
+            color: #667eea;
+            font-size: 20px;
+        }
+        .form-label { 
+            font-weight: 600; 
+            color: #1a202c; 
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .form-control, .form-select {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+        .form-control.is-invalid {
+            border-color: #dc3545;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            padding-right: calc(1.5em + 0.75rem);
+        }
+        .form-control.is-valid {
+            border-color: #10b981;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2310b981' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            padding-right: calc(1.5em + 0.75rem);
+        }
+        .btn-custom { 
+            padding: 12px 25px; 
+            border-radius: 10px; 
+            font-weight: 600; 
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+        }
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 400px;
+            margin: 0 auto;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #000;
+        }
+        #cameraVideo { 
+            width: 100%; 
+            height: 100%;
+            object-fit: cover;
+            object-position: center center;
+            display: block;
+            transform: scaleX(-1); /* Mirror effect for selfie */
+        }
+        #camera-canvas { display: none; }
+        
+        /* Face guide overlay */
+        .face-guide-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .face-guide-frame {
+            width: 70%;
+            height: 70%;
+            border: 3px solid #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+        .face-guide-message {
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 15px;
+            text-align: center;
+        }
+        .captured-preview {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .camera-controls { 
+            text-align: center; 
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .captured-image {
+            width: 100%;
+            max-width: 400px;
+            height: 400px;
+            object-fit: cover;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: block;
+            margin: 0 auto;
+        }
+        .alert { 
+            border-radius: 10px; 
+            padding: 12px; 
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        .radio-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .radio-card:hover { 
+            border-color: #667eea; 
+            background: #f8f9fa; 
+        }
+        .radio-card input[type="radio"] {
+            margin: 0;
+        }
+        .radio-card label { 
+            margin: 0;
+            cursor: pointer;
+            flex: 1;
+            font-size: 14px;
+        }
+        .radio-card input[type="radio"]:checked ~ label { 
+            color: #667eea; 
+            font-weight: 600; 
+        }
+        .file-upload-box {
+            border: 2px dashed #cbd5e1;
+            border-radius: 15px;
+            padding: 30px 20px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .file-upload-box:hover { 
+            border-color: #667eea; 
+            background: #f0f4ff; 
+        }
+        .file-upload-box i { 
+            font-size: 40px; 
+            color: #667eea; 
+            margin-bottom: 12px; 
+        }
+        .file-upload-box p {
+            margin: 5px 0;
+            font-size: 13px;
+        }
+        .file-upload-box p:first-of-type {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .form-footer {
+            padding: 20px;
+            background: #f8f9fa;
+            text-align: center;
+        }
+        .otp-section {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #e0e7ff;
+        }
+        .verified-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #10b981;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .btn-group-custom {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-group-custom .btn {
+            flex: 1;
+        }
+        
+        /* Mobile Optimizations */
+        @media (max-width: 576px) {
+            body { padding: 10px; }
+            .form-container { border-radius: 15px; }
+            .form-header { padding: 20px 15px; }
+            .form-header h1 { font-size: 20px; }
+            .form-body { 
+                padding: 20px 15px;
+                max-height: calc(100vh - 220px);
+            }
+            .section-title { 
+                font-size: 16px;
+                margin: 20px 0 12px 0;
+            }
+            .form-label { font-size: 13px; }
+            .form-control, .form-select { 
+                padding: 10px;
+                font-size: 14px;
+            }
+            .btn-custom { 
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+            .camera-container {
+                max-width: 100%;
+                height: 350px;
+            }
+            .face-guide-frame {
+                width: 220px;
+                height: 280px;
+            }
+            .face-guide-message {
+                font-size: 11px;
+                padding: 6px 12px;
+            }
+            .captured-image {
+                height: 350px;
+            }
+            .camera-controls {
+                flex-direction: column;
+            }
+            .camera-controls .btn {
+                width: 100%;
+            }
+            .btn-group-custom {
+                flex-direction: column;
+            }
+            .file-upload-box {
+                padding: 25px 15px;
+            }
+            .file-upload-box i {
+                font-size: 35px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container"> 
+        <!-- Header -->
+        <div class="form-header">
+            {% if hotel_logo %}
+                {% if '/' in hotel_logo %}
+                    <img src="/static/{{ hotel_logo }}" alt="{{ hotel_name }}" onerror="this.style.display='none'">
+                {% else %}
+                    <img src="/static/uploads/hotel_logos/{{ hotel_logo }}" alt="{{ hotel_name }}" onerror="this.style.display='none'">
+                {% endif %}
+            {% endif %}
+            <h1>Guest Verification</h1>
+            <p>{{ hotel_name or 'VisiScure Order' }}</p>
+        </div>
+
+        <!-- Form -->
+        <form id="verificationForm" method="POST" action="{{ url_for('guest_verification.submit_verification', manager_id=manager_id) }}" enctype="multipart/form-data">
+            <input type="hidden" name="hotel_id" value="{{ hotel_id }}">
+            <input type="hidden" name="selfie_data" id="selfieData">
+            
+            <div class="form-body">
+                <!-- Section 1: Basic Details -->
+                <div class="section-title">
+                    <i class="fas fa-user"></i>
+                    Basic Details
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Full Name <span style="color: red;">*</span></label>
+                    <input type="text" class="form-control" id="guestName" name="guest_name" required placeholder="Enter your full name">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Capture Selfie <span style="color: red;">*</span></label>
+                    <div class="camera-container" id="cameraContainer">
+                        <video id="cameraVideo" autoplay playsinline></video>
+                        <canvas id="cameraCanvas"></canvas>
+                        <div class="face-guide-overlay" id="faceGuideOverlay">
+                            <div class="face-guide-frame"></div>
+                            <div class="face-guide-message">
+                                <i class="fas fa-user-circle"></i> Align your face inside the frame before capturing
+                            </div>
+                        </div>
+                    </div>
+                    <div id="capturedImageContainer" style="display: none; text-align: center;">
+                        <img id="capturedImage" class="captured-image" alt="Captured Selfie">
+                    </div>
+                    <div class="camera-controls">
+                        <button type="button" class="btn btn-custom btn-success w-100" id="captureSelfieBtn" onclick="captureSelfie()">
+                            <i class="fas fa-camera"></i> Capture Photo
+                        </button>
+                        <button type="button" class="btn btn-custom btn-warning w-100" id="retakeSelfieBtn" onclick="retakeSelfie()" style="display: none;">
+                            <i class="fas fa-redo"></i> Retake Selfie
+                        </button>
+                    </div>
+                    <div id="cameraError" class="alert alert-danger" style="display: none; margin-top: 15px;">
+                        <i class="fas fa-exclamation-triangle"></i> <span id="cameraErrorMessage"></span>
+                    </div>
+                </div>
+
+                <!-- Section 2: Address -->
+                <div class="section-title">
+                    <i class="fas fa-map-marker-alt"></i>
+                    Address Details
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Full Address <span style="color: red;">*</span></label>
+                    <textarea class="form-control" id="address" name="address" rows="3" required placeholder="Enter your complete address"></textarea>
+                </div>
+
+                <!-- Section 3: Mobile OTP -->
+                <div class="section-title">
+                    <i class="fas fa-mobile-alt"></i>
+                    Mobile Verification
+                </div>
+                
+                <div class="otp-section">
+                    <div class="mb-3">
+                        <label class="form-label">Mobile Number <span style="color: red;">*</span></label>
+                        <input type="tel" class="form-control" id="phoneNumber" name="phone" maxlength="10" pattern="[0-9]{10}" required placeholder="Enter 10-digit mobile number">
+                    </div>
+
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-custom btn-primary-custom w-100" id="sendOtpBtn" onclick="sendOTP()">
+                            <i class="fas fa-paper-plane"></i> Send OTP
+                        </button>
+                    </div>
+
+                    <div id="otpInputSection" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">Enter OTP <span style="color: red;">*</span></label>
+                            <input type="text" class="form-control" id="otpCode" maxlength="6" pattern="[0-9]{6}" placeholder="Enter 6-digit OTP">
+                        </div>
+
+                        <div class="btn-group-custom">
+                            <button type="button" class="btn btn-custom btn-success" id="verifyOtpBtn" onclick="verifyOTP()">
+                                <i class="fas fa-check"></i> Verify OTP
+                            </button>
+                            <button type="button" class="btn btn-custom btn-outline-secondary" id="resendOtpBtn" onclick="sendOTP()" disabled>
+                                <i class="fas fa-redo"></i> Resend
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="otpVerifiedBadge" style="display: none; margin-top: 15px; text-align: center;">
+                        <span class="verified-badge">
+                            <i class="fas fa-check-circle"></i> Mobile Verified
+                        </span>
+                    </div>
+
+                    <div id="otpMessage" class="mt-3"></div>
+                </div>
+
+                <!-- Section 4: KYC -->
+                <div class="section-title">
+                    <i class="fas fa-id-card"></i>
+                    KYC Verification
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Document Type <span style="color: red;">*</span></label>
+                    <select class="form-select" id="kycType" name="kyc_type" required onchange="updateDocumentValidation()">
+                        <option value="">Select Document Type</option>
+                        <option value="PAN Card">PAN Card</option>
+                        <option value="Driving License">Driving License</option>
+                        <option value="Voter ID">Voter ID</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Verification Method <span style="color: red;">*</span></label>
+                    <div class="radio-card">
+                        <input type="radio" name="kyc_method" id="kycMethodNumber" value="number" checked onchange="toggleKycMethod()">
+                        <label for="kycMethodNumber">
+                            <i class="fas fa-keyboard"></i> Enter Document Number
+                        </label>
+                    </div>
+                    <div class="radio-card">
+                        <input type="radio" name="kyc_method" id="kycMethodUpload" value="upload" onchange="toggleKycMethod()">
+                        <label for="kycMethodUpload">
+                            <i class="fas fa-upload"></i> Upload Document Image
+                        </label>
+                    </div>
+                </div>
+
+                <div id="kycNumberSection" class="mb-3">
+                    <label class="form-label">Document Number <span style="color: red;">*</span></label>
+                    <input type="text" class="form-control" id="kycNumber" name="kyc_number" placeholder="Select document type first" oninput="validateDocumentNumber()">
+                    <div id="kycNumberError" class="text-danger" style="font-size: 12px; margin-top: 5px; display: none;"></div>
+                    <div id="kycNumberHelp" class="text-muted" style="font-size: 12px; margin-top: 5px;"></div>
+                </div>
+
+                <div id="kycUploadSection" class="mb-3" style="display: none;">
+                    <label class="form-label">Upload Document <span style="color: red;">*</span></label>
+                    <div class="file-upload-box" onclick="document.getElementById('identityFile').click()">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Click to upload document</p>
+                        <p style="color: #64748b;">PNG, JPG, or PDF (Max 5MB)</p>
+                    </div>
+                    <input type="file" id="identityFile" name="identity_file" accept="image/*,.pdf" style="display: none;" onchange="displayFileName(this)">
+                    <div id="fileNameDisplay" style="margin-top: 10px; font-size: 13px; color: #10b981;"></div>
+                </div>
+
+                <!-- Section 5: Aadhaar -->
+                <div class="section-title">
+                    <i class="fas fa-address-card"></i>
+                    Aadhaar Verification
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Upload Aadhaar Card <span style="color: red;">*</span></label>
+                    <div class="file-upload-box" onclick="document.getElementById('aadhaarFile').click()">
+                        <i class="fas fa-id-card"></i>
+                        <p>Click to upload Aadhaar</p>
+                        <p style="color: #64748b;">Image or PDF only (Max 5MB)</p>
+                    </div>
+                    <input type="file" id="aadhaarFile" name="aadhaar_file" accept="image/*,.pdf" style="display: none;" onchange="displayAadhaarFileName(this)">
+                    <div id="aadhaarFileNameDisplay" style="margin-top: 10px; font-size: 13px; color: #10b981;"></div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Please ensure the Aadhaar card is clearly visible and all details are readable.
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="form-footer">
+                <button type="submit" class="btn btn-custom btn-success w-100" id="submitBtn">
+                    <i class="fas fa-check"></i> Submit Verification
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let cameraStream = null;
+        let selfieCaptured = false;
+        let otpVerified = false;
+
+        // Auto-start camera when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            startCameraAutomatically();
+        });
+
+        // Camera Functions
+        async function startCameraAutomatically() {
+            try {
+                // Request front camera with square aspect ratio preference
+                const constraints = {
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 1280 },
+                        height: { ideal: 1280 },
+                        aspectRatio: { ideal: 1 }
+                    },
+                    audio: false
+                };
+                
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                const video = document.getElementById('cameraVideo');
+                video.srcObject = cameraStream;
+                
+                // Wait for video to be ready
+                video.onloadedmetadata = () => {
+                    video.play();
+                    console.log(`Video dimensions: ${video.videoWidth}x${video.videoHeight}`);
+                };
+                
+                // Show camera container and capture button
+                document.getElementById('cameraContainer').style.display = 'block';
+                document.getElementById('captureSelfieBtn').style.display = 'block';
+                document.getElementById('faceGuideOverlay').style.display = 'flex';
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                showCameraError('Unable to access camera. Please check permissions and refresh the page.');
+            }
+        }
+
+        function showCameraError(message) {
+            document.getElementById('cameraErrorMessage').textContent = message;
+            document.getElementById('cameraError').style.display = 'block';
+            document.getElementById('cameraContainer').style.display = 'none';
+        }
+
+        // Camera Functions
+        function captureSelfie() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('cameraCanvas');
+            const context = canvas.getContext('2d');
+            
+            // Set canvas size to square (500x500) for high quality centered crop
+            const targetSize = 500;
+            canvas.width = targetSize;
+            canvas.height = targetSize;
+            
+            // Get actual video dimensions
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+            
+            console.log(`Capturing from video: ${videoWidth}x${videoHeight}`);
+            
+            // Calculate the size of the square crop from the video (use the smaller dimension)
+            const cropSize = Math.min(videoWidth, videoHeight);
+            
+            // Calculate starting position - PERFECT CENTER for both axes
+            const startX = Math.floor((videoWidth - cropSize) / 2);
+            const startY = Math.floor((videoHeight - cropSize) / 2);
+            
+            console.log(`Crop area: startX=${startX}, startY=${startY}, size=${cropSize}x${cropSize}`);
+            
+            // Save context state
+            context.save();
+            
+            // Flip horizontally to match the mirrored preview
+            context.translate(targetSize, 0);
+            context.scale(-1, 1);
+            
+            // Draw the center-cropped and scaled image
+            context.drawImage(
+                video,
+                startX, startY,              // Start cropping from perfect center
+                cropSize, cropSize,          // Crop a square from video
+                0, 0,                        // Draw at canvas origin
+                targetSize, targetSize       // Scale to target size
+            );
+            
+            // Restore context state
+            context.restore();
+            
+            // Convert to base64 with good quality
+            const imageData = canvas.toDataURL('image/jpeg', 0.92);
+            document.getElementById('selfieData').value = imageData;
+            document.getElementById('capturedImage').src = imageData;
+            
+            console.log('Selfie captured successfully');
+            
+            stopCamera();
+            
+            // Hide camera, show captured image
+            document.getElementById('cameraContainer').style.display = 'none';
+            document.getElementById('capturedImageContainer').style.display = 'block';
+            document.getElementById('captureSelfieBtn').style.display = 'none';
+            document.getElementById('retakeSelfieBtn').style.display = 'block';
+            
+            selfieCaptured = true;
+        }
+
+        function retakeSelfie() {
+            // Hide captured image
+            document.getElementById('capturedImageContainer').style.display = 'none';
+            document.getElementById('retakeSelfieBtn').style.display = 'none';
+            document.getElementById('selfieData').value = '';
+            selfieCaptured = false;
+            
+            // Restart camera
+            startCameraAutomatically();
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+        }
+
+        // OTP Functions
+        let resendTimer = null;
+
+        async function sendOTP() {
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            
+            if (!phoneNumber || phoneNumber.length !== 10 || !/^\d{10}$/.test(phoneNumber)) {
+                showOTPMessage('Please enter a valid 10-digit mobile number', 'danger');
+                return;
+            }
+
+            const sendBtn = document.getElementById('sendOtpBtn');
+            const resendBtn = document.getElementById('resendOtpBtn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+            try {
+                const response = await fetch('/guest-verification/api/send-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        phone_number: phoneNumber,
+                        hotel_id: '{{ hotel_id }}'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showOTPMessage(result.message, 'success');
+                    document.getElementById('otpInputSection').style.display = 'block';
+                    
+                    // Start resend cooldown
+                    let countdown = 30;
+                    resendBtn.disabled = true;
+                    resendBtn.innerHTML = `<i class="fas fa-redo"></i> Resend (${countdown}s)`;
+                    
+                    resendTimer = setInterval(() => {
+                        countdown--;
+                        if (countdown <= 0) {
+                            clearInterval(resendTimer);
+                            resendBtn.disabled = false;
+                            resendBtn.innerHTML = '<i class="fas fa-redo"></i> Resend';
+                        } else {
+                            resendBtn.innerHTML = `<i class="fas fa-redo"></i> Resend (${countdown}s)`;
+                        }
+                    }, 1000);
+                } else {
+                    showOTPMessage(result.message, 'danger');
+                }
+            } catch (error) {
+                showOTPMessage('Failed to send OTP. Please try again.', 'danger');
+                console.error('Send OTP error:', error);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP';
+            }
+        }
+
+        async function verifyOTP() {
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            const otpCode = document.getElementById('otpCode').value.trim();
+
+            if (!otpCode || otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
+                showOTPMessage('Please enter a valid 6-digit OTP', 'danger');
+                return;
+            }
+
+            const verifyBtn = document.getElementById('verifyOtpBtn');
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+
+            try {
+                const response = await fetch('/guest-verification/api/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone_number: phoneNumber, otp_code: otpCode })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showOTPMessage(result.message, 'success');
+                    otpVerified = true;
+                    document.getElementById('otpInputSection').style.display = 'none';
+                    document.getElementById('otpVerifiedBadge').style.display = 'block';
+                    document.getElementById('sendOtpBtn').style.display = 'none';
+                    document.getElementById('phoneNumber').disabled = true;
+                } else {
+                    showOTPMessage(result.message, 'danger');
+                }
+            } catch (error) {
+                showOTPMessage('Failed to verify OTP. Please try again.', 'danger');
+                console.error('Verify OTP error:', error);
+            } finally {
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = '<i class="fas fa-check"></i> Verify OTP';
+            }
+        }
+
+        function showOTPMessage(message, type) {
+            const messageDiv = document.getElementById('otpMessage');
+            messageDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => { messageDiv.innerHTML = ''; }, 5000);
+        }
+
+        // KYC Method Toggle
+        function toggleKycMethod() {
+            const method = document.querySelector('input[name="kyc_method"]:checked').value;
+            const numberSection = document.getElementById('kycNumberSection');
+            const uploadSection = document.getElementById('kycUploadSection');
+            const kycNumberInput = document.getElementById('kycNumber');
+            const identityFileInput = document.getElementById('identityFile');
+
+            if (method === 'number') {
+                numberSection.style.display = 'block';
+                uploadSection.style.display = 'none';
+                kycNumberInput.required = true;
+                identityFileInput.required = false;
+            } else {
+                numberSection.style.display = 'none';
+                uploadSection.style.display = 'block';
+                kycNumberInput.required = false;
+                identityFileInput.required = true;
+            }
+        }
+
+        // Document validation patterns and rules
+        const documentValidation = {
+            'PAN Card': {
+                pattern: /^[A-Z]{5}[0-9]{4}[A-Z]$/,
+                placeholder: 'Example: ABCDE1234F',
+                helpText: 'Format: 5 letters + 4 digits + 1 letter (e.g., ABCDE1234F)',
+                errorMsg: 'Invalid PAN format. Must be 5 uppercase letters, 4 digits, and 1 uppercase letter'
+            },
+            'Driving License': {
+                pattern: /^[A-Z]{2}[0-9]{2}[0-9]{11}$/,
+                placeholder: 'Example: MH1420110012345',
+                helpText: 'Format: 2 state letters + 2 RTO digits + 11 license digits (e.g., MH1420110012345)',
+                errorMsg: 'Invalid Driving License format. Must be 2 uppercase letters followed by 13 digits'
+            },
+            'Voter ID': {
+                pattern: /^[A-Z]{3}[0-9]{7}$/,
+                placeholder: 'Example: ABC1234567',
+                helpText: 'Format: 3 letters + 7 digits (e.g., ABC1234567)',
+                errorMsg: 'Invalid Voter ID format. Must be 3 uppercase letters followed by 7 digits'
+            }
+        };
+
+        // Update validation when document type changes
+        function updateDocumentValidation() {
+            const kycType = document.getElementById('kycType').value;
+            const kycNumberInput = document.getElementById('kycNumber');
+            const kycNumberError = document.getElementById('kycNumberError');
+            const kycNumberHelp = document.getElementById('kycNumberHelp');
+
+            // Clear previous validation
+            kycNumberInput.value = '';
+            kycNumberError.style.display = 'none';
+            kycNumberInput.classList.remove('is-invalid', 'is-valid');
+
+            if (kycType && documentValidation[kycType]) {
+                const validation = documentValidation[kycType];
+                kycNumberInput.placeholder = validation.placeholder;
+                kycNumberHelp.textContent = validation.helpText;
+                kycNumberHelp.style.display = 'block';
+            } else {
+                kycNumberInput.placeholder = 'Select document type first';
+                kycNumberHelp.style.display = 'none';
+            }
+        }
+
+        // Validate document number in real-time
+        function validateDocumentNumber() {
+            const kycType = document.getElementById('kycType').value;
+            const kycNumberInput = document.getElementById('kycNumber');
+            const kycNumberError = document.getElementById('kycNumberError');
+            const documentNumber = kycNumberInput.value.trim().toUpperCase();
+
+            // Update input to uppercase
+            kycNumberInput.value = documentNumber;
+
+            if (!kycType) {
+                kycNumberError.textContent = 'Please select a document type first';
+                kycNumberError.style.display = 'block';
+                kycNumberInput.classList.add('is-invalid');
+                kycNumberInput.classList.remove('is-valid');
+                return false;
+            }
+
+            if (!documentNumber) {
+                kycNumberError.style.display = 'none';
+                kycNumberInput.classList.remove('is-invalid', 'is-valid');
+                return false;
+            }
+
+            const validation = documentValidation[kycType];
+            if (validation.pattern.test(documentNumber)) {
+                kycNumberError.style.display = 'none';
+                kycNumberInput.classList.remove('is-invalid');
+                kycNumberInput.classList.add('is-valid');
+                return true;
+            } else {
+                kycNumberError.textContent = validation.errorMsg;
+                kycNumberError.style.display = 'block';
+                kycNumberInput.classList.add('is-invalid');
+                kycNumberInput.classList.remove('is-valid');
+                return false;
+            }
+        }
+
+        function displayFileName(input) {
+            const display = document.getElementById('fileNameDisplay');
+            if (input.files && input.files[0]) {
+                display.innerHTML = `<i class="fas fa-file"></i> ${input.files[0].name}`;
+            }
+        }
+
+        function displayAadhaarFileName(input) {
+            const display = document.getElementById('aadhaarFileNameDisplay');
+            if (input.files && input.files[0]) {
+                display.innerHTML = `<i class="fas fa-file"></i> ${input.files[0].name}`;
+            }
+        }
+
+        // Form Validation
+        document.getElementById('verificationForm').addEventListener('submit', function(e) {
+            // Always prevent default first to stop page refresh
+            e.preventDefault();
+            
+            // Check guest name
+            const guestName = document.getElementById('guestName').value.trim();
+            if (!guestName) {
+                alert('Please enter your full name before submitting');
+                document.getElementById('guestName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                document.getElementById('guestName').focus();
+                return false;
+            }
+            
+            // Check selfie
+            if (!selfieCaptured) {
+                alert('Please capture your selfie before submitting');
+                document.getElementById('guestName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+
+            // Check address
+            const address = document.getElementById('address').value.trim();
+            if (!address) {
+                alert('Please enter your address before submitting');
+                document.getElementById('address').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                document.getElementById('address').focus();
+                return false;
+            }
+
+            // Check OTP verification
+            if (!otpVerified) {
+                alert('Please verify your mobile number with OTP before submitting');
+                document.getElementById('phoneNumber').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+
+            // Validate KYC document number if method is 'number'
+            const kycMethod = document.querySelector('input[name="kyc_method"]:checked').value;
+            if (kycMethod === 'number') {
+                const kycType = document.getElementById('kycType').value;
+                const kycNumber = document.getElementById('kycNumber').value.trim();
+
+                if (!kycType) {
+                    alert('Please select a document type');
+                    document.getElementById('kycType').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return false;
+                }
+
+                if (!kycNumber) {
+                    alert('Please enter the document number');
+                    document.getElementById('kycNumber').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return false;
+                }
+
+                // Validate format
+                if (!validateDocumentNumber()) {
+                    alert('Invalid document number format. Please check and correct it.');
+                    document.getElementById('kycNumber').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return false;
+                }
+            } else if (kycMethod === 'upload') {
+                // Check if KYC document is uploaded
+                const identityFile = document.getElementById('identityFile');
+                if (!identityFile.files || identityFile.files.length === 0) {
+                    alert('Please upload your KYC document');
+                    document.getElementById('identityFile').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return false;
+                }
+            }
+
+            // Check Aadhaar upload (MANDATORY)
+            const aadhaarFile = document.getElementById('aadhaarFile');
+            if (!aadhaarFile.files || aadhaarFile.files.length === 0) {
+                alert('Please upload Aadhaar card before submitting the verification form.');
+                document.getElementById('aadhaarFile').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+
+            // All validations passed - submit the form
+            console.log('All validations passed, submitting form...');
+            this.submit();
+        });
+
+        // Cleanup camera on page unload
+        window.addEventListener('beforeunload', stopCamera);
+    </script>
+</body>
+</html>

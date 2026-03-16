@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Submitted - {{ hotel_name or 'VisiScure Order' }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #10b981 0%, #059669 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+        .success-container { background: white; border-radius: 20px; padding: 3rem; box-shadow: 0 25px 50px rgba(0,0,0,0.15); max-width: 550px; width: 100%; text-align: center; position: relative; overflow: hidden; }
+        .success-container::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .hotel-logo-section { margin-bottom: 1.5rem; }
+        .hotel-logo-img { max-height: 60px; max-width: 200px; object-fit: contain; }
+        .hotel-name-text { font-size: 1.1rem; font-weight: 600; color: #2d3748; margin-top: 0.5rem; }
+        .success-icon { font-size: 5rem; color: #10b981; margin-bottom: 1.5rem; animation: checkmark 0.6s ease-in-out; }
+        @keyframes checkmark { 0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        .success-container h1 { color: #2d3748; margin-bottom: 1rem; font-size: 2rem; font-weight: 700; }
+        .success-container p { color: #718096; margin-bottom: 2.5rem; line-height: 1.6; font-size: 1.1rem; }
+        .success-details { background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); padding: 2rem; border-radius: 16px; margin-bottom: 2.5rem; text-align: left; border: 1px solid #bbf7d0; }
+        .success-details h3 { color: #065f46; margin-bottom: 1.5rem; font-size: 1.2rem; font-weight: 600; text-align: center; }
+        .success-details ul { list-style: none; }
+        .success-details li { color: #047857; margin-bottom: 1rem; display: flex; align-items: center; font-size: 0.95rem; }
+        .success-details li i { margin-right: 1rem; width: 24px; color: #10b981; font-size: 1.1rem; }
+        .success-details li:last-child { margin-bottom: 0; }
+        .action-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .home-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 1rem 2rem; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.3s ease; }
+        .home-btn:hover { transform: translateY(-2px); box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4); }
+        .track-btn { background: white; color: #667eea; border: 2px solid #667eea; padding: 1rem 2rem; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.3s ease; }
+        .track-btn:hover { background: #667eea; color: white; transform: translateY(-2px); }
+        .reference-number { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin: 1.5rem 0; font-family: 'Courier New', monospace; font-weight: 600; color: #2d3748; }
+        @media (max-width: 768px) { 
+            .success-container { padding: 2rem; margin: 0.5rem; }
+            .success-container h1 { font-size: 1.7rem; }
+            .action-buttons { flex-direction: column; }
+            .home-btn, .track-btn { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        {% if hotel_logo and logo_file_exists(hotel_logo) %}
+        <div class="hotel-logo-section">
+            <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel_logo) }}" 
+                 alt="{{ hotel_name or 'Hotel' }} Logo" 
+                 class="hotel-logo-img">
+            {% if hotel_name %}
+            <div class="hotel-name-text">{{ hotel_name }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <div class="success-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        
+        <h1>Verification Submitted Successfully!</h1>
+        
+        <p>Thank you for submitting your verification details. Your request has been received and is being processed by our team.</p>
+        
+        <div class="reference-number">
+            <strong>Reference ID:</strong> VER-20241201-{{ range(1000, 9999) | random }}
+        </div>
+        
+        <div class="success-details">
+            <h3><i class="fas fa-info-circle"></i> What happens next?</h3>
+            <ul>
+                <li><i class="fas fa-clock"></i> Your verification request is under review by the hotel manager</li>
+                <li><i class="fas fa-user-check"></i> Our team will verify your submitted documents and information</li>
+                <li><i class="fas fa-bell"></i> You'll receive a notification once your verification is processed</li>
+                <li><i class="fas fa-shield-alt"></i> Your personal data is secure and protected with us</li>
+                <li><i class="fas fa-phone"></i> Contact hotel reception if you have any questions</li>
+            </ul>
+        </div>
+        
+        <div class="action-buttons">
+            <a href="/" class="home-btn">
+                <i class="fas fa-home"></i> Back to Home
+            </a>
+            <a href="#" class="track-btn" onclick="alert('Tracking feature coming soon!')">
+                <i class="fas fa-search"></i> Track Status
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</body>
+</html>
