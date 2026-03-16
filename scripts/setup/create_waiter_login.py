@@ -46,7 +46,11 @@ def create_waiter_login(waiter_id, username, password):
         print(f"  Username: {username}")
         print(f"  Password: {password}")
         print(f"\nLogin URL:")
+<<<<<<< HEAD
         print(f"  http://127.0.0.1:5000/waiter/login")
+=======
+        print(f"  http://localhost:5000/waiter/login")
+>>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
         print("\n" + "=" * 60)
         
         return True
@@ -110,7 +114,11 @@ if __name__ == '__main__':
     success = create_waiter_login(waiter_id, username, password)
     
     if success:
+<<<<<<< HEAD
         print("\n✅ You can now login at: http://127.0.0.1:5000/waiter/login")
+=======
+        print("\n✅ You can now login at: http://localhost:5000/waiter/login")
+>>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
         print("   Username: abhishek")
         print("   Password: password123")
         print("\n💡 After login, you will see waiter call requests!")

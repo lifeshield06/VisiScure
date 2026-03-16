@@ -37,12 +37,20 @@ def test_logo_display():
                 print(f"\nLogo File Exists: {exists}")
                 
                 if exists:
+<<<<<<< HEAD
                     print(f"✓ Logo will display on: http://127.0.0.1:5000/orders/menu/{table['id']}")
+=======
+                    print(f"✓ Logo will display on: http://localhost:5000/orders/menu/{table['id']}")
+>>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                 else:
                     print(f"✗ Logo file not found at: {logo_path}")
             else:
                 print("\n✗ No logo uploaded for this hotel")
+<<<<<<< HEAD
                 print(f"Default icon will display on: http://127.0.0.1:5000/orders/menu/{table['id']}")
+=======
+                print(f"Default icon will display on: http://localhost:5000/orders/menu/{table['id']}")
+>>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
         else:
             print("No tables found with hotel_id")
         

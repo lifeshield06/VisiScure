@@ -80,6 +80,7 @@ def download_qr(table_id):
     except Exception as e:
         return jsonify({"success": False, "message": "Server error"})
 
+<<<<<<< HEAD
 @orders_bp.route('/api/regenerate-qr/<int:table_id>', methods=['POST'])
 def regenerate_qr(table_id):
     """Regenerate QR code for table"""
@@ -113,6 +114,8 @@ def regenerate_qr(table_id):
     except Exception as e:
         return jsonify({"success": False, "message": "Server error"})
 
+=======
+>>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
 @orders_bp.route('/menu/<int:table_id>')
 def table_menu(table_id):
     """Show menu for table (QR destination)"""

@@ -1,7 +1,10 @@
 import os
 import qrcode
 import uuid
+<<<<<<< HEAD
 from flask import url_for
+=======
+>>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
 from .table_models import Table, TableOrder, Bill
 
 class TableService:
@@ -9,8 +12,13 @@ class TableService:
     def create_qr_code(table_id, table_number):
         """Generate QR code for table"""
         try:
+<<<<<<< HEAD
             # QR code contains URL to menu with table ID - use url_for for correct absolute URL
             qr_data = url_for('orders.table_menu', table_id=table_id, _external=True)
+=======
+            # QR code contains URL to menu with table ID
+            qr_data = f"http://localhost:5000/orders/menu/{table_id}"
+>>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             
             qr = qrcode.QRCode(
                 version=1,

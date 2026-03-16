@@ -1844,6 +1844,7 @@ body {
     .header-wallet-balance i {
         font-size: 0.85rem;
     }
+<<<<<<< HEAD
 
     /* Mobile Profile Dropdown Improvements */
     .profile-dropdown {
@@ -1933,6 +1934,8 @@ body {
         background: linear-gradient(90deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%) !important;
         color: var(--danger) !important;
     }
+=======
+>>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
 }
 
 /* Sidebar Overlay for Mobile */
@@ -3191,6 +3194,7 @@ body {
 }
 
 /* Responsive */
+<<<<<<< HEAD
 @media (max-width: 768px) {
     #waiter-feature-modal {
         padding: 0.5rem;
@@ -3397,6 +3401,13 @@ body {
     
     #waiter-feature-modal {
         padding: 0;
+=======
+@media (max-width: 576px) {
+    #waiter-feature-modal .modal-container {
+        width: 100%;
+        max-height: 95vh;
+        margin: 0.5rem;
+>>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
     }
     
     #waiter-feature-modal .modal-header {
@@ -3408,7 +3419,17 @@ body {
     }
     
     #waiter-feature-modal .qr-display {
+<<<<<<< HEAD
         max-width: 250px;
+=======
+        width: 200px;
+        height: 200px;
+    }
+    
+    #waiter-feature-modal .qr-actions {
+        flex-direction: column;
+        width: 100%;
+>>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
     }
     
     #waiter-feature-modal .qr-actions button {
