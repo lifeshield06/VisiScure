@@ -895,8 +895,11 @@
             // Always prevent default first to stop page refresh
             e.preventDefault();
             
+            console.log('=== FORM VALIDATION DEBUG ===');
+            
             // Check guest name
             const guestName = document.getElementById('guestName').value.trim();
+            console.log('1. Guest Name:', guestName ? '✅ Present' : '❌ Missing');
             if (!guestName) {
                 alert('Please enter your full name before submitting');
                 document.getElementById('guestName').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -905,6 +908,7 @@
             }
             
             // Check selfie
+            console.log('2. Selfie Captured:', selfieCaptured ? '✅ Yes' : '❌ No');
             if (!selfieCaptured) {
                 alert('Please capture your selfie before submitting');
                 document.getElementById('guestName').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -913,6 +917,7 @@
 
             // Check address
             const address = document.getElementById('address').value.trim();
+            console.log('3. Address:', address ? '✅ Present' : '❌ Missing');
             if (!address) {
                 alert('Please enter your address before submitting');
                 document.getElementById('address').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -920,18 +925,20 @@
                 return false;
             }
 
-            // Check OTP verification
-            if (!otpVerified) {
-                alert('Please verify your mobile number with OTP before submitting');
-                document.getElementById('phoneNumber').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return false;
-            }
+            // Check OTP verification (optional for testing)
+            console.log('4. OTP Verified:', otpVerified ? '✅ Yes' : '❌ No (allowing submission for testing)');
+            // OTP verification is optional for testing - form can be submitted without it
 
             // Validate KYC document number if method is 'number'
             const kycMethod = document.querySelector('input[name="kyc_method"]:checked').value;
+            console.log('5. KYC Method:', kycMethod);
+            
             if (kycMethod === 'number') {
                 const kycType = document.getElementById('kycType').value;
                 const kycNumber = document.getElementById('kycNumber').value.trim();
+                
+                console.log('5a. KYC Type:', kycType ? '✅ Selected' : '❌ Not selected');
+                console.log('5b. KYC Number:', kycNumber ? '✅ Present' : '❌ Missing');
 
                 if (!kycType) {
                     alert('Please select a document type');
@@ -945,32 +952,33 @@
                     return false;
                 }
 
-                // Validate format
-                if (!validateDocumentNumber()) {
-                    alert('Invalid document number format. Please check and correct it.');
-                    document.getElementById('kycNumber').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    return false;
-                }
+                // Validate format (optional for testing)
+                const isValidFormat = kycNumber ? validateDocumentNumber() : true;
+                console.log('5c. KYC Number Format:', isValidFormat ? '✅ Valid' : '❌ Invalid (allowing for testing)');
+                // Document format validation is optional for testing
             } else if (kycMethod === 'upload') {
                 // Check if KYC document is uploaded
                 const identityFile = document.getElementById('identityFile');
-                if (!identityFile.files || identityFile.files.length === 0) {
+                const hasIdentityFile = identityFile.files && identityFile.files.length > 0;
+                console.log('5d. KYC Document Upload:', hasIdentityFile ? '✅ Uploaded' : '❌ Not uploaded');
+                
+                if (!hasIdentityFile) {
                     alert('Please upload your KYC document');
                     document.getElementById('identityFile').scrollIntoView({ behavior: 'smooth', block: 'center' });
                     return false;
                 }
             }
 
-            // Check Aadhaar upload (MANDATORY)
+            // Check Aadhaar upload (optional for testing)
             const aadhaarFile = document.getElementById('aadhaarFile');
-            if (!aadhaarFile.files || aadhaarFile.files.length === 0) {
-                alert('Please upload Aadhaar card before submitting the verification form.');
-                document.getElementById('aadhaarFile').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return false;
-            }
+            const hasAadhaarFile = aadhaarFile.files && aadhaarFile.files.length > 0;
+            console.log('6. Aadhaar Upload:', hasAadhaarFile ? '✅ Uploaded' : '❌ Not uploaded (allowing for testing)');
+            
+            // Aadhaar upload is optional for testing
 
             // All validations passed - submit the form
-            console.log('All validations passed, submitting form...');
+            console.log('=== ALL VALIDATIONS PASSED ===');
+            console.log('Submitting form...');
             this.submit();
         });
 

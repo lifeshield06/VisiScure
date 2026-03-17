@@ -157,10 +157,12 @@ def dashboard():
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT hotel_id, kyc_enabled, food_enabled FROM hotel_managers WHERE id = %s",
-                (manager_id,)
-            )
+            cursor.execute("""
+                SELECT hma.hotel_id, hm.kyc_enabled, hm.food_enabled 
+                FROM hotel_managers hma
+                JOIN hotel_modules hm ON hma.hotel_id = hm.hotel_id
+                WHERE hma.manager_id = %s
+            """, (manager_id,))
             result = cursor.fetchone()
             if result:
                 hotel_id = result[0]
@@ -179,11 +181,25 @@ def dashboard():
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
+            
+            # Fetch hotel name and logo
             cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
             hotel_result = cursor.fetchone()
             if hotel_result:
                 session['hotel_name'] = hotel_result[0]
                 session['hotel_logo'] = hotel_result[1]
+            
+            # Always refresh module flags to ensure they're up-to-date
+            cursor.execute("""
+                SELECT kyc_enabled, food_enabled 
+                FROM hotel_modules 
+                WHERE hotel_id = %s
+            """, (hotel_id,))
+            module_result = cursor.fetchone()
+            if module_result:
+                session['kyc_enabled'] = bool(module_result[0]) if module_result[0] is not None else False
+                session['food_enabled'] = bool(module_result[1]) if module_result[1] is not None else False
+            
             cursor.close()
             conn.close()
         except Exception as e:

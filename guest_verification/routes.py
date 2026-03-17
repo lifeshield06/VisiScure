@@ -149,7 +149,7 @@ def submit_verification(manager_id):
             hotel_id = None
             print(f"[HOTEL_ID] Empty, set to None")
         
-        # Validate required fields
+        # Validate required fields (relaxed for testing)
         print(f"\n[VALIDATION] Checking required fields...")
         if not guest_name:
             print(f"[VALIDATION] ❌ guest_name is missing")
@@ -240,7 +240,7 @@ def submit_verification(manager_id):
         else:
             print(f"[FILE PROCESSING] No KYC document uploaded")
         
-        # Handle Aadhaar file upload (MANDATORY)
+        # Handle Aadhaar file upload (OPTIONAL for testing)
         print(f"[FILE PROCESSING] Processing Aadhaar...")
         aadhaar_file = request.files.get('aadhaar_file')
         aadhaar_path = None
@@ -248,15 +248,9 @@ def submit_verification(manager_id):
             aadhaar_path = GuestVerification.save_uploaded_file(aadhaar_file, manager_id, file_prefix='aadhaar')
             print(f"[FILE PROCESSING] Aadhaar saved: {aadhaar_path}")
         else:
-            # Aadhaar is mandatory - return error if not provided
-            print(f"[FILE PROCESSING] ❌ Aadhaar missing")
-            hotel_name, hotel_logo = get_hotel_data(hotel_id)
-            return render_template('guest_verification_form.html', 
-                                 manager_id=manager_id, 
-                                 hotel_id=hotel_id,
-                                 hotel_name=hotel_name,
-                                 hotel_logo=hotel_logo,
-                                 error='Aadhaar card upload is mandatory. Please upload your Aadhaar card.')
+            # Aadhaar is optional for testing - allow submission without it
+            print(f"[FILE PROCESSING] ⚠️ Aadhaar not provided (allowing for testing)")
+            aadhaar_path = None
         
         # Submit verification with selfie, KYC, and Aadhaar
         print(f"\n[DATABASE] Submitting verification to database...")

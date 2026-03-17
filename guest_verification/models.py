@@ -32,6 +32,9 @@ class GuestVerification:
                     kyc_number VARCHAR(100) NOT NULL,
                     kyc_type VARCHAR(50) DEFAULT 'ID Document',
                     identity_file VARCHAR(500),
+                    selfie_path VARCHAR(500),
+                    kyc_document_path VARCHAR(500),
+                    aadhaar_path VARCHAR(500),
                     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -51,10 +54,25 @@ class GuestVerification:
                 cursor.execute("ALTER TABLE guest_verifications ADD COLUMN hotel_id INT")
                 cursor.execute("ALTER TABLE guest_verifications ADD FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE")
             
+            # Ensure selfie_path column exists
+            cursor.execute("SHOW COLUMNS FROM guest_verifications LIKE 'selfie_path'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE guest_verifications ADD COLUMN selfie_path VARCHAR(500)")
+            
+            # Ensure kyc_document_path column exists
+            cursor.execute("SHOW COLUMNS FROM guest_verifications LIKE 'kyc_document_path'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE guest_verifications ADD COLUMN kyc_document_path VARCHAR(500)")
+            
+            # Ensure aadhaar_path column exists
+            cursor.execute("SHOW COLUMNS FROM guest_verifications LIKE 'aadhaar_path'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE guest_verifications ADD COLUMN aadhaar_path VARCHAR(500)")
+            
             conn.commit()
             cursor.close()
             conn.close()
-            print("Guest verifications table initialized")
+            print("Guest verifications table initialized with all required columns")
         except Error as e:
             print(f"Error creating guest_verifications table: {e}")
     
@@ -225,7 +243,7 @@ class GuestVerification:
             
             cursor.execute("""
                 SELECT id, guest_name, phone, address, kyc_number, kyc_type, identity_file, 
-                       submitted_at, status, hotel_id
+                       submitted_at, status, hotel_id, selfie_path, kyc_document_path, aadhaar_path
                 FROM guest_verifications
                 WHERE manager_id = %s
                 ORDER BY submitted_at DESC
@@ -249,7 +267,7 @@ class GuestVerification:
             
             cursor.execute("""
                 SELECT id, guest_name, phone, address, kyc_number, kyc_type, identity_file, 
-                       submitted_at, status, hotel_id
+                       submitted_at, status, hotel_id, selfie_path, kyc_document_path, aadhaar_path
                 FROM guest_verifications
                 WHERE hotel_id = %s
                 ORDER BY submitted_at DESC
