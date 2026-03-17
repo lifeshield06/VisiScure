@@ -937,11 +937,7 @@ class RevenueReports:
     
     @staticmethod
     def get_revenue_summary(hotel_id):
-<<<<<<< HEAD
-        """Get revenue summary: today and total"""
-=======
         """Get revenue summary: today, yesterday, last month, total"""
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
@@ -954,8 +950,6 @@ class RevenueReports:
             """, (hotel_id,))
             today_revenue = float(cursor.fetchone()['revenue'])
             
-<<<<<<< HEAD
-=======
             # Yesterday's Revenue (PAID and COMPLETED orders only)
             cursor.execute("""
                 SELECT COALESCE(SUM(total_amount), 0) as revenue 
@@ -975,7 +969,6 @@ class RevenueReports:
             """, (hotel_id,))
             last_month_revenue = float(cursor.fetchone()['revenue'])
             
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             # Total Revenue (all time, PAID and COMPLETED orders only)
             cursor.execute("""
                 SELECT COALESCE(SUM(total_amount), 0) as revenue 
@@ -989,20 +982,13 @@ class RevenueReports:
             
             return {
                 'today': today_revenue,
-<<<<<<< HEAD
-=======
                 'yesterday': yesterday_revenue,
                 'last_month': last_month_revenue,
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                 'total': total_revenue
             }
         except Exception as e:
             print(f"Error getting revenue summary: {e}")
-<<<<<<< HEAD
-            return {'today': 0.0, 'total': 0.0}
-=======
             return {'today': 0.0, 'yesterday': 0.0, 'last_month': 0.0, 'total': 0.0}
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
     
     @staticmethod
     def get_daily_revenue(hotel_id, days=30):

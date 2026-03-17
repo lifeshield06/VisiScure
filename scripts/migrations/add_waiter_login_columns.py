@@ -47,11 +47,7 @@ def add_waiter_login_columns():
         print("=" * 60)
         print("\nNext steps:")
         print("1. Run: python create_waiter_login.py")
-<<<<<<< HEAD
         print("2. Login at: http://127.0.0.1:5000/waiter/login")
-=======
-        print("2. Login at: http://localhost:5000/waiter/login")
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
         print()
         
         return True

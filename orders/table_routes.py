@@ -80,7 +80,6 @@ def download_qr(table_id):
     except Exception as e:
         return jsonify({"success": False, "message": "Server error"})
 
-<<<<<<< HEAD
 @orders_bp.route('/api/regenerate-qr/<int:table_id>', methods=['POST'])
 def regenerate_qr(table_id):
     """Regenerate QR code for table"""
@@ -114,8 +113,6 @@ def regenerate_qr(table_id):
     except Exception as e:
         return jsonify({"success": False, "message": "Server error"})
 
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
 @orders_bp.route('/menu/<int:table_id>')
 def table_menu(table_id):
     """Show menu for table (QR destination)"""
@@ -382,14 +379,18 @@ def delete_table(table_number):
     """Delete table by table number"""
     try:
         hotel_id = session.get('hotel_id')
-        result = TableService.delete_table(table_number)
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel not found"})
+            
+        result = TableService.delete_table(table_number, hotel_id)
         
         if result.get('success'):
             log_order_activity('table', f"Table '{table_number}' was deleted", hotel_id)
         
         return jsonify(result)
     except Exception as e:
-        return jsonify({"success": False, "message": "Server error"})
+        print(f"Error in delete_table route: {e}")
+        return jsonify({"success": False, "message": f"Server error: {str(e)}"})
 
 # ============== Bill & Payment Routes ==============
 

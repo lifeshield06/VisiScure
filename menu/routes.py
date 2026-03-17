@@ -6,7 +6,7 @@ from .models import MenuCategory, MenuDish
 from database.db import get_db_connection
 
 # Upload configuration
-UPLOAD_FOLDER = 'static/uploads'
+UPLOAD_FOLDER = 'static/uploads/menu_images'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 def log_menu_activity(activity_type, message, hotel_id=None):
@@ -70,7 +70,7 @@ def build_image_urls(images):
             continue
         upload_path = os.path.join(UPLOAD_FOLDER, img)
         if os.path.exists(upload_path):
-            urls.append(url_for('static', filename=f'uploads/{img}'))
+            urls.append(url_for('static', filename=f'uploads/menu_images/{img}'))
     return urls
 
 def format_dish(dish_row):

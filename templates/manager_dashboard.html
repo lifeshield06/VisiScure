@@ -15,10 +15,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='manager_dashboard.css') }}?v={{ range(10000, 99999) | random }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='menu_dashboard.css') }}?v={{ range(10000, 99999) | random }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/manager_dashboard.css') }}?v={{ range(10000, 99999) | random }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/menu_dashboard.css') }}?v={{ range(10000, 99999) | random }}">
     <style>
-<<<<<<< HEAD
         /* ===== MOBILE BACK BUTTON STYLES ===== */
         .mobile-back-btn {
             display: none;
@@ -77,8 +76,6 @@
             }
         }
         
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
         /* Kitchen Dashboard Link Styles */
         .kitchen-dashboard-link:hover {
             transform: translateY(-4px);
@@ -1415,22 +1412,15 @@
         }
         
         /* Responsive bill modal */
-<<<<<<< HEAD
         @media (max-width: 768px) {
             .bill-modal-overlay {
                 padding: 0.25rem;
                 align-items: flex-start;
                 padding-top: 0.5rem;
-=======
-        @media (max-width: 576px) {
-            .bill-modal-overlay {
-                padding: 0.5rem;
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             }
             
             .bill-modal-content {
                 max-width: 100%;
-<<<<<<< HEAD
                 width: 100%;
                 max-height: 98vh;
                 border-radius: 8px;
@@ -1461,29 +1451,11 @@
                 padding: 0.75rem;
                 flex-direction: column;
                 gap: 0.5rem;
-=======
-                max-height: 95vh;
-                border-radius: 12px;
-            }
-            
-            .bill-modal-header {
-                padding: 1rem;
-            }
-            
-            .bill-modal-body {
-                padding: 1rem;
-            }
-            
-            .bill-modal-footer {
-                padding: 0.75rem 1rem;
-                flex-direction: column;
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             }
             
             .bill-modal-footer button {
                 width: 100%;
                 justify-content: center;
-<<<<<<< HEAD
                 padding: 0.6rem;
                 font-size: 0.9rem;
             }
@@ -1632,8 +1604,6 @@
             .mobile-item-detail span:last-child {
                 font-weight: 600;
                 color: #374151;
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             }
         }
         
@@ -1710,17 +1680,6 @@
             background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
         }
 
-<<<<<<< HEAD
-=======
-        .revenue-card-yesterday {
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%);
-        }
-
-        .revenue-card-month {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
-        }
-
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
         .revenue-card-total {
             background: linear-gradient(135deg, #ec4899 0%, #db2777 50%, #be185d 100%);
         }
@@ -1785,179 +1744,6 @@
             z-index: 1;
         }
 
-<<<<<<< HEAD
-=======
-        /* Revenue Chart Section */
-        .revenue-chart-section {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            margin-bottom: 2rem;
-            overflow: hidden;
-        }
-
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .chart-title h3 {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #1e293b;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .chart-title h3 i {
-            color: #6366f1;
-        }
-
-        .chart-subtitle {
-            font-size: 0.85rem;
-            color: #64748b;
-            margin-top: 0.25rem;
-            display: block;
-        }
-
-        .btn-refresh-chart {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.6rem 1rem;
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            color: #475569;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn-refresh-chart:hover {
-            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
-            transform: translateY(-2px);
-        }
-
-        .chart-container {
-            padding: 1.5rem;
-            min-height: 200px;
-        }
-
-        .chart-bars {
-            display: flex;
-            align-items: flex-end;
-            gap: 8px;
-            height: 180px;
-            padding: 0 0.5rem;
-        }
-
-        .chart-bar-wrapper {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-            min-width: 0;
-        }
-
-        .chart-bar {
-            width: 100%;
-            max-width: 50px;
-            background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
-            border-radius: 8px 8px 0 0;
-            min-height: 10px;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .chart-bar:hover {
-            background: linear-gradient(180deg, #818cf8 0%, #6366f1 100%);
-            transform: scaleY(1.02);
-        }
-
-        .chart-bar-tooltip {
-            position: absolute;
-            bottom: calc(100% + 8px);
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1e293b;
-            color: white;
-            padding: 0.4rem 0.75rem;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            white-space: nowrap;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s ease;
-            z-index: 10;
-        }
-
-        .chart-bar-tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 5px solid transparent;
-            border-top-color: #1e293b;
-        }
-
-        .chart-bar:hover .chart-bar-tooltip {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .chart-bar-label {
-            font-size: 0.65rem;
-            color: #64748b;
-            font-weight: 500;
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 100%;
-        }
-
-        .chart-loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            width: 100%;
-            color: #64748b;
-            gap: 0.75rem;
-        }
-
-        .chart-loading i {
-            font-size: 1.5rem;
-            color: #6366f1;
-        }
-
-        .chart-empty {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            width: 100%;
-            color: #94a3b8;
-            gap: 0.5rem;
-        }
-
-        .chart-empty i {
-            font-size: 2.5rem;
-        }
-
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
         /* Revenue Table Card */
         .revenue-table-card {
             background: white;
@@ -3576,19 +3362,6 @@
                 display: none !important;
             }
             
-<<<<<<< HEAD
-=======
-            /* Revenue Chart */
-            .revenue-chart-section {
-                padding: 15px !important;
-            }
-            
-            .chart-bars {
-                overflow-x: auto !important;
-                -webkit-overflow-scrolling: touch !important;
-            }
-            
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             /* ===== WAITER TIPS SECTION - MOBILE RESPONSIVE ===== */
             
             /* Waiter Tips Page Header */
@@ -3919,7 +3692,6 @@
                 min-height: 48px !important;
             }
             
-<<<<<<< HEAD
             /* Kitchen Cards Container */
             #kitchens-list {
                 padding: 0 !important;
@@ -4046,8 +3818,6 @@
                 margin-right: 4px !important;
             }
             
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             /* Empty State - Kitchen Management */
             #kitchen-management .empty-state {
                 padding: 40px 20px !important;
@@ -4242,7 +4012,6 @@
             
             /* Table Card Item - Mobile Optimized */
             .table-card-item {
-<<<<<<< HEAD
                 padding: 16px !important;
                 border-radius: 12px !important;
                 min-height: 200px !important;
@@ -4252,19 +4021,11 @@
                 box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
                 border: 1px solid #e2e8f0 !important;
                 margin-bottom: 16px !important;
-=======
-                padding: 12px !important;
-                border-radius: 12px !important;
-                min-height: 180px !important;
-                display: flex !important;
-                flex-direction: column !important;
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             }
             
             .table-card-header {
                 flex-direction: column !important;
                 align-items: flex-start !important;
-<<<<<<< HEAD
                 gap: 8px !important;
                 margin-bottom: 12px !important;
             }
@@ -4296,21 +4057,6 @@
             .table-status-badge.busy {
                 background: #fee2e2 !important;
                 color: #991b1b !important;
-=======
-                gap: 6px !important;
-                margin-bottom: 8px !important;
-            }
-            
-            .table-card-header h4 {
-                font-size: 14px !important;
-                margin: 0 !important;
-            }
-            
-            .table-status-badge {
-                font-size: 10px !important;
-                padding: 3px 8px !important;
-                align-self: flex-start !important;
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             }
             
             /* QR Preview - Mobile Optimized */
@@ -4319,7 +4065,6 @@
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-<<<<<<< HEAD
                 padding: 16px !important;
                 background: #f8fafc !important;
                 border-radius: 12px !important;
@@ -4367,51 +4112,17 @@
                 font-size: 0.7rem !important;
                 text-align: center !important;
                 opacity: 0.8 !important;
-=======
-                margin: 8px 0 !important;
-                cursor: pointer !important;
-                transition: transform 0.2s ease !important;
-            }
-            
-            .table-qr-preview:hover {
-                transform: scale(1.05) !important;
-            }
-            
-            .table-qr-preview img {
-                width: 80px !important;
-                height: 80px !important;
-                border-radius: 8px !important;
-                border: 2px solid #e2e8f0 !important;
-            }
-            
-            .table-qr-placeholder {
-                width: 80px !important;
-                height: 80px !important;
-                background: #f3f4f6 !important;
-                border-radius: 8px !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                color: #9ca3af !important;
-                font-size: 24px !important;
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             }
             
             .table-card-actions {
                 flex-direction: column !important;
-<<<<<<< HEAD
                 gap: 12px !important;
                 margin-top: 16px !important;
                 width: 100% !important;
-=======
-                gap: 6px !important;
-                margin-top: auto !important;
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             }
             
             .table-card-actions button {
                 width: 100% !important;
-<<<<<<< HEAD
                 padding: 12px 16px !important;
                 font-size: 15px !important;
                 font-weight: 600 !important;
@@ -4448,13 +4159,6 @@
             .table-card-actions .btn-delete-table:active {
                 transform: scale(0.98) !important;
                 box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3) !important;
-=======
-                padding: 8px 10px !important;
-                font-size: 11px !important;
-                min-height: 36px !important;
-                justify-content: center !important;
-                border-radius: 6px !important;
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             }
             
             /* QR Preview Modal */
@@ -5344,7 +5048,6 @@
                 }
             }
             
-<<<<<<< HEAD
             /* ===== CONTENT SECTIONS - MOBILE RESPONSIVE ===== */
             
             .content-section {
@@ -5361,21 +5064,16 @@
                 margin: 0 !important;
             }
             
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             /* ===== MENU MANAGEMENT - MOBILE RESPONSIVE ===== */
             
             /* Menu Container */
             .menu-container {
                 padding: 0 !important;
-<<<<<<< HEAD
                 margin: 0 !important;
                 width: 100% !important;
                 max-width: 100% !important;
                 overflow-x: hidden !important;
                 box-sizing: border-box !important;
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             }
             
             /* Menu Header Main */
@@ -5394,15 +5092,11 @@
                 gap: 8px !important;
                 padding: 0 12px 15px 12px !important;
                 overflow-x: visible !important;
-<<<<<<< HEAD
                 justify-content: center !important;
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             }
             
             .menu-tabs .tab {
                 flex: 1 1 calc(50% - 4px) !important;
-<<<<<<< HEAD
                 min-width: 140px !important;
                 max-width: calc(50% - 4px) !important;
                 padding: 14px 8px !important;
@@ -5416,37 +5110,21 @@
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
                 box-sizing: border-box !important;
-=======
-                min-width: 120px !important;
-                padding: 12px 14px !important;
-                font-size: 14px !important;
-                min-height: 48px !important;
-                justify-content: center !important;
-                border-radius: 10px !important;
-                white-space: nowrap !important;
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             }
             
             /* Add Category Button - Full Width */
             .menu-tabs .add-tab {
                 flex: 1 1 100% !important;
                 width: 100% !important;
-<<<<<<< HEAD
                 max-width: 100% !important;
                 order: 999 !important;
                 margin-top: 4px !important;
-=======
-                order: 999 !important;
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             }
             
             /* Menu Content */
             .menu-content {
                 padding: 15px 12px !important;
-<<<<<<< HEAD
                 margin: 0 !important;
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             }
             
             /* Menu Header - Stack Vertically */
@@ -5459,7 +5137,6 @@
             
             .menu-header h3 {
                 font-size: 18px !important;
-<<<<<<< HEAD
                 text-align: center !important;
                 margin: 0 !important;
             }
@@ -5485,8 +5162,6 @@
             }
             
             .menu-header h3 {
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                 margin-bottom: 0 !important;
             }
             
@@ -5704,7 +5379,6 @@
             .empty-state {
                 padding: 40px 20px !important;
             }
-<<<<<<< HEAD
         }
 
         /* Extra small screens - iPhone and similar */
@@ -5748,9 +5422,6 @@
         }
         
         @media (max-width: 768px) {
-=======
-            
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             /* ===== WAITERS MANAGEMENT - MOBILE RESPONSIVE ===== */
             
             /* Waiters Page Header */
@@ -7106,7 +6777,6 @@
 
     <!-- Main Content -->
     <main class="main-content">
-<<<<<<< HEAD
         <!-- Mobile Back Button (Below Profile Area) -->
         <div class="mobile-back-container">
             <button class="mobile-back-btn" onclick="window.history.back()">
@@ -7114,8 +6784,6 @@
             </button>
         </div>
         
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
         <!-- Dashboard Section -->
         <div id="dashboard" class="content-section active">
             <div class="page-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
@@ -7458,10 +7126,6 @@
         <div id="waiter-tips" class="content-section">
             <div class="page-header">
                 <h1><i class="fas fa-hand-holding-heart"></i> Waiter Tips</h1>
-<<<<<<< HEAD
-=======
-                
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             </div>
             
             <!-- Tip Visibility Toggle Card -->
@@ -7515,10 +7179,6 @@
             <div id="kitchen-management" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-fire-burner"></i> Kitchen Management</h1>
-<<<<<<< HEAD
-=======
-                    
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                 </div>
 
                 <!-- Add Kitchen Form -->
@@ -7600,10 +7260,6 @@
             <div id="table-orders" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-qrcode"></i> Table Orders & Bills</h1>
-<<<<<<< HEAD
-=======
-                    
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                 </div>
                 
                 <!-- Sub-navigation -->
@@ -7667,10 +7323,6 @@
             <div id="manage-tables" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-table-cells"></i> Manage Tables</h1>
-<<<<<<< HEAD
-=======
-                    
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                 </div>
                 
                 <div class="form-card">
@@ -7873,10 +7525,6 @@
             <div id="daily-special" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-star"></i> Today's Special Menu</h1>
-<<<<<<< HEAD
-=======
-                    
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                 </div>
 
                 <div class="special-section-layout">
@@ -8123,10 +7771,6 @@
             <div id="reports" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-chart-line"></i> Reports & Analytics</h1>
-<<<<<<< HEAD
-=======
-                    
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                 </div>
 
                 <!-- Revenue Summary Cards - Modern Design -->
@@ -8155,8 +7799,6 @@
                         </div>
                     </div>
 
-<<<<<<< HEAD
-=======
                     <!-- Yesterday's Revenue Card -->
                     <div class="revenue-card revenue-card-yesterday">
                         <div class="revenue-card-bg">
@@ -8205,7 +7847,6 @@
                         </div>
                     </div>
 
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                     <!-- Total Revenue Card -->
                     <div class="revenue-card revenue-card-total">
                         <div class="revenue-card-bg">
@@ -8231,8 +7872,6 @@
                     </div>
                 </div>
 
-<<<<<<< HEAD
-=======
                 <!-- Revenue Chart Section -->
                 <div class="revenue-chart-section">
                     <div class="chart-header">
@@ -8256,7 +7895,6 @@
                     </div>
                 </div>
 
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                 <!-- Daily Revenue Table - Enhanced -->
                 <div class="revenue-table-card">
                     <div class="table-header">
@@ -8305,10 +7943,6 @@
             <div id="wallet" class="content-section">
                 <div class="page-header">
                     <h1><i class="fas fa-wallet"></i> Wallet & Balance</h1>
-<<<<<<< HEAD
-=======
-                   
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                 </div>
 
                 <!-- Wallet Overview Cards - Modern Design -->
@@ -8736,17 +8370,12 @@
             } else if (sectionId === 'settings') {
                 // Tax settings are now per-dish, configured in Menu Management
             } else if (sectionId === 'kitchen-management') {
-<<<<<<< HEAD
-=======
-                loadCategories();
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                 loadKitchens();
             } else if (sectionId === 'reports') {
                 loadRevenueReports();
             }
         }
         
-<<<<<<< HEAD
         function toggleDropdown(event) {
             if (event) {
                 event.preventDefault();
@@ -8808,12 +8437,6 @@
             initializeMobileDropdown();
         });
         
-=======
-        function toggleDropdown() {
-            document.getElementById('dropdownMenu').classList.toggle('show');
-        }
-        
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
         function toggleSidebar() {
             document.querySelector('.sidebar').classList.toggle('open');
             document.getElementById('sidebarOverlay').classList.toggle('show');
@@ -8913,7 +8536,6 @@
         // =========================
         // Note: Category tax settings removed - taxes are now configured per dish in Menu Management
         
-<<<<<<< HEAD
         // Close dropdown when clicking outside - Enhanced for mobile
         function handleOutsideClick(event) {
             const profileDropdown = document.querySelector('.profile-dropdown');
@@ -8925,26 +8547,16 @@
                 }
             }
             
-=======
-        // Close dropdown when clicking outside
-        window.onclick = function(event) {
-            if (!event.target.closest('.profile-dropdown')) {
-                document.getElementById('dropdownMenu').classList.remove('show');
-            }
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             // Close activity modal on backdrop click
             if (event.target.classList.contains('modal-overlay')) {
                 event.target.style.display = 'none';
             }
         }
 
-<<<<<<< HEAD
         // Add both click and touch event listeners for better mobile support
         document.addEventListener('click', handleOutsideClick);
         document.addEventListener('touchend', handleOutsideClick);
 
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
         // =========================
         // ACTIVITY FUNCTIONS
         // =========================
@@ -11726,7 +11338,6 @@
                 </tr>
             `}).join('');
             
-<<<<<<< HEAD
             // Mobile-friendly item cards
             const mobileItemsHTML = bill.items.map(item => {
                 const itemCgst = item.cgst_amount || 0;
@@ -11762,8 +11373,6 @@
                 </div>
             `}).join('');
             
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             modal.innerHTML = `
                 <div class="bill-modal-content">
                     <div class="bill-modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 16px 16px 0 0;">
@@ -11805,11 +11414,8 @@
                         </div>
                         
                         <h4 style="font-size: 0.85rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">Order Items</h4>
-<<<<<<< HEAD
                         
                         <!-- Desktop Table View -->
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                         <table class="bill-items-table" style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr style="background: #f1f5f9;">
@@ -11825,14 +11431,12 @@
                                 ${itemsHTML}
                             </tbody>
                         </table>
-<<<<<<< HEAD
                         
                         <!-- Mobile Card View -->
                         <div class="mobile-bill-items" style="display: none;">
                             ${mobileItemsHTML}
                         </div>
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
+                        
                         <div class="bill-totals" style="background: #f8fafc; border-radius: 10px; padding: 1rem; margin-top: 1rem;">
                             <div class="bill-total-row" style="display: flex; justify-content: space-between; padding: 0.5rem 0; color: #6b7280;">
                                 <span>Subtotal:</span>
@@ -12048,44 +11652,17 @@
                     if (data.success) {
                         // Update summary cards
                         document.getElementById('report-today-revenue').textContent = '₹' + data.summary.today.toFixed(2);
-<<<<<<< HEAD
-=======
-                        document.getElementById('report-yesterday-revenue').textContent = '₹' + data.summary.yesterday.toFixed(2);
-                        document.getElementById('report-lastmonth-revenue').textContent = '₹' + data.summary.last_month.toFixed(2);
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                         document.getElementById('report-total-revenue').textContent = '₹' + data.summary.total.toFixed(2);
                         
                         // Update date labels
                         const today = new Date();
-<<<<<<< HEAD
-=======
-                        const yesterday = new Date(today);
-                        yesterday.setDate(yesterday.getDate() - 1);
-                        const lastMonth = new Date(today);
-                        lastMonth.setMonth(lastMonth.getMonth() - 1);
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                         
                         const todayDateEl = document.getElementById('report-today-date');
                         if (todayDateEl) {
                             todayDateEl.textContent = today.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
                         }
                         
-<<<<<<< HEAD
                         // Update table only (chart removed)
-=======
-                        const yesterdayDateEl = document.getElementById('report-yesterday-date');
-                        if (yesterdayDateEl) {
-                            yesterdayDateEl.textContent = yesterday.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-                        }
-                        
-                        const lastMonthNameEl = document.getElementById('report-lastmonth-name');
-                        if (lastMonthNameEl) {
-                            lastMonthNameEl.textContent = lastMonth.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
-                        }
-                        
-                        // Update chart and table
-                        renderRevenueChart(data.daily_revenue);
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                         renderDailyRevenueTable(data.daily_revenue);
                     }
                 })
@@ -12097,47 +11674,6 @@
                 });
         }
         
-<<<<<<< HEAD
-=======
-        function renderRevenueChart(dailyData) {
-            const chartContainer = document.getElementById('revenue-chart-bars');
-            
-            if (!dailyData || dailyData.length === 0) {
-                chartContainer.innerHTML = `
-                    <div class="chart-empty">
-                        <i class="fas fa-chart-bar"></i>
-                        <span>No revenue data to display</span>
-                    </div>
-                `;
-                return;
-            }
-            
-            // Get max revenue for scaling
-            const maxRevenue = Math.max(...dailyData.map(d => d.revenue));
-            
-            // Take last 14 days for the chart (reversed for chronological order)
-            const chartData = dailyData.slice(0, 14).reverse();
-            
-            let html = '';
-            chartData.forEach(row => {
-                const dateObj = new Date(row.date);
-                const dayLabel = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-                const barHeight = maxRevenue > 0 ? Math.max((row.revenue / maxRevenue) * 150, 10) : 10;
-                
-                html += `
-                    <div class="chart-bar-wrapper">
-                        <div class="chart-bar" style="height: ${barHeight}px;">
-                            <div class="chart-bar-tooltip">₹${row.revenue.toFixed(0)}</div>
-                        </div>
-                        <span class="chart-bar-label">${dayLabel}</span>
-                    </div>
-                `;
-            });
-            
-            chartContainer.innerHTML = html;
-        }
-        
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
         function renderDailyRevenueTable(dailyData) {
             const tbody = document.getElementById('daily-revenue-tbody');
             
@@ -13111,11 +12647,7 @@
             
             // Check if container exists before trying to set innerHTML
             if (!container) {
-<<<<<<< HEAD
                 // This is expected when the element doesn't exist in the current section
-=======
-                console.warn('kitchen-categories-checkboxes element not found');
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
                 return;
             }
             

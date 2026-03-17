@@ -1,10 +1,7 @@
 import os
 import qrcode
 import uuid
-<<<<<<< HEAD
 from flask import url_for
-=======
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
 from .table_models import Table, TableOrder, Bill
 
 class TableService:
@@ -12,13 +9,8 @@ class TableService:
     def create_qr_code(table_id, table_number):
         """Generate QR code for table"""
         try:
-<<<<<<< HEAD
             # QR code contains URL to menu with table ID - use url_for for correct absolute URL
             qr_data = url_for('orders.table_menu', table_id=table_id, _external=True)
-=======
-            # QR code contains URL to menu with table ID
-            qr_data = f"http://localhost:5000/orders/menu/{table_id}"
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             
             qr = qrcode.QRCode(
                 version=1,
@@ -86,41 +78,73 @@ class TableService:
             return {"success": False, "message": "Server error"}
     
     @staticmethod
-    def delete_table(table_number):
+    def delete_table(table_number, hotel_id=None):
         """Delete specific table by table number"""
         try:
             from database.db import get_db_connection
             connection = get_db_connection()
             cursor = connection.cursor()
             
-            # Get table info first
-            cursor.execute("SELECT id, qr_code_path FROM tables WHERE table_number = %s", (table_number,))
+            # Get table info first with hotel_id validation if provided
+            if hotel_id:
+                cursor.execute("SELECT id, qr_code_path FROM tables WHERE table_number = %s AND hotel_id = %s", (table_number, hotel_id))
+            else:
+                cursor.execute("SELECT id, qr_code_path FROM tables WHERE table_number = %s", (table_number,))
+            
             table = cursor.fetchone()
             
             if not table:
-                return {"success": False, "message": "Table not found"}
+                cursor.close()
+                connection.close()
+                return {"success": False, "message": "Table not found or access denied"}
             
             table_id, qr_path = table
             
-            # Delete orders first (foreign key constraint)
-            cursor.execute("DELETE FROM table_orders WHERE table_id = %s", (table_id,))
+            # Delete related records first to avoid foreign key constraints
+            try:
+                # Delete bills first
+                cursor.execute("DELETE FROM bills WHERE table_id = %s", (table_id,))
+                
+                # Delete orders
+                cursor.execute("DELETE FROM table_orders WHERE table_id = %s", (table_id,))
+                
+                # Delete waiter calls
+                cursor.execute("DELETE FROM waiter_calls WHERE table_id = %s", (table_id,))
+                
+                # Delete active tables entries
+                cursor.execute("DELETE FROM active_tables WHERE table_id = %s", (table_id,))
+                
+                # Delete waiter table assignments
+                cursor.execute("DELETE FROM waiter_table_assignments WHERE table_id = %s", (table_id,))
+                
+                # Finally delete the table
+                cursor.execute("DELETE FROM tables WHERE id = %s", (table_id,))
+                
+                connection.commit()
+                
+            except Exception as db_error:
+                connection.rollback()
+                cursor.close()
+                connection.close()
+                print(f"Database error deleting table {table_number}: {db_error}")
+                return {"success": False, "message": f"Database error: {str(db_error)}"}
             
-            # Delete table
-            cursor.execute("DELETE FROM tables WHERE id = %s", (table_id,))
-            
-            connection.commit()
             cursor.close()
             connection.close()
             
             # Delete QR file if exists
-            if qr_path and os.path.exists(qr_path):
-                os.remove(qr_path)
+            try:
+                if qr_path and os.path.exists(qr_path):
+                    os.remove(qr_path)
+            except Exception as file_error:
+                print(f"Warning: Could not delete QR file {qr_path}: {file_error}")
+                # Don't fail the whole operation for file deletion issues
             
             return {"success": True, "message": f"Table {table_number} deleted successfully"}
             
         except Exception as e:
-            print(f"Error deleting table: {e}")
-            return {"success": False, "message": "Server error"}
+            print(f"Error deleting table {table_number}: {e}")
+            return {"success": False, "message": f"Server error: {str(e)}"}
 
 class OrderService:
     @staticmethod

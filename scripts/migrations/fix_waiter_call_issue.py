@@ -40,11 +40,7 @@ def show_table_access_info():
         
         for table in tables:
             waiter_info = f"{table['waiter_name']} (ID:{table['waiter_id']})" if table['waiter_name'] else "❌ NOT ASSIGNED"
-<<<<<<< HEAD
             url = f"http://127.0.0.1:5000/orders/menu/{table['id']}"
-=======
-            url = f"http://localhost:5000/orders/menu/{table['id']}"
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
             status = "✅" if table['waiter_id'] else "❌"
             print(f"{status} T{table['table_number']:<7} {table['id']:<10} {table['hotel_id']:<10} {waiter_info:<25} {url:<40}")
         
@@ -55,11 +51,7 @@ def show_table_access_info():
         if unassigned:
             print(f"\n⚠️  WARNING: {len(unassigned)} table(s) without waiter - Call Waiter button will NOT work!")
             for t in unassigned:
-<<<<<<< HEAD
                 print(f"   ❌ Table {t['table_number']} - Access at: http://127.0.0.1:5000/orders/menu/{t['id']}")
-=======
-                print(f"   ❌ Table {t['table_number']} - Access at: http://localhost:5000/orders/menu/{t['id']}")
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
         else:
             print("\n✅ All tables have waiters assigned - Call Waiter button will work!")
         

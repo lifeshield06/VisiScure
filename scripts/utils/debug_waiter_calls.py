@@ -68,11 +68,7 @@ try:
     waiter = cursor.fetchone()
     if waiter:
         print(f"✓ Waiter found: {waiter['name']} ({waiter['email']})")
-<<<<<<< HEAD
         print(f"  Login URL: http://127.0.0.1:5000/waiter/login")
-=======
-        print(f"  Login URL: http://localhost:5000/waiter/login")
->>>>>>> 4874e11764932e9b9ef1fa14498af6898579bbc5
     
     cursor.close()
     connection.close()
