@@ -7160,6 +7160,9 @@
                         <button onclick="loadWaiterTips()" class="btn-secondary btn-sm">
                             <i class="fas fa-sync-alt"></i> Refresh
                         </button>
+                        <button onclick="debugTipSystem()" class="btn-secondary btn-sm" style="background: #f59e0b; color: white;">
+                            <i class="fas fa-bug"></i> Debug
+                        </button>
                     </div>
                 </div>
                 <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">
@@ -7799,53 +7802,9 @@
                         </div>
                     </div>
 
-                    <!-- Yesterday's Revenue Card -->
-                    <div class="revenue-card revenue-card-yesterday">
-                        <div class="revenue-card-bg">
-                            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="30" cy="170" r="70" fill="rgba(255,255,255,0.1)"/>
-                                <circle cx="160" cy="30" r="50" fill="rgba(255,255,255,0.05)"/>
-                            </svg>
-                        </div>
-                        <div class="revenue-card-content">
-                            <div class="revenue-card-icon">
-                                <i class="fas fa-history"></i>
-                            </div>
-                            <div class="revenue-card-info">
-                                <span class="revenue-card-label">Yesterday's Revenue</span>
-                                <span class="revenue-card-value" id="report-yesterday-revenue">₹0.00</span>
-                                <span class="revenue-card-date" id="report-yesterday-date"></span>
-                            </div>
-                        </div>
-                        <div class="revenue-card-footer">
-                            <i class="fas fa-calendar-check"></i>
-                            <span>Completed</span>
-                        </div>
-                    </div>
 
-                    <!-- Last Month Revenue Card -->
-                    <div class="revenue-card revenue-card-month">
-                        <div class="revenue-card-bg">
-                            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="100" cy="180" r="90" fill="rgba(255,255,255,0.1)"/>
-                                <circle cx="20" cy="40" r="40" fill="rgba(255,255,255,0.05)"/>
-                            </svg>
-                        </div>
-                        <div class="revenue-card-content">
-                            <div class="revenue-card-icon">
-                                <i class="fas fa-calendar-alt"></i>
-                            </div>
-                            <div class="revenue-card-info">
-                                <span class="revenue-card-label">Last Month Revenue</span>
-                                <span class="revenue-card-value" id="report-lastmonth-revenue">₹0.00</span>
-                                <span class="revenue-card-date" id="report-lastmonth-name"></span>
-                            </div>
-                        </div>
-                        <div class="revenue-card-footer">
-                            <i class="fas fa-file-invoice-dollar"></i>
-                            <span>Monthly report</span>
-                        </div>
-                    </div>
+
+
 
                     <!-- Total Revenue Card -->
                     <div class="revenue-card revenue-card-total">
@@ -7872,28 +7831,7 @@
                     </div>
                 </div>
 
-                <!-- Revenue Chart Section -->
-                <div class="revenue-chart-section">
-                    <div class="chart-header">
-                        <div class="chart-title">
-                            <h3><i class="fas fa-chart-area"></i> Revenue Trend</h3>
-                            <span class="chart-subtitle">Last 30 days performance</span>
-                        </div>
-                        <button onclick="loadRevenueReports()" class="btn-refresh-chart" title="Refresh">
-                            <i class="fas fa-sync-alt" id="revenueRefreshIcon"></i>
-                            <span>Refresh</span>
-                        </button>
-                    </div>
-                    <div class="chart-container" id="revenue-chart-container">
-                        <div class="chart-bars" id="revenue-chart-bars">
-                            <!-- Chart bars will be dynamically generated -->
-                            <div class="chart-loading">
-                                <i class="fas fa-spinner fa-spin"></i>
-                                <span>Loading chart data...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
 
                 <!-- Daily Revenue Table - Enhanced -->
                 <div class="revenue-table-card">
@@ -10633,7 +10571,7 @@
                             </span>
                         </td>
                         <td style="padding: 1rem; text-align: center;">
-                            <span style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; ${methodStyle}">
+                            <span style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.25rem; ${methodStyle}">
                                 ${methodIcon}${paymentMethod === '-' ? '-' : paymentMethod}
                             </span>
                         </td>
@@ -10709,6 +10647,8 @@
             const period = document.getElementById('tip-period-filter')?.value || 'all';
             const container = document.getElementById('waiter-tips-list');
             
+            console.log('[TIP_DEBUG] Loading waiter tips for period:', period);
+            
             container.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-spinner fa-spin"></i>
@@ -10719,27 +10659,180 @@
             fetch(`/orders/api/waiter-wise-tips?period=${period}`)
                 .then(response => response.json())
                 .then(data => {
+                    console.log('[TIP_DEBUG] API response:', data);
+                    
                     if (data.success && data.waiters && data.waiters.length > 0) {
+                        console.log('[TIP_DEBUG] Found waiters with tips:', data.waiters.length);
                         renderWaiterTips(data.waiters);
                     } else {
+                        console.log('[TIP_DEBUG] No waiters with tips found');
                         container.innerHTML = `
                             <div class="empty-state">
                                 <i class="fas fa-hand-holding-heart" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
                                 <p>No tips recorded yet</p>
                                 <small style="color: #94a3b8;">Tips will appear here once guests add them during payment</small>
+                                <div style="margin-top: 1rem; padding: 1rem; background: #fef3c7; border-radius: 8px; font-size: 0.8rem; color: #92400e;">
+                                    <strong>Debug Info:</strong><br>
+                                    API Success: ${data.success}<br>
+                                    Waiters Found: ${data.waiters ? data.waiters.length : 0}<br>
+                                    Check browser console for more details
+                                </div>
                             </div>
                         `;
                     }
                 })
                 .catch(error => {
-                    console.error('Error loading waiter tips:', error);
+                    console.error('[TIP_DEBUG] Error loading waiter tips:', error);
                     container.innerHTML = `
                         <div class="empty-state">
                             <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
                             <p>Error loading tips</p>
+                            <small style="color: #ef4444;">Check browser console for details</small>
                         </div>
                     `;
                 });
+        }
+        
+        // Debug Tip System
+        function debugTipSystem() {
+            console.log('[DEBUG] Starting tip system debug...');
+            
+            // Show loading state
+            const debugModal = document.createElement('div');
+            debugModal.id = 'debug-modal';
+            debugModal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.5); z-index: 10000; display: flex; 
+                align-items: center; justify-content: center;
+            `;
+            
+            debugModal.innerHTML = `
+                <div style="background: white; border-radius: 16px; padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 style="margin: 0; color: #1f2937;"><i class="fas fa-bug"></i> Tip System Debug</h3>
+                        <button onclick="closeDebugModal()" style="background: #ef4444; color: white; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer;">×</button>
+                    </div>
+                    <div id="debug-content">
+                        <div style="text-align: center; padding: 2rem;">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #6b7280;"></i>
+                            <p style="margin-top: 1rem; color: #6b7280;">Running diagnostics...</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(debugModal);
+            
+            // Fetch debug info
+            fetch('/orders/api/tip-system-debug')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('[DEBUG] Debug response:', data);
+                    
+                    if (data.success) {
+                        const debug = data.debug;
+                        let status = 'success';
+                        let issues = [];
+                        
+                        // Check for issues
+                        if (!debug.waiter_tips_exists) {
+                            status = 'warning';
+                            issues.push('waiter_tips table missing - restart application to create it');
+                        }
+                        if (debug.waiters_count === 0) {
+                            status = 'error';
+                            issues.push('No waiters found - create waiters in Manager Dashboard');
+                        }
+                        if (debug.assignments_count === 0) {
+                            status = 'warning';
+                            issues.push('No table assignments - assign waiters to tables');
+                        }
+                        if (debug.bills_with_tips === 0) {
+                            issues.push('No bills with tips yet - test by placing an order with tip');
+                        }
+                        
+                        const statusColor = status === 'success' ? '#10b981' : status === 'warning' ? '#f59e0b' : '#ef4444';
+                        const statusIcon = status === 'success' ? 'check-circle' : status === 'warning' ? 'exclamation-triangle' : 'times-circle';
+                        
+                        document.getElementById('debug-content').innerHTML = `
+                            <div style="background: ${statusColor}15; border: 2px solid ${statusColor}; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                    <i class="fas fa-${statusIcon}" style="color: ${statusColor}; font-size: 1.5rem;"></i>
+                                    <h4 style="margin: 0; color: ${statusColor};">System Status: ${status.toUpperCase()}</h4>
+                                </div>
+                                ${issues.length > 0 ? `
+                                    <div style="margin-top: 1rem;">
+                                        <strong style="color: ${statusColor};">Issues Found:</strong>
+                                        <ul style="margin: 0.5rem 0; padding-left: 1.5rem; color: #374151;">
+                                            ${issues.map(issue => `<li>${issue}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                ` : '<p style="color: #10b981; margin: 0;">✅ All systems operational!</p>'}
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="background: #f8fafc; border-radius: 8px; padding: 1rem; text-align: center;">
+                                    <div style="font-size: 2rem; font-weight: 700; color: #1f2937;">${debug.waiters_count}</div>
+                                    <div style="color: #6b7280; font-size: 0.9rem;">Waiters</div>
+                                </div>
+                                <div style="background: #f8fafc; border-radius: 8px; padding: 1rem; text-align: center;">
+                                    <div style="font-size: 2rem; font-weight: 700; color: #1f2937;">${debug.assignments_count}</div>
+                                    <div style="color: #6b7280; font-size: 0.9rem;">Table Assignments</div>
+                                </div>
+                                <div style="background: #f8fafc; border-radius: 8px; padding: 1rem; text-align: center;">
+                                    <div style="font-size: 2rem; font-weight: 700; color: #1f2937;">${debug.bills_with_tips}</div>
+                                    <div style="color: #6b7280; font-size: 0.9rem;">Bills with Tips</div>
+                                </div>
+                                <div style="background: #f8fafc; border-radius: 8px; padding: 1rem; text-align: center;">
+                                    <div style="font-size: 2rem; font-weight: 700; color: #1f2937;">${debug.tip_records}</div>
+                                    <div style="color: #6b7280; font-size: 0.9rem;">Tip Records</div>
+                                </div>
+                            </div>
+                            
+                            <div style="background: #f1f5f9; border-radius: 8px; padding: 1rem;">
+                                <h5 style="margin: 0 0 0.75rem 0; color: #374151;"><i class="fas fa-info-circle"></i> Technical Details</h5>
+                                <div style="font-family: monospace; font-size: 0.8rem; color: #4b5563;">
+                                    waiter_tips table: ${debug.waiter_tips_exists ? '✅ EXISTS' : '❌ MISSING'}<br>
+                                    Waiters in hotel: ${debug.waiters_count}<br>
+                                    Table assignments: ${debug.assignments_count}<br>
+                                    Bills with tips: ${debug.bills_with_tips}<br>
+                                    Tip distribution records: ${debug.tip_records}
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 1.5rem; text-align: center;">
+                                <button onclick="loadWaiterTips(); closeDebugModal();" style="background: #10b981; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                                    <i class="fas fa-sync-alt"></i> Refresh Tips Dashboard
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        document.getElementById('debug-content').innerHTML = `
+                            <div style="text-align: center; padding: 2rem; color: #ef4444;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                                <h4>Debug Failed</h4>
+                                <p>${data.message || 'Unknown error occurred'}</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('[DEBUG] Error:', error);
+                    document.getElementById('debug-content').innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: #ef4444;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                            <h4>Debug Failed</h4>
+                            <p>Network error - check console for details</p>
+                        </div>
+                    `;
+                });
+        }
+        
+        function closeDebugModal() {
+            const modal = document.getElementById('debug-modal');
+            if (modal) {
+                modal.remove();
+            }
         }
         
         function renderWaiterTips(waiters) {
@@ -11095,7 +11188,7 @@
                             </span>
                         </td>
                         <td style="padding: 1rem; text-align: center;">
-                            <span style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; ${methodStyle}">
+                            <span style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.25rem; ${methodStyle}">
                                 ${methodIcon}${paymentMethod === '-' ? '-' : paymentMethod}
                             </span>
                         </td>

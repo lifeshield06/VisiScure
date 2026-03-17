@@ -132,6 +132,21 @@ class Table:
                 )
             """)
             
+            # Create waiter_tips table for distributed tip tracking
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS waiter_tips (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    waiter_id INT NOT NULL,
+                    bill_id INT NOT NULL,
+                    tip_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_waiter_id (waiter_id),
+                    INDEX idx_bill_id (bill_id),
+                    INDEX idx_created_at (created_at),
+                    UNIQUE KEY unique_waiter_bill_tip (waiter_id, bill_id)
+                )
+            """)
+            
             # Ensure new columns exist in bills table
             ensure_column("bills", "guest_name", "guest_name VARCHAR(255)")
             ensure_column("bills", "bill_status", "bill_status ENUM('OPEN', 'COMPLETED') DEFAULT 'OPEN'")
@@ -1151,7 +1166,7 @@ class Bill:
             
             # Lock and verify bill is OPEN - also get waiter_id for tip assignment
             cursor.execute("""
-                SELECT id, bill_status, table_id, session_id, guest_name, subtotal, tax_amount, waiter_id
+                SELECT id, bill_status, table_id, session_id, guest_name, subtotal, tax_amount, waiter_id, hotel_id
                 FROM bills 
                 WHERE id = %s AND bill_status = 'OPEN'
                 FOR UPDATE
@@ -1196,13 +1211,37 @@ class Bill:
                         
                         try:
                             cursor.execute("""
-                                INSERT INTO waiter_tips (waiter_id, bill_id, tip_amount, created_at)
-                                VALUES (%s, %s, %s, %s)
-                            """, (bill_waiter_id, bill_id, tip, paid_at))
+                                INSERT INTO waiter_tips (waiter_id, bill_id, tip_amount, hotel_id, created_at)
+                                VALUES (%s, %s, %s, %s, %s)
+                            """, (bill_waiter_id, bill_id, tip, bill.get('hotel_id'), paid_at))
                             
-                            print(f"[PAYMENT ATOMIC] Tip recorded: waiter_id={bill_waiter_id}, amount=₹{tip}")
+                            print(f"[PAYMENT ATOMIC] Tip recorded successfully: waiter_id={bill_waiter_id}, amount=₹{tip}")
                         except Exception as tip_error:
                             print(f"[PAYMENT ATOMIC WARNING] Could not record tip in waiter_tips table: {tip_error}")
+                            print(f"[PAYMENT ATOMIC WARNING] This might indicate the waiter_tips table doesn't exist yet")
+                            # Try to create the table if it doesn't exist
+                            try:
+                                cursor.execute("""
+                                    CREATE TABLE IF NOT EXISTS waiter_tips (
+                                        id INT AUTO_INCREMENT PRIMARY KEY,
+                                        waiter_id INT NOT NULL,
+                                        bill_id INT NOT NULL,
+                                        tip_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                        INDEX idx_waiter_id (waiter_id),
+                                        INDEX idx_bill_id (bill_id),
+                                        INDEX idx_created_at (created_at),
+                                        UNIQUE KEY unique_waiter_bill_tip (waiter_id, bill_id)
+                                    )
+                                """)
+                                # Try inserting the tip again
+                                cursor.execute("""
+                                    INSERT INTO waiter_tips (waiter_id, bill_id, tip_amount, hotel_id, created_at)
+                                    VALUES (%s, %s, %s, %s, %s)
+                                """, (bill_waiter_id, bill_id, tip, bill.get('hotel_id'), paid_at))
+                                print(f"[PAYMENT ATOMIC] Created waiter_tips table and recorded tip: waiter_id={bill_waiter_id}, amount=₹{tip}")
+                            except Exception as create_error:
+                                print(f"[PAYMENT ATOMIC ERROR] Could not create waiter_tips table or insert tip: {create_error}")
                     else:
                         # Fallback: Try to get waiters from table assignments (for backward compatibility)
                         cursor.execute("""
@@ -1229,9 +1268,9 @@ class Bill:
                                 for waiter in assigned_waiters:
                                     waiter_id = waiter['waiter_id']
                                     cursor.execute("""
-                                        INSERT INTO waiter_tips (waiter_id, bill_id, tip_amount, created_at)
-                                        VALUES (%s, %s, %s, %s)
-                                    """, (waiter_id, bill_id, tip_per_waiter, paid_at))
+                                        INSERT INTO waiter_tips (waiter_id, bill_id, tip_amount, hotel_id, created_at)
+                                        VALUES (%s, %s, %s, %s, %s)
+                                    """, (waiter_id, bill_id, tip_per_waiter, bill.get('hotel_id'), paid_at))
                                     
                                     print(f"[PAYMENT ATOMIC] Tip recorded: waiter_id={waiter_id}, amount=₹{tip_per_waiter}")
                             except Exception as tip_error:
@@ -1764,9 +1803,13 @@ class Bill:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
+            print(f"[TIP_SUMMARY] Getting waiter tips for hotel_id={hotel_id}, period={period}")
+            
             # Check if waiter_tips table exists
             cursor.execute("SHOW TABLES LIKE 'waiter_tips'")
             waiter_tips_exists = cursor.fetchone() is not None
+            
+            print(f"[TIP_SUMMARY] waiter_tips table exists: {waiter_tips_exists}")
             
             date_filter = ""
             if period == 'today':
@@ -1784,7 +1827,7 @@ class Bill:
             
             if waiter_tips_exists:
                 # Use waiter_tips table for distributed tip tracking
-                cursor.execute(f"""
+                query = f"""
                     SELECT 
                         w.id as waiter_id,
                         w.name as waiter_name,
@@ -1800,11 +1843,13 @@ class Bill:
                     {date_filter_wt}
                     GROUP BY w.id, w.name
                     ORDER BY today_tip DESC, total_tip DESC
-                """, (hotel_id,))
+                """
+                print(f"[TIP_SUMMARY] Using waiter_tips table query: {query}")
+                cursor.execute(query, (hotel_id,))
             else:
                 # Fallback to bills table (old method)
                 print("[TIP_SUMMARY] waiter_tips table not found, using bills table (run setup_tip_distribution.py)")
-                cursor.execute(f"""
+                query = f"""
                     SELECT 
                         w.id as waiter_id,
                         w.name as waiter_name,
@@ -1820,9 +1865,15 @@ class Bill:
                     {date_filter_b}
                     GROUP BY b.waiter_id, w.name
                     ORDER BY today_tip DESC, total_tip DESC
-                """, (hotel_id,))
+                """
+                print(f"[TIP_SUMMARY] Using bills table query: {query}")
+                cursor.execute(query, (hotel_id,))
             
             waiters = cursor.fetchall()
+            
+            print(f"[TIP_SUMMARY] Found {len(waiters)} waiters with tips")
+            for waiter in waiters:
+                print(f"[TIP_SUMMARY] Waiter: {waiter['waiter_name']} (ID: {waiter['waiter_id']}) - Today: ₹{waiter['today_tip']}, Total: ₹{waiter['total_tip']}")
             
             # Convert Decimal to float for JSON serialization
             for waiter in waiters:

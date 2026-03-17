@@ -268,39 +268,51 @@
 
     <!-- UPI QR Payment Modal -->
     <div class="payment-modal" id="upi-qr-modal">
-        <div class="payment-modal-content">
+        <div class="payment-modal-content upi-modal-content">
             <button class="payment-close-btn" onclick="closeUPIQRModal()">&times;</button>
-            <div class="payment-header">
-                <i class="fas fa-qrcode"></i>
+            <div class="payment-header upi-header">
+                <div class="upi-icon">
+                    <i class="fas fa-qrcode"></i>
+                </div>
                 <h2>Scan & Pay via UPI</h2>
+                <p class="upi-subtitle">Use any UPI app to scan and pay</p>
             </div>
             
-            <div style="text-align: center; padding: 1.5rem;">
-                <div style="background: white; padding: 1rem; border-radius: 12px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                    <img id="upi-qr-image" src="" alt="UPI QR Code" style="max-width: 300px; max-height: 300px; display: block;">
+            <div class="upi-content">
+                <div class="upi-qr-container">
+                    <img id="upi-qr-image" src="" alt="UPI QR Code" class="upi-qr-image">
                 </div>
                 
-                <div style="margin-top: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 8px;">
-                    <p style="color: var(--gray); margin-bottom: 0.5rem; font-size: 0.875rem;">UPI ID</p>
-                    <p style="font-weight: 600; color: var(--dark); font-size: 1.125rem; margin-bottom: 1rem;" id="upi-qr-upi-id"></p>
+                <div class="upi-details">
+                    <div class="upi-detail-item">
+                        <span class="upi-detail-label">UPI ID</span>
+                        <span class="upi-detail-value" id="upi-qr-upi-id"></span>
+                    </div>
                     
-                    <p style="color: var(--gray); margin-bottom: 0.5rem; font-size: 0.875rem;">Amount to Pay</p>
-                    <p style="font-weight: 700; color: var(--success); font-size: 1.5rem;" id="upi-qr-amount"></p>
+                    <div class="upi-detail-item">
+                        <span class="upi-detail-label">Amount to Pay</span>
+                        <span class="upi-detail-amount" id="upi-qr-amount"></span>
+                    </div>
                 </div>
                 
-                <p style="color: var(--gray); margin-top: 1rem; font-size: 0.875rem;">
-                    <i class="fas fa-info-circle"></i> Open any UPI app and scan the QR code to complete payment
-                </p>
+                <div class="upi-instructions">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Open any UPI app and scan the QR code to complete payment</span>
+                </div>
             </div>
             
-            <div style="padding: 1rem; border-top: 1px solid #e5e7eb;">
+            <div class="upi-actions">
                 <!-- Pay Now via UPI App Button - for mobile devices -->
-                <button class="btn" id="pay-via-upi-app-btn" onclick="payViaUPIApp()" style="width: 100%; margin-bottom: 0.75rem; background: linear-gradient(135deg, #5f259f 0%, #a855f7 100%); color: white; border: none; padding: 1rem; border-radius: 12px; font-weight: 600; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 15px rgba(95, 37, 159, 0.3); transition: all 0.3s ease;">
-                    <i class="fas fa-mobile-alt"></i> Pay Now via UPI App
+                <button class="upi-app-btn" id="pay-via-upi-app-btn" onclick="payViaUPIApp()">
+                    <i class="fas fa-mobile-alt"></i>
+                    <span>Pay Now via UPI App</span>
                 </button>
-                <p style="color: var(--gray); font-size: 0.75rem; text-align: center; margin-bottom: 0.75rem;">— or confirm after scanning QR —</p>
-                <button class="btn btn-primary" onclick="confirmUPIPayment()" style="width: 100%;">
-                    <i class="fas fa-check-circle"></i> I've Completed the Payment
+                <div class="upi-divider">
+                    <span>— or confirm after scanning QR —</span>
+                </div>
+                <button class="upi-confirm-btn" onclick="confirmUPIPayment()">
+                    <i class="fas fa-check-circle"></i>
+                    <span>I've Completed the Payment</span>
                 </button>
             </div>
         </div>
@@ -668,6 +680,10 @@
             const notice = document.querySelector('.view-only-notice');
             if (notice) notice.remove();
             
+            // Show Call Waiter button (View Bill button visibility is handled separately based on session)
+            const callWaiterBtn = document.getElementById('call-waiter-btn');
+            if (callWaiterBtn) callWaiterBtn.style.display = 'flex';
+            
             // Enable cart bar
             const cartBar = document.getElementById('cart-bar');
             if (cartBar) cartBar.style.display = '';
@@ -680,6 +696,12 @@
             // Hide cart bar in view-only mode
             const cartBar = document.getElementById('cart-bar');
             if (cartBar) cartBar.style.display = 'none';
+            
+            // Hide Call Waiter and View Bill buttons in view-only mode
+            const callWaiterBtn = document.getElementById('call-waiter-btn');
+            const viewBillBtn = document.getElementById('view-bill-btn');
+            if (callWaiterBtn) callWaiterBtn.style.display = 'none';
+            if (viewBillBtn) viewBillBtn.style.display = 'none';
             
             // Show view-only notice at top
             showViewOnlyNotice(message);
@@ -743,8 +765,10 @@
             
             modal.classList.add('show');
             
-            // Show view bill button since session exists
-            document.getElementById('view-bill-btn').style.display = 'flex';
+            // Show view bill button since session exists (only if not in view-only mode)
+            if (!viewOnlyMode) {
+                document.getElementById('view-bill-btn').style.display = 'flex';
+            }
         }
         
         function closeWelcomeBackModal() {
@@ -1191,8 +1215,10 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.has_open_bill && data.bill) {
-                        // Only show View Bill button if bill is OPEN
-                        document.getElementById('view-bill-btn').style.display = 'flex';
+                        // Only show View Bill button if bill is OPEN and not in view-only mode
+                        if (!viewOnlyMode) {
+                            document.getElementById('view-bill-btn').style.display = 'flex';
+                        }
                     } else {
                         // No open bill - hide View Bill button and clear stale session
                         document.getElementById('view-bill-btn').style.display = 'none';
@@ -1202,8 +1228,8 @@
                 })
                 .catch(error => {
                     console.error('Error checking session:', error);
-                    // On error, still try to show based on localStorage
-                    if (sessionId) {
+                    // On error, still try to show based on localStorage (only if not in view-only mode)
+                    if (sessionId && !viewOnlyMode) {
                         document.getElementById('view-bill-btn').style.display = 'flex';
                     }
                 });
@@ -1569,8 +1595,10 @@
                     // Re-render menu to reset buttons
                     renderMenu(menuData);
                     
-                    // Show bill button
-                    document.getElementById('view-bill-btn').style.display = 'flex';
+                    // Show bill button (only if not in view-only mode)
+                    if (!viewOnlyMode) {
+                        document.getElementById('view-bill-btn').style.display = 'flex';
+                    }
                 } else {
                     alert('Error placing order: ' + data.message);
                 }

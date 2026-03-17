@@ -717,13 +717,71 @@ def get_waiter_wise_tips():
         hotel_id = session.get('hotel_id')
         period = request.args.get('period', 'all')  # today, week, month, all
         
+        print(f"[TIP_API] Request: period={period}, hotel_id={hotel_id}")
+        
         if not hotel_id:
+            print("[TIP_API] Error: No hotel_id in session")
             return jsonify({"success": False, "message": "Hotel ID required"})
         
         waiters = Bill.get_waiter_wise_tips(hotel_id, period)
+        
+        print(f"[TIP_API] Result: Found {len(waiters)} waiters with tips")
+        for waiter in waiters:
+            print(f"[TIP_API] - {waiter['waiter_name']} (ID: {waiter['waiter_id']}): Today ₹{waiter['today_tip']}, Total ₹{waiter['total_tip']}")
+        
         return jsonify({"success": True, "waiters": waiters})
     except Exception as e:
-        print(f"Error getting waiter-wise tips: {e}")
+        print(f"[TIP_API] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": "Server error"})
+
+@orders_bp.route('/api/tip-system-debug', methods=['GET'])
+def tip_system_debug():
+    """Debug endpoint to check tip system status"""
+    try:
+        hotel_id = session.get('hotel_id')
+        
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"})
+        
+        from database.db import get_db_connection
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        debug_info = {}
+        
+        # Check waiter_tips table
+        cursor.execute("SHOW TABLES LIKE 'waiter_tips'")
+        debug_info['waiter_tips_exists'] = cursor.fetchone() is not None
+        
+        # Check waiters count
+        cursor.execute("SELECT COUNT(*) as count FROM waiters WHERE hotel_id = %s", (hotel_id,))
+        debug_info['waiters_count'] = cursor.fetchone()['count']
+        
+        # Check table assignments
+        cursor.execute("SELECT COUNT(*) as count FROM waiter_table_assignments wta JOIN tables t ON wta.table_id = t.id WHERE t.hotel_id = %s", (hotel_id,))
+        debug_info['assignments_count'] = cursor.fetchone()['count']
+        
+        # Check bills with tips
+        cursor.execute("SELECT COUNT(*) as count FROM bills WHERE hotel_id = %s AND tip_amount > 0", (hotel_id,))
+        debug_info['bills_with_tips'] = cursor.fetchone()['count']
+        
+        # Check waiter_tips records if table exists
+        if debug_info['waiter_tips_exists']:
+            cursor.execute("SELECT COUNT(*) as count FROM waiter_tips wt JOIN bills b ON wt.bill_id = b.id WHERE b.hotel_id = %s", (hotel_id,))
+            debug_info['tip_records'] = cursor.fetchone()['count']
+        else:
+            debug_info['tip_records'] = 0
+        
+        cursor.close()
+        connection.close()
+        
+        return jsonify({"success": True, "debug": debug_info})
+    except Exception as e:
+        print(f"Error in tip system debug: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": "Server error"})
 
 
