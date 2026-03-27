@@ -256,6 +256,32 @@ def dashboard():
                          stats=stats,
                          total_menu_items=total_menu_items)
 
+@hotel_manager_bp.route('/waiters')
+def waiters_section():
+    """Serve the waiters section page"""
+    # Check session-based auth first
+    manager_id = session.get('manager_id')
+    manager_name = session.get('manager_name')
+    hotel_id = session.get('hotel_id')
+    
+    if not manager_id or not manager_name or not hotel_id:
+        return "Invalid access. Please login first.", 403
+    
+    # Get module flags from session
+    kyc_enabled = session.get('kyc_enabled', False)
+    food_enabled = session.get('food_enabled', False)
+    hotel_name = session.get('hotel_name', '')
+    hotel_logo = session.get('hotel_logo', None)
+    
+    return render_template('manager/waiters_extracted.html',
+                         manager_id=manager_id,
+                         manager_name=manager_name,
+                         hotel_id=hotel_id,
+                         hotel_name=hotel_name,
+                         hotel_logo=hotel_logo,
+                         kyc_enabled=kyc_enabled,
+                         food_enabled=food_enabled)
+
 @hotel_manager_bp.route('/generate-waiter-qr')
 def generate_waiter_qr():
     """Generate QR code for waiter login"""

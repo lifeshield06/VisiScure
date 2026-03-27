@@ -29,40 +29,13 @@
         }
         
         @media (max-width: 768px) {
-            /* Global Mobile Back Button */
+            /* Hide Mobile Back Button Completely */
             .mobile-back-container {
-                display: flex !important;
-                justify-content: flex-end !important;
-                margin: 0 !important;
-                padding: 10px 15px 0 15px !important;
-                position: relative !important;
-                z-index: 1 !important;
+                display: none !important;
             }
             
             .mobile-back-container .mobile-back-btn {
-                display: inline-flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                padding: 6px 12px !important;
-                font-size: 13px !important;
-                border-radius: 8px !important;
-                border: none !important;
-                background: #4f46e5 !important;
-                color: white !important;
-                cursor: pointer !important;
-                box-shadow: 0 3px 8px rgba(0,0,0,0.15) !important;
-                font-weight: 500 !important;
-                transition: all 0.2s ease !important;
-                white-space: nowrap !important;
-            }
-            
-            .mobile-back-container .mobile-back-btn:hover {
-                background: #4338ca !important;
-                transform: translateY(-1px) !important;
-            }
-            
-            .mobile-back-container .mobile-back-btn:active {
-                transform: translateY(0) !important;
+                display: none !important;
             }
             
             /* Dashboard section spacing adjustment for mobile */
@@ -70,7 +43,7 @@
                 padding-top: 0 !important;
             }
             
-            #dashboard .page-header {
+            #dashboard.page-header {
                 margin-top: 10px !important;
                 padding: 0 15px !important;
             }
@@ -9251,6 +9224,9 @@
             console.log('Rendering verifications:', verifications);
             console.log('Total verifications:', verifications.length);
             
+            // Store verifications data globally for modal access
+            window.verificationsData = verifications;
+            
             if (!verifications || verifications.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 3rem; color: #718096;">
@@ -9572,6 +9548,16 @@
                                         </div>
                                     </div>
                                     
+                                    ${verification.address ? `
+                                        <div>
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Address</label>
+                                            <div style="font-size: 1rem; color: #1e293b; display: flex; align-items: flex-start; gap: 0.5rem;">
+                                                <i class="fas fa-map-marker-alt" style="color: #667eea; margin-top: 0.2rem;"></i>
+                                                <span>${verification.address}</span>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    
                                     <div>
                                         <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">ID Number</label>
                                         <div style="font-size: 1rem; color: #1e293b; font-family: monospace; background: white; padding: 0.75rem; border-radius: 6px; border: 1px solid #e2e8f0; letter-spacing: 0.1em;">${maskedId}</div>
@@ -9586,19 +9572,48 @@
                                         </div>
                                     </div>
                                     
-                                    ${verification.kyc_image ? `
+                                    ${verification.kyc_image || verification.selfie_path || verification.kyc_document_path ? `
                                         <div>
-                                            <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Uploaded ID Image</label>
-                                            <div style="margin-top: 0.75rem;">
-                                                <img src="${verification.kyc_image}" alt="ID Document" 
-                                                     style="max-width: 100%; border-radius: 8px; border: 2px solid #e2e8f0; cursor: pointer;"
-                                                     onclick="window.open('${verification.kyc_image}', '_blank')">
-                                                <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; text-align: center;">
-                                                    <i class="fas fa-search-plus"></i> Click image to view full size
-                                                </p>
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Uploaded Images</label>
+                                            <div style="display: grid; gap: 1rem; margin-top: 0.75rem;">
+                                                ${verification.selfie_path ? `
+                                                    <div>
+                                                        <div style="font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">Selfie Photo</div>
+                                                        <img src="${verification.selfie_path}" alt="Guest Selfie" 
+                                                             style="max-width: 200px; border-radius: 8px; border: 2px solid #e2e8f0; cursor: pointer;"
+                                                             onclick="window.open('${verification.selfie_path}', '_blank')">
+                                                    </div>
+                                                ` : ''}
+                                                ${verification.kyc_document_path ? `
+                                                    <div>
+                                                        <div style="font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">ID Document</div>
+                                                        <img src="${verification.kyc_document_path}" alt="ID Document" 
+                                                             style="max-width: 200px; border-radius: 8px; border: 2px solid #e2e8f0; cursor: pointer;"
+                                                             onclick="window.open('${verification.kyc_document_path}', '_blank')">
+                                                    </div>
+                                                ` : ''}
+                                                ${verification.aadhaar_path ? `
+                                                    <div>
+                                                        <div style="font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">Aadhaar Document</div>
+                                                        <img src="${verification.aadhaar_path}" alt="Aadhaar Document" 
+                                                             style="max-width: 200px; border-radius: 8px; border: 2px solid #e2e8f0; cursor: pointer;"
+                                                             onclick="window.open('${verification.aadhaar_path}', '_blank')">
+                                                    </div>
+                                                ` : ''}
+                                                ${verification.kyc_image && !verification.selfie_path && !verification.kyc_document_path ? `
+                                                    <div>
+                                                        <div style="font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">Legacy ID Image</div>
+                                                        <img src="${verification.kyc_image}" alt="ID Document" 
+                                                             style="max-width: 200px; border-radius: 8px; border: 2px solid #e2e8f0; cursor: pointer;"
+                                                             onclick="window.open('${verification.kyc_image}', '_blank')">
+                                                    </div>
+                                                ` : ''}
                                             </div>
+                                            <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; text-align: center;">
+                                                <i class="fas fa-search-plus"></i> Click images to view full size
+                                            </p>
                                         </div>
-                                    ` : '<div style="text-align: center; padding: 1rem; background: #fef3c7; border-radius: 8px; color: #92400e;"><i class="fas fa-info-circle"></i> No ID image uploaded</div>'}
+                                    ` : '<div style="text-align: center; padding: 1rem; background: #fef3c7; border-radius: 8px; color: #92400e;"><i class="fas fa-info-circle"></i> No images uploaded</div>'}
                                 </div>
                             </div>
                         </div>

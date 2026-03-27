@@ -427,6 +427,28 @@ def api_get_verifications(manager_id):
     # Convert to JSON-serializable format with named properties
     verification_list = []
     for v in verifications:
+        # Helper function to normalize file paths
+        def normalize_path(file_path):
+            if not file_path:
+                return None
+            # Convert backslashes to forward slashes
+            file_path = file_path.replace('\\', '/')
+            # Ensure path starts with /static/
+            if file_path.startswith('static/'):
+                return f"/{file_path}"
+            elif not file_path.startswith('/static/'):
+                return f"/static/uploads/kyc_documents/{file_path}"
+            return file_path
+        
+        # Determine which image to show (prioritize new columns over old)
+        kyc_image_path = None
+        if len(v) > 11 and v[11]:  # kyc_document_path (new column)
+            kyc_image_path = normalize_path(v[11])
+        elif len(v) > 10 and v[10]:  # selfie_path (new column) 
+            kyc_image_path = normalize_path(v[10])
+        elif v[6]:  # identity_file (old column, fallback)
+            kyc_image_path = normalize_path(v[6])
+        
         verification_list.append({
             'id': v[0],
             'guest_name': v[1],
@@ -434,9 +456,12 @@ def api_get_verifications(manager_id):
             'address': v[3],
             'kyc_number': v[4],
             'kyc_type': v[5] if v[5] else 'ID Document',  # kyc_type is at index 5
-            'kyc_image': f"/static/{v[6]}" if v[6] else None,  # identity_file is at index 6
+            'kyc_image': kyc_image_path,  # Use the determined image path
             'submitted_at': v[7].isoformat() if v[7] else None,  # submitted_at is at index 7
-            'status': v[8]  # status is at index 8
+            'status': v[8],  # status is at index 8
+            'selfie_path': normalize_path(v[10]) if len(v) > 10 and v[10] else None,  # selfie_path
+            'kyc_document_path': normalize_path(v[11]) if len(v) > 11 and v[11] else None,  # kyc_document_path
+            'aadhaar_path': normalize_path(v[12]) if len(v) > 12 and v[12] else None  # aadhaar_path
         })
     
     print(f"[API] Returning {len(verification_list)} verifications")
