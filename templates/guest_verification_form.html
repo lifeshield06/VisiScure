@@ -3,949 +3,526 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guest Verification - {{ hotel_name or 'VisiScure Order' }}</title>
+    <title>Guest Verification – {{ hotel_name or 'VisiScure Order' }}</title>
     <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 15px;
-        }
-        .form-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-        .form-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 25px 20px;
-            text-align: center;
-            color: white;
-        }
-        .form-header img {
-            max-height: 50px;
-            margin-bottom: 12px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .form-header h1 { 
-            font-size: 24px; 
-            font-weight: 700; 
-            margin-bottom: 5px; 
-        }
-        .form-header p { 
-            opacity: 0.9; 
-            font-size: 14px; 
-            margin: 0;
-        }
-        .form-body { 
-            padding: 25px 20px; 
-            max-height: calc(100vh - 250px);
-            overflow-y: auto;
-        }
-        .section-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: #1a202c;
-            margin: 25px 0 15px 0;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #e2e8f0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .section-title:first-child { margin-top: 0; }
-        .section-title i {
-            color: #667eea;
-            font-size: 20px;
-        }
-        .form-label { 
-            font-weight: 600; 
-            color: #1a202c; 
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-        .form-control, .form-select {
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 12px;
-            transition: all 0.3s;
-            font-size: 14px;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-        }
-        .form-control.is-invalid {
-            border-color: #dc3545;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right calc(0.375em + 0.1875rem) center;
-            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
-            padding-right: calc(1.5em + 0.75rem);
-        }
-        .form-control.is-valid {
-            border-color: #10b981;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2310b981' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right calc(0.375em + 0.1875rem) center;
-            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
-            padding-right: calc(1.5em + 0.75rem);
-        }
-        .btn-custom { 
-            padding: 12px 25px; 
-            border-radius: 10px; 
-            font-weight: 600; 
-            transition: all 0.3s;
-            font-size: 14px;
-        }
-        .btn-primary-custom {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            color: white;
-        }
-        .btn-primary-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-        }
-        .camera-container {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-            height: 400px;
-            margin: 0 auto;
-            border-radius: 15px;
-            overflow: hidden;
-            background: #000;
-        }
-        #cameraVideo { 
-            width: 100%; 
-            height: 100%;
-            object-fit: cover;
-            object-position: center center;
-            display: block;
-            transform: scaleX(-1); /* Mirror effect for selfie */
-        }
-        #camera-canvas { display: none; }
-        
-        /* Face guide overlay */
-        .face-guide-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-        .face-guide-frame {
-            width: 70%;
-            height: 70%;
-            border: 3px solid #10b981;
-            border-radius: 50%;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
-            position: relative;
-        }
-        .face-guide-message {
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            margin-top: 15px;
-            text-align: center;
-        }
-        .captured-preview {
-            width: 100%;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-        .camera-controls { 
-            text-align: center; 
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        .captured-image {
-            width: 100%;
-            max-width: 400px;
-            height: 400px;
-            object-fit: cover;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            display: block;
-            margin: 0 auto;
-        }
-        .alert { 
-            border-radius: 10px; 
-            padding: 12px; 
-            margin-bottom: 15px;
-            font-size: 13px;
-        }
-        .radio-card {
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .radio-card:hover { 
-            border-color: #667eea; 
-            background: #f8f9fa; 
-        }
-        .radio-card input[type="radio"] {
-            margin: 0;
-        }
-        .radio-card label { 
-            margin: 0;
-            cursor: pointer;
-            flex: 1;
-            font-size: 14px;
-        }
-        .radio-card input[type="radio"]:checked ~ label { 
-            color: #667eea; 
-            font-weight: 600; 
-        }
-        .file-upload-box {
-            border: 2px dashed #cbd5e1;
-            border-radius: 15px;
-            padding: 30px 20px;
-            text-align: center;
-            background: #f8fafc;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .file-upload-box:hover { 
-            border-color: #667eea; 
-            background: #f0f4ff; 
-        }
-        .file-upload-box i { 
-            font-size: 40px; 
-            color: #667eea; 
-            margin-bottom: 12px; 
-        }
-        .file-upload-box p {
-            margin: 5px 0;
-            font-size: 13px;
-        }
-        .file-upload-box p:first-of-type {
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .form-footer {
-            padding: 20px;
-            background: #f8f9fa;
-            text-align: center;
-        }
-        .otp-section {
-            background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%);
-            padding: 20px;
-            border-radius: 15px;
-            border: 2px solid #e0e7ff;
-        }
-        .verified-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #10b981;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-        .btn-group-custom {
-            display: flex;
-            gap: 10px;
-        }
-        .btn-group-custom .btn {
-            flex: 1;
-        }
-        
-        /* Mobile Optimizations */
-        @media (max-width: 576px) {
-            body { padding: 10px; }
-            .form-container { border-radius: 15px; }
-            .form-header { padding: 20px 15px; }
-            .form-header h1 { font-size: 20px; }
-            .form-body { 
-                padding: 20px 15px;
-                max-height: calc(100vh - 220px);
-            }
-            .section-title { 
-                font-size: 16px;
-                margin: 20px 0 12px 0;
-            }
-            .form-label { font-size: 13px; }
-            .form-control, .form-select { 
-                padding: 10px;
-                font-size: 14px;
-            }
-            .btn-custom { 
-                padding: 10px 20px;
-                font-size: 14px;
-            }
-            .camera-container {
-                max-width: 100%;
-                height: 350px;
-            }
-            .face-guide-frame {
-                width: 220px;
-                height: 280px;
-            }
-            .face-guide-message {
-                font-size: 11px;
-                padding: 6px 12px;
-            }
-            .captured-image {
-                height: 350px;
-            }
-            .camera-controls {
-                flex-direction: column;
-            }
-            .camera-controls .btn {
-                width: 100%;
-            }
-            .btn-group-custom {
-                flex-direction: column;
-            }
-            .file-upload-box {
-                padding: 25px 15px;
-            }
-            .file-upload-box i {
-                font-size: 35px;
-            }
-        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:15px}
+        .wrap{max-width:620px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
+        .hdr{background:linear-gradient(135deg,#667eea,#764ba2);padding:26px 20px;text-align:center;color:#fff}
+        .hdr img{height:52px;border-radius:50%;margin-bottom:10px;object-fit:cover}
+        .hdr h1{font-size:22px;font-weight:700;margin-bottom:4px}
+        .hdr p{font-size:13px;opacity:.88}
+        .body{padding:26px 22px}
+        .sec{font-size:15px;font-weight:700;color:#1a202c;margin:22px 0 14px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:8px}
+        .sec:first-child{margin-top:0}
+        .sec i{color:#667eea}
+        .fg{margin-bottom:16px}
+        .fg label{display:block;font-size:13px;font-weight:600;color:#2d3748;margin-bottom:6px}
+        .req{color:#e53e3e}
+        .fc{width:100%;padding:11px 13px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;transition:border-color .2s;background:#fff}
+        .fc:focus{border-color:#667eea}
+        .fc.err{border-color:#e53e3e}
+        .ferr{color:#e53e3e;font-size:12px;margin-top:4px;display:none}
+        .ferr.show{display:block}
+        .gerr{background:#fff5f5;border:1px solid #fed7d7;color:#c53030;padding:11px 14px;border-radius:8px;font-size:13px;margin-bottom:18px}
+        /* camera */
+        .cam-wrap{position:relative;width:100%;max-width:360px;margin:0 auto;border-radius:14px;overflow:hidden;background:#000}
+        #camVideo{width:100%;display:block;transform:scaleX(-1)}
+        .cam-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:62%;aspect-ratio:1;border:3px solid #48bb78;border-radius:50%;pointer-events:none}
+        #camPreview{display:none;width:100%;border-radius:14px}
+        .cam-hint{text-align:center;font-size:12px;color:#718096;margin-top:6px}
+        .cam-btns{display:flex;gap:10px;margin-top:10px;justify-content:center}
+        /* file */
+        .fbox{border:2px dashed #cbd5e1;border-radius:12px;padding:22px 16px;text-align:center;background:#f8fafc;cursor:pointer;transition:all .2s}
+        .fbox:hover{border-color:#667eea;background:#f0f4ff}
+        .fbox i{font-size:32px;color:#667eea;margin-bottom:8px}
+        .fbox p{font-size:13px;color:#4a5568;margin:0}
+        .fbox span{font-size:11px;color:#94a3b8}
+        .fname{font-size:12px;color:#10b981;margin-top:6px}
+        .fimg{max-width:100%;max-height:160px;border-radius:8px;margin-top:8px;display:none}
+        /* buttons */
+        .btn-cap{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;padding:10px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+        .btn-ret{background:#e2e8f0;color:#4a5568;border:none;padding:10px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;display:none}
+        .btn-otp{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;padding:11px 18px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%}
+        .btn-otp:disabled{opacity:.55;cursor:not-allowed}
+        .btn-verify{background:#10b981;color:#fff;border:none;padding:11px 18px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;flex:1}
+        .btn-resend{background:#e2e8f0;color:#4a5568;border:none;padding:11px 18px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;flex:1}
+        .btn-resend:disabled{opacity:.55;cursor:not-allowed}
+        .btn-submit{width:100%;padding:14px;background:linear-gradient(135deg,#48bb78,#38a169);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;margin-top:20px;transition:opacity .2s}
+        .btn-submit:disabled{opacity:.45;cursor:not-allowed;background:#94a3b8}
+        canvas{display:none}
+        /* OTP box */
+        .otp-box{background:linear-gradient(135deg,#f0f4ff,#e8eeff);padding:18px;border-radius:14px;border:2px solid #e0e7ff}
+        .otp-row{display:flex;gap:10px;margin-top:10px}
+        .verified-badge{display:inline-flex;align-items:center;gap:6px;background:#10b981;color:#fff;padding:7px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-top:10px}
+        .otp-msg{font-size:13px;margin-top:8px;padding:8px 12px;border-radius:8px}
+        .otp-msg.ok{background:#d1fae5;color:#065f46}
+        .otp-msg.fail{background:#fee2e2;color:#991b1b}
+        /* radio */
+        .radio-row{display:flex;gap:12px;flex-wrap:wrap}
+        .rcard{flex:1;min-width:140px;border:2px solid #e2e8f0;border-radius:10px;padding:11px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#4a5568;transition:all .2s}
+        .rcard input{accent-color:#667eea}
+        .rcard:has(input:checked){border-color:#667eea;background:#f0f4ff;color:#667eea}
+        @media(max-width:480px){.body{padding:18px 14px}.cam-wrap{max-width:100%}.radio-row{flex-direction:column}.otp-row{flex-direction:column}}
     </style>
 </head>
 <body>
-    <div class="form-container"> 
-        <!-- Header -->
-        <div class="form-header">
-            {% if hotel_logo %}
-                {% if '/' in hotel_logo %}
-                    <img src="/static/{{ hotel_logo }}" alt="{{ hotel_name }}" onerror="this.style.display='none'">
-                {% else %}
-                    <img src="/static/uploads/hotel_logos/{{ hotel_logo }}" alt="{{ hotel_name }}" onerror="this.style.display='none'">
-                {% endif %}
+<div class="wrap">
+    <div class="hdr">
+        {% if hotel_logo %}
+            {% if '/' in hotel_logo %}
+                <img src="/static/{{ hotel_logo }}" alt="{{ hotel_name }}" onerror="this.style.display='none'">
+            {% else %}
+                <img src="/static/uploads/hotel_logos/{{ hotel_logo }}" alt="{{ hotel_name }}" onerror="this.style.display='none'">
             {% endif %}
-            <h1>Guest Verification</h1>
-            <p>{{ hotel_name or 'VisiScure Order' }}</p>
-        </div>
-
-        <!-- Form -->
-        <form id="verificationForm" method="POST" action="{{ url_for('guest_verification.submit_verification', manager_id=manager_id) }}" enctype="multipart/form-data">
-            <input type="hidden" name="hotel_id" value="{{ hotel_id }}">
-            <input type="hidden" name="selfie_data" id="selfieData">
-            
-            <div class="form-body">
-                <!-- Section 1: Basic Details -->
-                <div class="section-title">
-                    <i class="fas fa-user"></i>
-                    Basic Details
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Full Name <span style="color: red;">*</span></label>
-                    <input type="text" class="form-control" id="guestName" name="guest_name" required placeholder="Enter your full name">
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Capture Selfie <span style="color: red;">*</span></label>
-                    <div class="camera-container" id="cameraContainer">
-                        <video id="cameraVideo" autoplay playsinline></video>
-                        <canvas id="cameraCanvas"></canvas>
-                        <div class="face-guide-overlay" id="faceGuideOverlay">
-                            <div class="face-guide-frame"></div>
-                            <div class="face-guide-message">
-                                <i class="fas fa-user-circle"></i> Align your face inside the frame before capturing
-                            </div>
-                        </div>
-                    </div>
-                    <div id="capturedImageContainer" style="display: none; text-align: center;">
-                        <img id="capturedImage" class="captured-image" alt="Captured Selfie">
-                    </div>
-                    <div class="camera-controls">
-                        <button type="button" class="btn btn-custom btn-success w-100" id="captureSelfieBtn" onclick="captureSelfie()">
-                            <i class="fas fa-camera"></i> Capture Photo
-                        </button>
-                        <button type="button" class="btn btn-custom btn-warning w-100" id="retakeSelfieBtn" onclick="retakeSelfie()" style="display: none;">
-                            <i class="fas fa-redo"></i> Retake Selfie
-                        </button>
-                    </div>
-                    <div id="cameraError" class="alert alert-danger" style="display: none; margin-top: 15px;">
-                        <i class="fas fa-exclamation-triangle"></i> <span id="cameraErrorMessage"></span>
-                    </div>
-                </div>
-
-                <!-- Section 2: Address -->
-                <div class="section-title">
-                    <i class="fas fa-map-marker-alt"></i>
-                    Address Details
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Full Address <span style="color: red;">*</span></label>
-                    <textarea class="form-control" id="address" name="address" rows="3" required placeholder="Enter your complete address"></textarea>
-                </div>
-
-                <!-- Section 3: Mobile OTP -->
-                <div class="section-title">
-                    <i class="fas fa-mobile-alt"></i>
-                    Mobile Verification
-                </div>
-                
-                <div class="otp-section">
-                    <div class="mb-3">
-                        <label class="form-label">Mobile Number <span style="color: red;">*</span></label>
-                        <input type="tel" class="form-control" id="phoneNumber" name="phone" maxlength="10" pattern="[0-9]{10}" required placeholder="Enter 10-digit mobile number">
-                    </div>
-
-                    <div class="mb-3">
-                        <button type="button" class="btn btn-custom btn-primary-custom w-100" id="sendOtpBtn" onclick="sendOTP()">
-                            <i class="fas fa-paper-plane"></i> Send OTP
-                        </button>
-                    </div>
-
-                    <div id="otpInputSection" style="display: none;">
-                        <div class="mb-3">
-                            <label class="form-label">Enter OTP <span style="color: red;">*</span></label>
-                            <input type="text" class="form-control" id="otpCode" maxlength="6" pattern="[0-9]{6}" placeholder="Enter 6-digit OTP">
-                        </div>
-
-                        <div class="btn-group-custom">
-                            <button type="button" class="btn btn-custom btn-success" id="verifyOtpBtn" onclick="verifyOTP()">
-                                <i class="fas fa-check"></i> Verify OTP
-                            </button>
-                            <button type="button" class="btn btn-custom btn-outline-secondary" id="resendOtpBtn" onclick="sendOTP()" disabled>
-                                <i class="fas fa-redo"></i> Resend
-                            </button>
-                        </div>
-                    </div>
-
-                    <div id="otpVerifiedBadge" style="display: none; margin-top: 15px; text-align: center;">
-                        <span class="verified-badge">
-                            <i class="fas fa-check-circle"></i> Mobile Verified
-                        </span>
-                    </div>
-
-                    <div id="otpMessage" class="mt-3"></div>
-                </div>
-
-                <!-- Section 4: KYC -->
-                <div class="section-title">
-                    <i class="fas fa-id-card"></i>
-                    KYC Verification
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Document Type <span style="color: red;">*</span></label>
-                    <select class="form-select" id="kycType" name="kyc_type" required onchange="updateDocumentValidation()">
-                        <option value="">Select Document Type</option>
-                        <option value="PAN Card">PAN Card</option>
-                        <option value="Driving License">Driving License</option>
-                        <option value="Voter ID">Voter ID</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Verification Method <span style="color: red;">*</span></label>
-                    <div class="radio-card">
-                        <input type="radio" name="kyc_method" id="kycMethodNumber" value="number" checked onchange="toggleKycMethod()">
-                        <label for="kycMethodNumber">
-                            <i class="fas fa-keyboard"></i> Enter Document Number
-                        </label>
-                    </div>
-                    <div class="radio-card">
-                        <input type="radio" name="kyc_method" id="kycMethodUpload" value="upload" onchange="toggleKycMethod()">
-                        <label for="kycMethodUpload">
-                            <i class="fas fa-upload"></i> Upload Document Image
-                        </label>
-                    </div>
-                </div>
-
-                <div id="kycNumberSection" class="mb-3">
-                    <label class="form-label">Document Number <span style="color: red;">*</span></label>
-                    <input type="text" class="form-control" id="kycNumber" name="kyc_number" placeholder="Select document type first" oninput="validateDocumentNumber()">
-                    <div id="kycNumberError" class="text-danger" style="font-size: 12px; margin-top: 5px; display: none;"></div>
-                    <div id="kycNumberHelp" class="text-muted" style="font-size: 12px; margin-top: 5px;"></div>
-                </div>
-
-                <div id="kycUploadSection" class="mb-3" style="display: none;">
-                    <label class="form-label">Upload Document <span style="color: red;">*</span></label>
-                    <div class="file-upload-box" onclick="document.getElementById('identityFile').click()">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <p>Click to upload document</p>
-                        <p style="color: #64748b;">PNG, JPG, or PDF (Max 5MB)</p>
-                    </div>
-                    <input type="file" id="identityFile" name="identity_file" accept="image/*,.pdf" style="display: none;" onchange="displayFileName(this)">
-                    <div id="fileNameDisplay" style="margin-top: 10px; font-size: 13px; color: #10b981;"></div>
-                </div>
-
-                <!-- Section 5: Aadhaar -->
-                <div class="section-title">
-                    <i class="fas fa-address-card"></i>
-                    Aadhaar Verification
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Upload Aadhaar Card <span style="color: red;">*</span></label>
-                    <div class="file-upload-box" onclick="document.getElementById('aadhaarFile').click()">
-                        <i class="fas fa-id-card"></i>
-                        <p>Click to upload Aadhaar</p>
-                        <p style="color: #64748b;">Image or PDF only (Max 5MB)</p>
-                    </div>
-                    <input type="file" id="aadhaarFile" name="aadhaar_file" accept="image/*,.pdf" style="display: none;" onchange="displayAadhaarFileName(this)">
-                    <div id="aadhaarFileNameDisplay" style="margin-top: 10px; font-size: 13px; color: #10b981;"></div>
-                </div>
-
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> Please ensure the Aadhaar card is clearly visible and all details are readable.
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="form-footer">
-                <button type="submit" class="btn btn-custom btn-success w-100" id="submitBtn">
-                    <i class="fas fa-check"></i> Submit Verification
-                </button>
-            </div>
-        </form>
+        {% endif %}
+        <h1><i class="fas fa-id-card"></i> Guest Verification</h1>
+        <p>{{ hotel_name or 'VisiScure Order' }}</p>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        let cameraStream = null;
-        let selfieCaptured = false;
-        let otpVerified = false;
+    <div class="body">
+        {% if error %}
+        <div class="gerr"><i class="fas fa-exclamation-triangle"></i> {{ error }}</div>
+        {% endif %}
 
-        // Auto-start camera when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            startCameraAutomatically();
+        <form id="gvForm" method="POST"
+              action="{{ url_for('guest_verification.submit_verification', manager_id=manager_id) }}"
+              enctype="multipart/form-data" novalidate>
+            <input type="hidden" name="hotel_id"    value="{{ hotel_id }}">
+            <input type="hidden" name="selfie_data" id="selfieData">
+            <input type="hidden" name="otp_verified" id="otpVerifiedFlag" value="0">
+
+            <!-- ── 1. Basic Details ── -->
+            <div class="sec"><i class="fas fa-user"></i> Basic Details</div>
+
+            <div class="fg">
+                <label>Full Name <span class="req">*</span></label>
+                <input type="text" id="guestName" name="guest_name" class="fc"
+                       placeholder="Enter your full name"
+                       value="{{ request.form.get('guest_name','') }}">
+                <div class="ferr" id="e-name">Full name is required.</div>
+            </div>
+
+            <div class="fg">
+                <label>Capture Selfie <span class="req">*</span></label>
+                <div class="cam-wrap" id="camWrap">
+                    <video id="camVideo" autoplay playsinline></video>
+                    <div class="cam-ring"></div>
+                </div>
+                <img id="camPreview" alt="Selfie">
+                <canvas id="camCanvas"></canvas>
+                <p class="cam-hint" id="camHint">Align your face inside the circle, then tap Capture.</p>
+                <div class="cam-btns">
+                    <button type="button" class="btn-cap" id="btnCap" onclick="captureSelfie()">
+                        <i class="fas fa-camera"></i> Capture
+                    </button>
+                    <button type="button" class="btn-ret" id="btnRet" onclick="retakeSelfie()">
+                        <i class="fas fa-redo"></i> Retake
+                    </button>
+                </div>
+                <div class="ferr" id="e-selfie">Please capture a selfie.</div>
+            </div>
+
+            <!-- ── 2. Address ── -->
+            <div class="sec"><i class="fas fa-map-marker-alt"></i> Address Details</div>
+
+            <div class="fg">
+                <label>Full Address <span class="req">*</span></label>
+                <textarea id="address" name="address" class="fc" rows="3"
+                          placeholder="Enter your complete address">{{ request.form.get('address','') }}</textarea>
+                <div class="ferr" id="e-addr">Address is required.</div>
+            </div>
+
+            <!-- ── 3. Mobile OTP ── -->
+            <div class="sec"><i class="fas fa-mobile-alt"></i> Mobile Verification</div>
+
+            <div class="otp-box">
+                <div class="fg" style="margin-bottom:12px">
+                    <label>Mobile Number <span class="req">*</span></label>
+                    <input type="tel" id="phone" name="phone" class="fc"
+                           placeholder="10-digit mobile number"
+                           maxlength="10" inputmode="numeric"
+                           value="{{ request.form.get('phone','') }}">
+                    <div class="ferr" id="e-phone">Enter a valid 10-digit mobile number.</div>
+                </div>
+
+                <!-- Send OTP button -->
+                <button type="button" class="btn-otp" id="btnSendOtp" onclick="sendOTP()">
+                    <i class="fas fa-paper-plane"></i> Send OTP
+                </button>
+
+                <!-- OTP input (hidden until OTP sent) -->
+                <div id="otpSection" style="display:none;margin-top:14px">
+                    <label style="font-size:13px;font-weight:600;color:#2d3748;margin-bottom:6px;display:block">
+                        Enter OTP <span class="req">*</span>
+                    </label>
+                    <input type="text" id="otpCode" class="fc" maxlength="6"
+                           inputmode="numeric" placeholder="6-digit OTP"
+                           style="margin-bottom:10px">
+                    <div class="otp-row">
+                        <button type="button" class="btn-verify" id="btnVerify" onclick="verifyOTP()">
+                            <i class="fas fa-check"></i> Verify OTP
+                        </button>
+                        <button type="button" class="btn-resend" id="btnResend" onclick="resendOTP()" disabled>
+                            <i class="fas fa-redo"></i> Resend
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Verified badge (hidden until verified) -->
+                <div id="verifiedBadge" style="display:none;text-align:center;margin-top:12px">
+                    <span class="verified-badge"><i class="fas fa-check-circle"></i> Mobile Verified</span>
+                </div>
+
+                <div id="otpMsg"></div>
+            </div>
+
+            <!-- ── 4. KYC ── -->
+            <div class="sec"><i class="fas fa-id-card"></i> KYC Verification</div>
+
+            <div class="fg">
+                <label>Document Type <span class="req">*</span></label>
+                <select id="kycType" name="kyc_type" class="fc" onchange="onKycType()">
+                    <option value="">-- Select Document Type --</option>
+                    <option value="Aadhaar Card"    {% if request.form.get('kyc_type')=='Aadhaar Card'    %}selected{% endif %}>Aadhaar Card</option>
+                    <option value="PAN Card"        {% if request.form.get('kyc_type')=='PAN Card'        %}selected{% endif %}>PAN Card</option>
+                    <option value="Driving License" {% if request.form.get('kyc_type')=='Driving License' %}selected{% endif %}>Driving License</option>
+                    <option value="Voter ID"        {% if request.form.get('kyc_type')=='Voter ID'        %}selected{% endif %}>Voter ID</option>
+                    <option value="Passport"        {% if request.form.get('kyc_type')=='Passport'        %}selected{% endif %}>Passport</option>
+                </select>
+                <div class="ferr" id="e-ktype">Please select a document type.</div>
+            </div>
+
+            <div class="fg">
+                <label>Verification Method <span class="req">*</span></label>
+                <div class="radio-row">
+                    <label class="rcard">
+                        <input type="radio" name="kyc_method" value="number" id="kycNum" onchange="toggleKyc()" checked>
+                        <i class="fas fa-keyboard"></i> Enter Number
+                    </label>
+                    <label class="rcard">
+                        <input type="radio" name="kyc_method" value="upload" id="kycUp" onchange="toggleKyc()">
+                        <i class="fas fa-upload"></i> Upload Document
+                    </label>
+                </div>
+            </div>
+
+            <div class="fg" id="kycNumSec">
+                <label>Document Number <span class="req">*</span></label>
+                <input type="text" id="kycNumber" name="kyc_number" class="fc"
+                       placeholder="Select document type first" disabled
+                       value="{{ request.form.get('kyc_number','') }}">
+                <div class="ferr" id="e-knum">Document number is required.</div>
+            </div>
+
+            <div class="fg" id="kycUpSec" style="display:none">
+                <label>Upload Document <span class="req">*</span></label>
+                <div class="fbox" onclick="document.getElementById('identityFile').click()">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Click to upload document</p>
+                    <span>PNG, JPG or PDF — max 5 MB</span>
+                </div>
+                <input type="file" id="identityFile" name="identity_file"
+                       accept="image/png,image/jpeg,image/jpg,application/pdf"
+                       style="display:none" onchange="previewFile(this,'kycImg','kycFname')">
+                <div class="fname" id="kycFname"></div>
+                <img class="fimg" id="kycImg" alt="Document preview">
+                <div class="ferr" id="e-kfile">Upload a valid document (image/PDF, max 5 MB).</div>
+            </div>
+
+            <!-- ── 5. Aadhaar ── -->
+            <div class="sec"><i class="fas fa-address-card"></i> Aadhaar Verification</div>
+
+            <div class="fg">
+                <label>Upload Aadhaar Card <span class="req">*</span></label>
+                <div class="fbox" onclick="document.getElementById('aadhaarFile').click()">
+                    <i class="fas fa-id-card"></i>
+                    <p>Click to upload Aadhaar</p>
+                    <span>PNG, JPG or PDF — max 5 MB</span>
+                </div>
+                <input type="file" id="aadhaarFile" name="aadhaar_file"
+                       accept="image/png,image/jpeg,image/jpg,application/pdf"
+                       style="display:none" onchange="previewFile(this,'aadhaarImg','aadhaarFname')">
+                <div class="fname" id="aadhaarFname"></div>
+                <img class="fimg" id="aadhaarImg" alt="Aadhaar preview">
+                <div class="ferr" id="e-aadhaar">Upload Aadhaar (image/PDF, max 5 MB).</div>
+            </div>
+
+            <!-- Submit (disabled until OTP verified) -->
+            <button type="submit" class="btn-submit" id="btnSubmit" disabled>
+                <i class="fas fa-lock"></i> Submit Verification
+            </button>
+        </form>
+    </div><!-- /body -->
+</div><!-- /wrap -->
+
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script>
+/* ═══════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════ */
+let camStream   = null;
+let otpVerified = false;   // master gate
+let resendTimer = null;
+
+const ALLOWED_MIME = ['image/png','image/jpeg','image/jpg','application/pdf'];
+const MAX_BYTES    = 5 * 1024 * 1024;
+const KYC_PAT = {
+    'Aadhaar Card':    { re:/^\d{12}$/,              hint:'12-digit Aadhaar number' },
+    'PAN Card':        { re:/^[A-Z]{5}[0-9]{4}[A-Z]$/,hint:'e.g. ABCDE1234F' },
+    'Driving License': { re:/^[A-Z]{2}\d{2}\s?\d{11}$/,hint:'State code + 13 digits' },
+    'Voter ID':        { re:/^[A-Z]{3}\d{7}$/,       hint:'3 letters + 7 digits' },
+    'Passport':        { re:/^[A-Z]\d{7}$/,           hint:'1 letter + 7 digits' },
+};
+
+/* ═══════════════════════════════════════════════════════
+   CAMERA
+═══════════════════════════════════════════════════════ */
+(function startCam(){
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false})
+        .then(s=>{ camStream=s; document.getElementById('camVideo').srcObject=s; })
+        .catch(()=>{
+            document.getElementById('camHint').textContent='Camera unavailable – allow camera access.';
+            document.getElementById('btnCap').disabled=true;
         });
+})();
 
-        // Camera Functions
-        async function startCameraAutomatically() {
-            try {
-                // Request front camera with square aspect ratio preference
-                const constraints = {
-                    video: {
-                        facingMode: 'user',
-                        width: { ideal: 1280 },
-                        height: { ideal: 1280 },
-                        aspectRatio: { ideal: 1 }
-                    },
-                    audio: false
-                };
-                
-                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
-                const video = document.getElementById('cameraVideo');
-                video.srcObject = cameraStream;
-                
-                // Wait for video to be ready
-                video.onloadedmetadata = () => {
-                    video.play();
-                    console.log(`Video dimensions: ${video.videoWidth}x${video.videoHeight}`);
-                };
-                
-                // Show camera container and capture button
-                document.getElementById('cameraContainer').style.display = 'block';
-                document.getElementById('captureSelfieBtn').style.display = 'block';
-                document.getElementById('faceGuideOverlay').style.display = 'flex';
-                
-            } catch (error) {
-                console.error('Camera error:', error);
-                showCameraError('Unable to access camera. Please check permissions and refresh the page.');
-            }
-        }
+function captureSelfie(){
+    const v=document.getElementById('camVideo'), c=document.getElementById('camCanvas');
+    const ctx=c.getContext('2d');
+    c.width=v.videoWidth||320; c.height=v.videoHeight||240;
+    ctx.translate(c.width,0); ctx.scale(-1,1);
+    ctx.drawImage(v,0,0);
+    const url=c.toDataURL('image/jpeg',0.88);
+    document.getElementById('selfieData').value=url;
+    const p=document.getElementById('camPreview');
+    p.src=url; p.style.display='block';
+    document.getElementById('camWrap').style.display='none';
+    document.getElementById('camHint').style.display='none';
+    document.getElementById('btnCap').style.display='none';
+    document.getElementById('btnRet').style.display='inline-block';
+    clearE('e-selfie');
+    if(camStream) camStream.getTracks().forEach(t=>t.stop());
+}
 
-        function showCameraError(message) {
-            document.getElementById('cameraErrorMessage').textContent = message;
-            document.getElementById('cameraError').style.display = 'block';
-            document.getElementById('cameraContainer').style.display = 'none';
-        }
+function retakeSelfie(){
+    document.getElementById('selfieData').value='';
+    document.getElementById('camPreview').style.display='none';
+    document.getElementById('camWrap').style.display='block';
+    document.getElementById('camHint').style.display='block';
+    document.getElementById('btnCap').style.display='inline-block';
+    document.getElementById('btnRet').style.display='none';
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false})
+        .then(s=>{ camStream=s; document.getElementById('camVideo').srcObject=s; });
+}
 
-        // Camera Functions
-        function captureSelfie() {
-            const video = document.getElementById('cameraVideo');
-            const canvas = document.getElementById('cameraCanvas');
-            const context = canvas.getContext('2d');
-            
-            // Set canvas size to square (500x500) for high quality centered crop
-            const targetSize = 500;
-            canvas.width = targetSize;
-            canvas.height = targetSize;
-            
-            // Get actual video dimensions
-            const videoWidth = video.videoWidth;
-            const videoHeight = video.videoHeight;
-            
-            console.log(`Capturing from video: ${videoWidth}x${videoHeight}`);
-            
-            // Calculate the size of the square crop from the video (use the smaller dimension)
-            const cropSize = Math.min(videoWidth, videoHeight);
-            
-            // Calculate starting position - PERFECT CENTER for both axes
-            const startX = Math.floor((videoWidth - cropSize) / 2);
-            const startY = Math.floor((videoHeight - cropSize) / 2);
-            
-            console.log(`Crop area: startX=${startX}, startY=${startY}, size=${cropSize}x${cropSize}`);
-            
-            // Save context state
-            context.save();
-            
-            // Flip horizontally to match the mirrored preview
-            context.translate(targetSize, 0);
-            context.scale(-1, 1);
-            
-            // Draw the center-cropped and scaled image
-            context.drawImage(
-                video,
-                startX, startY,              // Start cropping from perfect center
-                cropSize, cropSize,          // Crop a square from video
-                0, 0,                        // Draw at canvas origin
-                targetSize, targetSize       // Scale to target size
-            );
-            
-            // Restore context state
-            context.restore();
-            
-            // Convert to base64 with good quality
-            const imageData = canvas.toDataURL('image/jpeg', 0.92);
-            document.getElementById('selfieData').value = imageData;
-            document.getElementById('capturedImage').src = imageData;
-            
-            console.log('Selfie captured successfully');
-            
-            stopCamera();
-            
-            // Hide camera, show captured image
-            document.getElementById('cameraContainer').style.display = 'none';
-            document.getElementById('capturedImageContainer').style.display = 'block';
-            document.getElementById('captureSelfieBtn').style.display = 'none';
-            document.getElementById('retakeSelfieBtn').style.display = 'block';
-            
-            selfieCaptured = true;
-        }
+/* ═══════════════════════════════════════════════════════
+   KYC TOGGLES
+═══════════════════════════════════════════════════════ */
+function onKycType(){
+    const t=document.getElementById('kycType').value;
+    const n=document.getElementById('kycNumber');
+    n.disabled=!t;
+    n.placeholder = t && KYC_PAT[t] ? KYC_PAT[t].hint : 'Select document type first';
+    clearE('e-ktype');
+}
 
-        function retakeSelfie() {
-            // Hide captured image
-            document.getElementById('capturedImageContainer').style.display = 'none';
-            document.getElementById('retakeSelfieBtn').style.display = 'none';
-            document.getElementById('selfieData').value = '';
-            selfieCaptured = false;
-            
-            // Restart camera
-            startCameraAutomatically();
-        }
+function toggleKyc(){
+    const isNum=document.getElementById('kycNum').checked;
+    document.getElementById('kycNumSec').style.display=isNum?'block':'none';
+    document.getElementById('kycUpSec').style.display=isNum?'none':'block';
+}
 
-        function stopCamera() {
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(track => track.stop());
-                cameraStream = null;
-            }
-        }
+/* ═══════════════════════════════════════════════════════
+   FILE PREVIEW
+═══════════════════════════════════════════════════════ */
+function previewFile(inp,imgId,nameId){
+    const f=inp.files[0], ne=document.getElementById(nameId), pe=document.getElementById(imgId);
+    ne.textContent=''; pe.style.display='none';
+    if(!f) return;
+    if(!ALLOWED_MIME.includes(f.type)){ inp.value=''; ne.textContent='⚠ Only PNG, JPG or PDF.'; ne.style.color='#e53e3e'; return; }
+    if(f.size>MAX_BYTES){ inp.value=''; ne.textContent='⚠ File exceeds 5 MB.'; ne.style.color='#e53e3e'; return; }
+    ne.textContent='✔ '+f.name; ne.style.color='#10b981';
+    if(f.type.startsWith('image/')){
+        const r=new FileReader();
+        r.onload=e=>{ pe.src=e.target.result; pe.style.display='block'; };
+        r.readAsDataURL(f);
+    }
+    if(nameId==='kycFname')    clearE('e-kfile');
+    if(nameId==='aadhaarFname') clearE('e-aadhaar');
+}
 
-        // OTP Functions
-        let resendTimer = null;
+/* ═══════════════════════════════════════════════════════
+   VALIDATION HELPERS
+═══════════════════════════════════════════════════════ */
+function showE(id){ document.getElementById(id).classList.add('show'); }
+function clearE(id){ document.getElementById(id).classList.remove('show'); }
+function markE(el){ el.classList.add('err'); }
+function clearF(el){ el.classList.remove('err'); }
 
-        async function sendOTP() {
-            const phoneNumber = document.getElementById('phoneNumber').value.trim();
-            
-            if (!phoneNumber || phoneNumber.length !== 10 || !/^\d{10}$/.test(phoneNumber)) {
-                showOTPMessage('Please enter a valid 10-digit mobile number', 'danger');
-                return;
-            }
+function validateAllFields(){
+    let ok=true;
+    const name=document.getElementById('guestName');
+    if(!name.value.trim()){ markE(name); showE('e-name'); ok=false; } else { clearF(name); clearE('e-name'); }
+    if(!document.getElementById('selfieData').value){ showE('e-selfie'); ok=false; } else clearE('e-selfie');
+    const addr=document.getElementById('address');
+    if(!addr.value.trim()){ markE(addr); showE('e-addr'); ok=false; } else { clearF(addr); clearE('e-addr'); }
+    const ph=document.getElementById('phone');
+    if(!/^\d{10}$/.test(ph.value.trim())){ markE(ph); showE('e-phone'); ok=false; } else { clearF(ph); clearE('e-phone'); }
+    const kt=document.getElementById('kycType');
+    if(!kt.value){ markE(kt); showE('e-ktype'); ok=false; } else { clearF(kt); clearE('e-ktype'); }
+    if(document.getElementById('kycNum').checked){
+        const kn=document.getElementById('kycNumber');
+        const val=kn.value.trim().toUpperCase();
+        const pat=KYC_PAT[kt.value];
+        const numOk=val && (!pat || pat.re.test(val));
+        if(!numOk){ markE(kn); showE('e-knum'); ok=false; } else { clearF(kn); clearE('e-knum'); }
+    } else {
+        if(!document.getElementById('identityFile').files.length){ showE('e-kfile'); ok=false; } else clearE('e-kfile');
+    }
+    if(!document.getElementById('aadhaarFile').files.length){ showE('e-aadhaar'); ok=false; } else clearE('e-aadhaar');
+    return ok;
+}
 
-            const sendBtn = document.getElementById('sendOtpBtn');
-            const resendBtn = document.getElementById('resendOtpBtn');
-            sendBtn.disabled = true;
-            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-
-            try {
-                const response = await fetch('/guest-verification/api/send-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        phone_number: phoneNumber,
-                        hotel_id: '{{ hotel_id }}'
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showOTPMessage(result.message, 'success');
-                    document.getElementById('otpInputSection').style.display = 'block';
-                    
-                    // Start resend cooldown
-                    let countdown = 30;
-                    resendBtn.disabled = true;
-                    resendBtn.innerHTML = `<i class="fas fa-redo"></i> Resend (${countdown}s)`;
-                    
-                    resendTimer = setInterval(() => {
-                        countdown--;
-                        if (countdown <= 0) {
-                            clearInterval(resendTimer);
-                            resendBtn.disabled = false;
-                            resendBtn.innerHTML = '<i class="fas fa-redo"></i> Resend';
-                        } else {
-                            resendBtn.innerHTML = `<i class="fas fa-redo"></i> Resend (${countdown}s)`;
-                        }
-                    }, 1000);
-                } else {
-                    showOTPMessage(result.message, 'danger');
-                }
-            } catch (error) {
-                showOTPMessage('Failed to send OTP. Please try again.', 'danger');
-                console.error('Send OTP error:', error);
-            } finally {
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP';
-            }
-        }
-
-        async function verifyOTP() {
-            const phoneNumber = document.getElementById('phoneNumber').value.trim();
-            const otpCode = document.getElementById('otpCode').value.trim();
-
-            if (!otpCode || otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
-                showOTPMessage('Please enter a valid 6-digit OTP', 'danger');
-                return;
-            }
-
-            const verifyBtn = document.getElementById('verifyOtpBtn');
-            verifyBtn.disabled = true;
-            verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
-
-            try {
-                const response = await fetch('/guest-verification/api/verify-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone_number: phoneNumber, otp_code: otpCode })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showOTPMessage(result.message, 'success');
-                    otpVerified = true;
-                    document.getElementById('otpInputSection').style.display = 'none';
-                    document.getElementById('otpVerifiedBadge').style.display = 'block';
-                    document.getElementById('sendOtpBtn').style.display = 'none';
-                    document.getElementById('phoneNumber').disabled = true;
-                } else {
-                    showOTPMessage(result.message, 'danger');
-                }
-            } catch (error) {
-                showOTPMessage('Failed to verify OTP. Please try again.', 'danger');
-                console.error('Verify OTP error:', error);
-            } finally {
-                verifyBtn.disabled = false;
-                verifyBtn.innerHTML = '<i class="fas fa-check"></i> Verify OTP';
-            }
-        }
-
-        function showOTPMessage(message, type) {
-            const messageDiv = document.getElementById('otpMessage');
-            messageDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-            setTimeout(() => { messageDiv.innerHTML = ''; }, 5000);
-        }
-
-        // KYC Method Toggle
-        function toggleKycMethod() {
-            const method = document.querySelector('input[name="kyc_method"]:checked').value;
-            const numberSection = document.getElementById('kycNumberSection');
-            const uploadSection = document.getElementById('kycUploadSection');
-            const kycNumberInput = document.getElementById('kycNumber');
-            const identityFileInput = document.getElementById('identityFile');
-
-            if (method === 'number') {
-                numberSection.style.display = 'block';
-                uploadSection.style.display = 'none';
-                kycNumberInput.required = true;
-                identityFileInput.required = false;
-            } else {
-                numberSection.style.display = 'none';
-                uploadSection.style.display = 'block';
-                kycNumberInput.required = false;
-                identityFileInput.required = true;
-            }
-        }
-
-        // Document validation patterns and rules
-        const documentValidation = {
-            'PAN Card': {
-                pattern: /^[A-Z]{5}[0-9]{4}[A-Z]$/,
-                placeholder: 'Example: ABCDE1234F',
-                helpText: 'Format: 5 letters + 4 digits + 1 letter (e.g., ABCDE1234F)',
-                errorMsg: 'Invalid PAN format. Must be 5 uppercase letters, 4 digits, and 1 uppercase letter'
-            },
-            'Driving License': {
-                pattern: /^[A-Z]{2}[0-9]{2}[0-9]{11}$/,
-                placeholder: 'Example: MH1420110012345',
-                helpText: 'Format: 2 state letters + 2 RTO digits + 11 license digits (e.g., MH1420110012345)',
-                errorMsg: 'Invalid Driving License format. Must be 2 uppercase letters followed by 13 digits'
-            },
-            'Voter ID': {
-                pattern: /^[A-Z]{3}[0-9]{7}$/,
-                placeholder: 'Example: ABC1234567',
-                helpText: 'Format: 3 letters + 7 digits (e.g., ABC1234567)',
-                errorMsg: 'Invalid Voter ID format. Must be 3 uppercase letters followed by 7 digits'
-            }
-        };
-
-        // Update validation when document type changes
-        function updateDocumentValidation() {
-            const kycType = document.getElementById('kycType').value;
-            const kycNumberInput = document.getElementById('kycNumber');
-            const kycNumberError = document.getElementById('kycNumberError');
-            const kycNumberHelp = document.getElementById('kycNumberHelp');
-
-            // Clear previous validation
-            kycNumberInput.value = '';
-            kycNumberError.style.display = 'none';
-            kycNumberInput.classList.remove('is-invalid', 'is-valid');
-
-            if (kycType && documentValidation[kycType]) {
-                const validation = documentValidation[kycType];
-                kycNumberInput.placeholder = validation.placeholder;
-                kycNumberHelp.textContent = validation.helpText;
-                kycNumberHelp.style.display = 'block';
-            } else {
-                kycNumberInput.placeholder = 'Select document type first';
-                kycNumberHelp.style.display = 'none';
-            }
-        }
-
-        // Validate document number in real-time
-        function validateDocumentNumber() {
-            const kycType = document.getElementById('kycType').value;
-            const kycNumberInput = document.getElementById('kycNumber');
-            const kycNumberError = document.getElementById('kycNumberError');
-            const documentNumber = kycNumberInput.value.trim().toUpperCase();
-
-            // Update input to uppercase
-            kycNumberInput.value = documentNumber;
-
-            if (!kycType) {
-                kycNumberError.textContent = 'Please select a document type first';
-                kycNumberError.style.display = 'block';
-                kycNumberInput.classList.add('is-invalid');
-                kycNumberInput.classList.remove('is-valid');
-                return false;
-            }
-
-            if (!documentNumber) {
-                kycNumberError.style.display = 'none';
-                kycNumberInput.classList.remove('is-invalid', 'is-valid');
-                return false;
-            }
-
-            const validation = documentValidation[kycType];
-            if (validation.pattern.test(documentNumber)) {
-                kycNumberError.style.display = 'none';
-                kycNumberInput.classList.remove('is-invalid');
-                kycNumberInput.classList.add('is-valid');
-                return true;
-            } else {
-                kycNumberError.textContent = validation.errorMsg;
-                kycNumberError.style.display = 'block';
-                kycNumberInput.classList.add('is-invalid');
-                kycNumberInput.classList.remove('is-valid');
-                return false;
-            }
-        }
-
-        function displayFileName(input) {
-            const display = document.getElementById('fileNameDisplay');
-            if (input.files && input.files[0]) {
-                display.innerHTML = `<i class="fas fa-file"></i> ${input.files[0].name}`;
-            }
-        }
-
-        function displayAadhaarFileName(input) {
-            const display = document.getElementById('aadhaarFileNameDisplay');
-            if (input.files && input.files[0]) {
-                display.innerHTML = `<i class="fas fa-file"></i> ${input.files[0].name}`;
-            }
-        }
-
-        // Form Validation - SIMPLIFIED FOR TESTING
-        document.getElementById('verificationForm').addEventListener('submit', function(e) {
-            // Always prevent default first to stop page refresh
-            e.preventDefault();
-            
-            console.log('=== FORM VALIDATION DEBUG ===');
-            
-            // Check guest name
-            const guestName = document.getElementById('guestName').value.trim();
-            console.log('1. Guest Name:', guestName ? '✅ Present' : '❌ Missing');
-            if (!guestName) {
-                alert('Please enter your full name');
-                document.getElementById('guestName').focus();
-                return false;
-            }
-            
-            // Check selfie
-            console.log('2. Selfie Captured:', selfieCaptured ? '✅ Yes' : '❌ No');
-            if (!selfieCaptured) {
-                alert('Please capture your selfie');
-                return false;
-            }
-
-            // SIMPLIFIED: Only require name and selfie for testing
-            console.log('=== BASIC VALIDATION PASSED - SUBMITTING FORM ===');
-            
-            // Set default values for required backend fields
-            if (!document.getElementById('phoneNumber').value.trim()) {
-                document.getElementById('phoneNumber').value = '9999999999'; // Test phone
-            }
-            if (!document.getElementById('address').value.trim()) {
-                document.getElementById('address').value = 'Test Address, Test City'; // Test address
-            }
-            
-            // Ensure KYC method is set
-            const kycMethod = document.querySelector('input[name="kyc_method"]:checked');
-            if (!kycMethod) {
-                document.getElementById('kycMethodNumber').checked = true;
-            }
-            
-            // Set default KYC values if using number method
-            if (document.querySelector('input[name="kyc_method"]:checked').value === 'number') {
-                if (!document.getElementById('kycType').value) {
-                    document.getElementById('kycType').value = 'PAN Card';
-                }
-                if (!document.getElementById('kycNumber').value.trim()) {
-                    document.getElementById('kycNumber').value = 'TEST123456';
-                }
-            }
-            
-            console.log('Form data prepared, submitting...');
-            this.submit();
+/* ═══════════════════════════════════════════════════════
+   OTP – SEND
+═══════════════════════════════════════════════════════ */
+async function sendOTP(){
+    // Validate all fields first
+    if(!validateAllFields()){
+        setOtpMsg('Please fill all required fields before sending OTP.','fail');
+        document.querySelector('.ferr.show')?.scrollIntoView({behavior:'smooth',block:'center'});
+        return;
+    }
+    const phone=document.getElementById('phone').value.trim();
+    const btn=document.getElementById('btnSendOtp');
+    btn.disabled=true;
+    btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Sending…';
+    try {
+        const res=await fetch('/guest-verification/api/send-otp',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({phone_number:phone, hotel_id:'{{ hotel_id }}'})
         });
+        const d=await res.json();
+        if(d.success){
+            setOtpMsg('OTP sent to '+phone+'. Valid for 5 minutes.','ok');
+            document.getElementById('otpSection').style.display='block';
+            startResendTimer();
+        } else {
+            setOtpMsg(d.message||'Failed to send OTP.','fail');
+        }
+    } catch(e){
+        setOtpMsg('Network error. Please try again.','fail');
+    } finally {
+        btn.disabled=false;
+        btn.innerHTML='<i class="fas fa-paper-plane"></i> Send OTP';
+    }
+}
 
-        // Cleanup camera on page unload
-        window.addEventListener('beforeunload', stopCamera);
-    </script>
+/* ═══════════════════════════════════════════════════════
+   OTP – VERIFY
+═══════════════════════════════════════════════════════ */
+async function verifyOTP(){
+    const phone=document.getElementById('phone').value.trim();
+    const code=document.getElementById('otpCode').value.trim();
+    if(!code||code.length!==6||!/^\d{6}$/.test(code)){
+        setOtpMsg('Enter a valid 6-digit OTP.','fail'); return;
+    }
+    const btn=document.getElementById('btnVerify');
+    btn.disabled=true;
+    btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Verifying…';
+    try {
+        const res=await fetch('/guest-verification/api/verify-otp',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({phone_number:phone, otp_code:code})
+        });
+        const d=await res.json();
+        if(d.success){
+            otpVerified=true;
+            document.getElementById('otpVerifiedFlag').value='1';
+            document.getElementById('otpSection').style.display='none';
+            document.getElementById('btnSendOtp').style.display='none';
+            document.getElementById('verifiedBadge').style.display='block';
+            setOtpMsg('','ok');
+            // Unlock submit
+            const sub=document.getElementById('btnSubmit');
+            sub.disabled=false;
+            sub.innerHTML='<i class="fas fa-check-circle"></i> Submit Verification';
+            if(resendTimer) clearInterval(resendTimer);
+        } else {
+            setOtpMsg(d.message||'Invalid OTP.','fail');
+            btn.disabled=false;
+            btn.innerHTML='<i class="fas fa-check"></i> Verify OTP';
+        }
+    } catch(e){
+        setOtpMsg('Network error. Please try again.','fail');
+        btn.disabled=false;
+        btn.innerHTML='<i class="fas fa-check"></i> Verify OTP';
+    }
+}
+
+/* ═══════════════════════════════════════════════════════
+   OTP – RESEND
+═══════════════════════════════════════════════════════ */
+function resendOTP(){
+    document.getElementById('otpCode').value='';
+    sendOTP();
+}
+
+function startResendTimer(){
+    const btn=document.getElementById('btnResend');
+    btn.disabled=true;
+    let t=30;
+    btn.textContent='Resend ('+t+'s)';
+    if(resendTimer) clearInterval(resendTimer);
+    resendTimer=setInterval(()=>{
+        t--;
+        if(t<=0){ clearInterval(resendTimer); btn.disabled=false; btn.innerHTML='<i class="fas fa-redo"></i> Resend'; }
+        else btn.textContent='Resend ('+t+'s)';
+    },1000);
+}
+
+function setOtpMsg(msg,type){
+    const el=document.getElementById('otpMsg');
+    el.className='otp-msg '+(type||'');
+    el.textContent=msg;
+    el.style.display=msg?'block':'none';
+}
+
+/* ═══════════════════════════════════════════════════════
+   FORM SUBMIT GATE
+═══════════════════════════════════════════════════════ */
+document.getElementById('gvForm').addEventListener('submit',function(e){
+    if(!otpVerified){
+        e.preventDefault();
+        setOtpMsg('You must verify your mobile number via OTP before submitting.','fail');
+        document.getElementById('otpMsg').scrollIntoView({behavior:'smooth',block:'center'});
+        return;
+    }
+    if(!validateAllFields()){
+        e.preventDefault();
+        document.querySelector('.ferr.show')?.scrollIntoView({behavior:'smooth',block:'center'});
+        return;
+    }
+    // Disable to prevent double-submit
+    const sub=document.getElementById('btnSubmit');
+    sub.disabled=true;
+    sub.innerHTML='<i class="fas fa-spinner fa-spin"></i> Submitting…';
+});
+
+// Phone: digits only
+document.getElementById('phone').addEventListener('input',function(){
+    this.value=this.value.replace(/\D/g,'').slice(0,10);
+});
+// OTP: digits only
+document.getElementById('otpCode')?.addEventListener('input',function(){
+    this.value=this.value.replace(/\D/g,'').slice(0,6);
+});
+</script>
 </body>
 </html>

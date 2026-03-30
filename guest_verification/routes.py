@@ -109,10 +109,6 @@ def public_form(manager_id):
 def submit_verification(manager_id):
     """Handle verification form submission with automatic wallet deduction"""
     try:
-        print("\n" + "="*80)
-        print("GUEST VERIFICATION FORM SUBMISSION RECEIVED")
-        print("="*80)
-        
         # Get form data
         guest_name = request.form.get('guest_name', '').strip()
         phone = request.form.get('phone', '').strip()
@@ -121,13 +117,6 @@ def submit_verification(manager_id):
         kyc_type = request.form.get('kyc_type', '')
         selfie_data = request.form.get('selfie_data', '')
         hotel_id = request.form.get('hotel_id') or request.args.get('hotel_id')
-        
-        print(f"[FORM DATA] manager_id: {manager_id}")
-        print(f"[FORM DATA] guest_name: {guest_name}")
-        print(f"[FORM DATA] phone: {phone}")
-        print(f"[FORM DATA] address: {address[:50]}..." if len(address) > 50 else f"[FORM DATA] address: {address}")
-        print(f"[FORM DATA] kyc_type: {kyc_type}")
-        print(f"[FORM DATA] kyc_number: {kyc_number}")
         print(f"[FORM DATA] selfie_data length: {len(selfie_data) if selfie_data else 0}")
         print(f"[FORM DATA] hotel_id from form: {request.form.get('hotel_id')}")
         print(f"[FORM DATA] hotel_id from args: {request.args.get('hotel_id')}")
@@ -141,13 +130,19 @@ def submit_verification(manager_id):
         if hotel_id:
             try:
                 hotel_id = int(hotel_id)
-                print(f"[HOTEL_ID] Converted to int: {hotel_id}")
             except (ValueError, TypeError):
                 hotel_id = None
-                print(f"[HOTEL_ID] Failed to convert, set to None")
         else:
             hotel_id = None
-            print(f"[HOTEL_ID] Empty, set to None")
+
+        # ── OTP session check (server-side gate) ────────────────────────────
+        verified_phone = session.get('otp_verified_phone')
+        if not verified_phone or verified_phone != phone:
+            hn, hl = get_hotel_data(hotel_id)
+            return render_template('guest_verification_form.html',
+                                   manager_id=manager_id, hotel_id=hotel_id,
+                                   hotel_name=hn, hotel_logo=hl,
+                                   error='Mobile OTP verification is required before submitting.')
         
         # Validate required fields (relaxed for testing)
         print(f"\n[VALIDATION] Checking required fields...")
@@ -315,10 +310,9 @@ def submit_verification(manager_id):
                 except Exception as e:
                     print(f"[ACTIVITY LOG] ❌ Error: {e}")
             
-            # Fetch hotel data for success page
+            # Clear OTP session after successful submission (one-time use)
+            session.pop('otp_verified_phone', None)
             success_hotel_name, success_hotel_logo = get_hotel_data(hotel_id)
-            print(f"\n[REDIRECT] Redirecting to success page")
-            print("="*80 + "\n")
             return render_template('verification_success.html',
                                  hotel_name=success_hotel_name,
                                  hotel_logo=success_hotel_logo)
@@ -616,7 +610,12 @@ def verify_otp():
         
         # Verify OTP
         result = OTPService.verify_otp(phone_number, otp_code)
-        
+
+        # On success, store verified phone in session so backend can gate submission
+        if result.get('success'):
+            session['otp_verified_phone'] = phone_number
+            session.modified = True
+
         return jsonify(result)
     
     except Exception as e:

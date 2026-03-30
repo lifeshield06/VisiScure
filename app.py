@@ -81,6 +81,10 @@ app.register_blueprint(wallet_bp)
 from waiter_calls import waiter_calls_bp
 app.register_blueprint(waiter_calls_bp)
 
+# Import and register police blueprint
+from police import police_bp
+app.register_blueprint(police_bp)
+
 def get_db_connection():
     """Create a MySQL connection using environment variables."""
     return mysql.connector.connect(
@@ -398,6 +402,10 @@ def init_db():
         # Initialize guest verification table
         from guest_verification.models import GuestVerification
         GuestVerification.create_table()
+
+        # Initialize police module tables
+        from police.models import PoliceStation
+        PoliceStation.create_tables()
         
         print("Database initialized successfully")
     except Error as exc:

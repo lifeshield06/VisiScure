@@ -98,6 +98,16 @@
                 <span>All Managers</span>
             </a>
             
+            <div class="menu-label">Police Module</div>
+            <a href="{{ url_for('admin.police_stations') }}" class="menu-item">
+                <i class="fas fa-building-shield"></i>
+                <span>Police Stations</span>
+            </a>
+            <a href="{{ url_for('admin.police_users') }}" class="menu-item">
+                <i class="fas fa-user-shield"></i>
+                <span>Police Users</span>
+            </a>
+
             <div class="menu-label">Settings</div>
             <a href="{{ url_for('admin.account_settings') }}" class="menu-item">
                 <i class="fas fa-cog"></i>

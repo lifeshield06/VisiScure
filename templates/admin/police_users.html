@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Police Users - VisiScure Order Admin</title>
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+
+    <!-- Sidebar Brand (fixed top-left) -->
+    <div class="sidebar-brand">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="VisiScure Order" class="brand-logo">
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="VisiScure Order" class="project-logo">
+        </div>
+        <div class="header-center">
+            <div class="header-brand">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="VisiScure Order" class="hotel-logo">
+                <div class="header-title">
+                    <span class="hotel-name">VisiScure Order</span>
+                    <span class="dashboard-title">Admin Dashboard</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="profile-dropdown">
+                <div class="profile-btn" onclick="toggleDropdown()">
+                    <div class="profile-avatar">{{ session.admin_name[0]|upper if session.admin_name else 'A' }}</div>
+                    <div class="profile-info">
+                        <div class="profile-name">{{ session.admin_name or 'Admin' }}</div>
+                        <div class="profile-role">Administrator</div>
+                    </div>
+                    <i class="fas fa-chevron-down" style="color:var(--gray);font-size:0.8rem;"></i>
+                </div>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <a href="{{ url_for('admin.account_settings') }}"><i class="fas fa-cog"></i> Account Settings</a>
+                    <a href="{{ url_for('admin.logout') }}" class="danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <nav class="sidebar-menu">
+            <div class="menu-label">Main Menu</div>
+            <a href="{{ url_for('admin.dashboard') }}" class="menu-item">
+                <i class="fas fa-chart-pie"></i><span>Dashboard</span>
+            </a>
+            <div class="menu-label">Restaurant Management</div>
+            <a href="{{ url_for('admin.create_hotel') }}" class="menu-item">
+                <i class="fas fa-plus-circle"></i><span>Create Hotel</span>
+            </a>
+            <a href="{{ url_for('admin.all_hotels') }}" class="menu-item">
+                <i class="fas fa-building"></i><span>All Hotels</span>
+            </a>
+            <div class="menu-label">Manager Management</div>
+            <a href="{{ url_for('admin.add_manager') }}" class="menu-item">
+                <i class="fas fa-user-plus"></i><span>Add Manager</span>
+            </a>
+            <a href="{{ url_for('admin.all_managers') }}" class="menu-item">
+                <i class="fas fa-users"></i><span>All Managers</span>
+            </a>
+            <div class="menu-label">Police Module</div>
+            <a href="{{ url_for('admin.police_stations') }}" class="menu-item">
+                <i class="fas fa-building-shield"></i><span>Police Stations</span>
+            </a>
+            <a href="{{ url_for('admin.police_users') }}" class="menu-item active">
+                <i class="fas fa-user-shield"></i><span>Police Users</span>
+            </a>
+            <div class="menu-label">Settings</div>
+            <a href="{{ url_for('admin.account_settings') }}" class="menu-item">
+                <i class="fas fa-cog"></i><span>Account Settings</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for cat, msg in messages %}
+                        <div class="flash-message {{ cat }}">
+                            <i class="fas fa-{% if cat == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                            {{ msg }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="content-header">
+            <div>
+                <h2 style="font-size:1.75rem;font-weight:700;color:var(--dark);">Police Users</h2>
+                <p style="color:var(--gray);margin-top:0.25rem;">Manage police officer accounts and station assignments</p>
+            </div>
+            <a href="{{ url_for('admin.police_stations') }}" class="btn btn-secondary">
+                <i class="fas fa-building-shield"></i> Manage Stations
+            </a>
+        </div>
+
+        <div style="display:grid;grid-template-columns:360px 1fr;gap:1.5rem;align-items:start;">
+
+            <!-- Add User Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-user-plus" style="color:var(--primary);margin-right:0.5rem;"></i>Add Police User</h3>
+                </div>
+                <div class="card-body">
+                    {% if stations %}
+                    <form method="POST">
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" name="username" placeholder="Login username" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" name="password" placeholder="Set password" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Police ID / Badge No.</label>
+                            <input type="text" name="police_id" placeholder="e.g. KA-1234" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Assign Police Station</label>
+                            <select name="station_id" required>
+                                <option value="">-- Select Station --</option>
+                                {% for s in stations %}
+                                <option value="{{ s[0] }}">{{ s[1] }} — {{ s[2] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-user-plus"></i> Add Police User
+                        </button>
+                    </form>
+                    {% else %}
+                    <div style="text-align:center;padding:2rem 0;color:var(--gray);">
+                        <i class="fas fa-exclamation-circle" style="font-size:2rem;margin-bottom:0.75rem;display:block;color:var(--warning);"></i>
+                        <p>No police stations found.</p>
+                        <a href="{{ url_for('admin.police_stations') }}" class="btn btn-primary" style="margin-top:1rem;">
+                            <i class="fas fa-plus"></i> Add a Station First
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div class="table-container">
+                <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;">
+                    <h3 style="font-size:1.1rem;font-weight:600;color:var(--dark);">
+                        <i class="fas fa-user-shield" style="color:var(--primary);margin-right:0.5rem;"></i>
+                        All Police Users
+                        <span style="background:#dbeafe;color:#1e40af;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:20px;margin-left:0.5rem;font-weight:600;">{{ users|length }}</span>
+                    </h3>
+                </div>
+                {% if users %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Username</th>
+                            <th>Police ID</th>
+                            <th>Station</th>
+                            <th>Added On</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td><strong>{{ loop.index }}</strong></td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:0.75rem;">
+                                    <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;color:#f0c040;font-weight:700;font-size:0.9rem;flex-shrink:0;">
+                                        {{ u[1][0]|upper }}
+                                    </div>
+                                    <span style="font-weight:600;">{{ u[1] }}</span>
+                                </div>
+                            </td>
+                            <td><code style="background:var(--bg-light);padding:0.25rem 0.6rem;border-radius:6px;font-size:0.85rem;">{{ u[2] }}</code></td>
+                            <td>
+                                <span class="badge badge-info"><i class="fas fa-building-shield" style="margin-right:4px;"></i>{{ u[3] }}</span>
+                            </td>
+                            <td style="font-size:0.85rem;color:var(--gray);">
+                                {{ u[4].strftime('%d %b %Y') if u[4] else '—' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="no-data">
+                    <i class="fas fa-user-shield" style="font-size:2.5rem;margin-bottom:0.75rem;display:block;color:var(--light-gray);"></i>
+                    No police users added yet.
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        function toggleDropdown() {
+            document.getElementById('dropdownMenu').classList.toggle('show');
+        }
+        window.onclick = function(e) {
+            if (!e.target.closest('.profile-dropdown'))
+                document.getElementById('dropdownMenu').classList.remove('show');
+        }
+    </script>
+</body>
+</html>

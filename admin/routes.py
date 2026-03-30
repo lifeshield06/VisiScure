@@ -1080,3 +1080,124 @@ def get_all_activities():
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# =========================
+# POLICE MANAGEMENT
+# =========================
+
+@admin_bp.route("/police/stations", methods=["GET", "POST"])
+def police_stations():
+    if "admin_id" not in session:
+        return redirect(url_for("admin.login"))
+
+    from police.models import PoliceStation
+    PoliceStation.create_tables()  # ensure tables exist
+
+    if request.method == "POST":
+        station_name = request.form.get("station_name", "").strip()
+        location = request.form.get("location", "").strip()
+        if station_name and location:
+            PoliceStation.add(station_name, location)
+            log_activity('police', f"Police station '{station_name}' added")
+            flash("Police station added successfully!", "success")
+        else:
+            flash("Station name and location are required.", "error")
+        return redirect(url_for("admin.police_stations"))
+
+    stations = PoliceStation.get_all()
+    return render_template("admin/police_stations.html", stations=stations)
+
+
+@admin_bp.route("/police/users", methods=["GET", "POST"])
+def police_users():
+    if "admin_id" not in session:
+        return redirect(url_for("admin.login"))
+
+    from police.models import PoliceStation, PoliceUser
+    PoliceStation.create_tables()  # ensure tables exist
+
+    stations = PoliceStation.get_all()
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        police_id = request.form.get("police_id", "").strip()
+        station_id = request.form.get("station_id", "")
+
+        if not all([username, password, police_id, station_id]):
+            flash("All fields are required.", "error")
+        else:
+            try:
+                PoliceUser.add(username, password, police_id, station_id)
+                log_activity('police', f"Police user '{username}' added")
+                flash("Police user added successfully!", "success")
+            except Exception as e:
+                if "Duplicate entry" in str(e):
+                    flash("Username already exists.", "error")
+                else:
+                    flash(f"Error adding user: {e}", "error")
+        return redirect(url_for("admin.police_users"))
+
+    users = PoliceUser.get_all()
+    return render_template("admin/police_users.html", stations=stations, users=users)
+
+
+@admin_bp.route("/police/assign-hotels/<int:station_id>", methods=["GET", "POST"])
+def police_assign_hotels(station_id):
+    if "admin_id" not in session:
+        return redirect(url_for("admin.login"))
+
+    from police.models import PoliceStation
+    PoliceStation.create_tables()  # ensure tables exist
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Ensure mapping table exists
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS police_station_hotels (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            station_id INT NOT NULL,
+            hotel_id INT NOT NULL,
+            UNIQUE KEY unique_mapping (station_id, hotel_id),
+            FOREIGN KEY (station_id) REFERENCES police_stations(id) ON DELETE CASCADE,
+            FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE
+        )
+    """)
+    conn.commit()
+
+    if request.method == "POST":
+        hotel_ids = request.form.getlist("hotel_ids")
+        # Remove old mappings for this station
+        cursor.execute("DELETE FROM police_station_hotels WHERE station_id = %s", (station_id,))
+        for hid in hotel_ids:
+            cursor.execute(
+                "INSERT IGNORE INTO police_station_hotels (station_id, hotel_id) VALUES (%s, %s)",
+                (station_id, hid)
+            )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        flash("Hotel assignments updated.", "success")
+        return redirect(url_for("admin.police_stations"))
+
+    cursor.execute("SELECT id, hotel_name FROM hotels ORDER BY hotel_name")
+    all_hotels = cursor.fetchall()
+
+    cursor.execute("SELECT hotel_id FROM police_station_hotels WHERE station_id = %s", (station_id,))
+    assigned_ids = {r[0] for r in cursor.fetchall()}
+
+    cursor.execute("SELECT station_name FROM police_stations WHERE id = %s", (station_id,))
+    station = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    return render_template(
+        "admin/police_assign_hotels.html",
+        station_id=station_id,
+        station_name=station[0] if station else "",
+        all_hotels=all_hotels,
+        assigned_ids=assigned_ids
+    )
