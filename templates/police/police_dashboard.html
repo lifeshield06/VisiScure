@@ -1,380 +1,675 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Police Dashboard — VisiScure</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Police Dashboard — VisiScure</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0f172a;--navy2:#1e293b;--navy3:#334155;
+  --gold:#f59e0b;--gold2:#fbbf24;
+  --blue:#3b82f6;--blue2:#2563eb;--blue3:#1d4ed8;
+  --green:#10b981;--red:#ef4444;--orange:#f97316;
+  --gray:#64748b;--gray2:#94a3b8;--gray3:#cbd5e1;
+  --light:#f1f5f9;--white:#fff;
+  --sw:270px;--hh:64px;--r:14px;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  --sh2:0 4px 24px rgba(0,0,0,.12);
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--light);color:var(--navy2);min-height:100vh}
 
-        :root {
-            --navy: #1a1a2e;
-            --navy-dark: #0f0f1a;
-            --gold: #f0c040;
-            --primary: #2563eb;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --gray: #64748b;
-            --light: #f4f7fb;
-            --white: #ffffff;
-            --sidebar-w: 260px;
-            --header-h: 68px;
-            --radius: 12px;
-            --shadow: 0 2px 12px rgba(0,0,0,0.08);
-            --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
-        }
+/* ── TOPBAR ── */
+.topbar{position:fixed;top:0;left:0;right:0;height:var(--hh);background:var(--navy);z-index:200;
+  display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;
+  box-shadow:0 2px 20px rgba(0,0,0,.4)}
+.tb-brand{display:flex;align-items:center;gap:.875rem}
+.tb-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--gold),var(--gold2));
+  border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tb-icon i{color:var(--navy);font-size:1.1rem}
+.tb-title{color:#fff;font-weight:700;font-size:1rem;line-height:1.2}
+.tb-sub{color:rgba(255,255,255,.45);font-size:.72rem}
+.tb-right{display:flex;align-items:center;gap:.75rem}
+.tb-pill{display:flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.35rem .85rem;
+  color:rgba(255,255,255,.75);font-size:.8rem}
+.tb-pill i{color:var(--gold);font-size:.8rem}
+.btn-out{display:flex;align-items:center;gap:.4rem;background:rgba(239,68,68,.15);
+  color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:8px;
+  padding:.4rem .9rem;font-size:.8rem;font-weight:600;text-decoration:none;transition:.2s}
+.btn-out:hover{background:rgba(239,68,68,.3);color:#fff}
 
-        body { font-family: 'Inter', sans-serif; background: var(--light); color: #1e293b; }
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;top:var(--hh);left:0;bottom:0;width:var(--sw);
+  background:var(--navy);overflow-y:auto;z-index:100;display:flex;flex-direction:column}
+.sb-officer{margin:1.25rem 1rem;background:linear-gradient(135deg,#1e3a5f,#1e293b);
+  border:1px solid rgba(255,255,255,.08);border-radius:var(--r);padding:1.25rem}
+.sb-av{width:52px;height:52px;background:linear-gradient(135deg,var(--gold),var(--gold2));
+  border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;font-weight:800;color:var(--navy);margin-bottom:.875rem}
+.sb-name{color:#fff;font-weight:700;font-size:.95rem;margin-bottom:.2rem}
+.sb-id{color:rgba(255,255,255,.4);font-size:.72rem;font-family:monospace}
+.sb-station{display:flex;align-items:center;gap:.4rem;margin-top:.6rem;
+  font-size:.75rem;color:var(--gold);font-weight:600}
+.sb-stats{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin:0 1rem 1rem}
+.sb-stat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;padding:.75rem;text-align:center}
+.sb-stat-val{font-size:1.5rem;font-weight:800;color:var(--blue);line-height:1}
+.sb-stat-val.green{color:var(--green)}
+.sb-stat-lbl{font-size:.68rem;color:var(--gray2);margin-top:.25rem;text-transform:uppercase;letter-spacing:.04em}
+.sb-divider{height:1px;background:rgba(255,255,255,.07);margin:.25rem 1rem .75rem}
+.sb-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--blue);padding:.5rem 1.25rem .3rem}
+.sb-item{display:flex;align-items:center;gap:.75rem;padding:.7rem 1.25rem;
+  color:rgba(255,255,255,.55);font-size:.85rem;font-weight:500;text-decoration:none;
+  transition:.15s;border-left:3px solid transparent;margin-bottom:1px}
+.sb-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.9)}
+.sb-item.active{background:rgba(59,130,246,.15);color:var(--blue);border-left-color:var(--blue);font-weight:600}
+.sb-item i{width:18px;text-align:center;font-size:.9rem}
+.sb-item.danger{color:rgba(239,68,68,.7)}
+.sb-item.danger:hover{background:rgba(239,68,68,.1);color:#ef4444}
+.sb-spacer{flex:1}
 
-        /* ── HEADER ── */
-        .header {
-            position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
-            background: var(--navy); z-index: 100;
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 1.75rem;
-            box-shadow: 0 2px 16px rgba(0,0,0,0.3);
-        }
-        .header-brand { display: flex; align-items: center; gap: 0.75rem; }
-        .header-brand .shield { width: 40px; height: 40px; background: var(--gold); border-radius: 10px;
-            display: flex; align-items: center; justify-content: center; }
-        .header-brand .shield i { color: var(--navy); font-size: 1.2rem; }
-        .header-brand .title { color: var(--white); font-weight: 700; font-size: 1.05rem; line-height: 1.2; }
-        .header-brand .subtitle { color: rgba(255,255,255,0.5); font-size: 0.75rem; }
+/* ── MAIN ── */
+.main{margin-left:var(--sw);margin-top:var(--hh);padding:2rem;min-height:calc(100vh - var(--hh))}
 
-        .header-right { display: flex; align-items: center; gap: 1rem; }
-        .header-badge { display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.08);
-            border-radius: 8px; padding: 0.4rem 0.85rem; color: rgba(255,255,255,0.8); font-size: 0.82rem; }
-        .header-badge i { color: var(--gold); }
-        .btn-logout { display: flex; align-items: center; gap: 0.4rem; background: rgba(239,68,68,0.15);
-            color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); border-radius: 8px;
-            padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 600; cursor: pointer;
-            text-decoration: none; transition: all 0.2s; }
-        .btn-logout:hover { background: rgba(239,68,68,0.3); color: #fff; }
+/* page header */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:1rem}
+.ph-left h1{font-size:1.6rem;font-weight:800;color:var(--navy);margin-bottom:.25rem}
+.ph-left p{color:var(--gray);font-size:.875rem}
+.ph-badge{display:inline-flex;align-items:center;gap:.4rem;background:#eff6ff;
+  color:var(--blue2);border:1px solid #bfdbfe;border-radius:20px;
+  padding:.35rem .9rem;font-size:.78rem;font-weight:600}
 
-        /* ── SIDEBAR ── */
-        .sidebar {
-            position: fixed; top: var(--header-h); left: 0; bottom: 0;
-            width: var(--sidebar-w); background: var(--white);
-            border-right: 1px solid #e2e8f0; overflow-y: auto; z-index: 90;
-            padding: 1.5rem 0;
-        }
+/* stat cards row */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.75rem}
+.stat-card{background:var(--white);border-radius:var(--r);padding:1.25rem 1.5rem;
+  box-shadow:var(--sh);display:flex;align-items:center;gap:1rem;border:1px solid #f1f5f9}
+.stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;
+  justify-content:center;font-size:1.2rem;flex-shrink:0}
+.stat-icon.blue{background:#eff6ff;color:var(--blue2)}
+.stat-icon.green{background:#ecfdf5;color:var(--green)}
+.stat-icon.orange{background:#fff7ed;color:var(--orange)}
+.stat-icon.red{background:#fef2f2;color:var(--red)}
+.stat-val{font-size:1.6rem;font-weight:800;color:var(--navy);line-height:1}
+.stat-lbl{font-size:.75rem;color:var(--gray);margin-top:.2rem}
+</style>
+<style>
+/* search card */
+.search-card{background:var(--white);border-radius:var(--r);box-shadow:var(--sh);
+  border:1px solid #f1f5f9;margin-bottom:1.75rem;overflow:hidden}
+.search-card-head{background:linear-gradient(135deg,var(--navy),var(--navy2));
+  padding:1rem 1.5rem;display:flex;align-items:center;gap:.75rem}
+.search-card-head h2{color:#fff;font-size:.95rem;font-weight:700}
+.search-card-head i{color:var(--gold)}
+.search-body{padding:1.25rem 1.5rem}
+.search-tabs{display:flex;gap:.5rem;margin-bottom:1rem}
+.stab{display:flex;align-items:center;gap:.4rem;padding:.5rem 1rem;border-radius:8px;
+  font-size:.82rem;font-weight:600;cursor:pointer;border:2px solid #e2e8f0;
+  background:#f8fafc;color:var(--gray);transition:.2s}
+.stab.active{border-color:var(--blue2);background:#eff6ff;color:var(--blue2)}
+.stab i{font-size:.85rem}
+.search-panel{display:none}
+.search-panel.active{display:block}
+.search-row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}
+.s-input{flex:1;min-width:220px;border:2px solid #e2e8f0;border-radius:10px;
+  padding:.7rem 1rem .7rem 2.75rem;font-size:.9rem;font-family:inherit;
+  outline:none;transition:.2s;background:#f8fafc}
+.s-input:focus{border-color:var(--blue2);background:#fff;box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.s-input-wrap{position:relative;flex:1;min-width:220px}
+.s-input-wrap i{position:absolute;left:.9rem;top:50%;transform:translateY(-50%);color:var(--gray2)}
+.btn-search{display:flex;align-items:center;gap:.5rem;background:linear-gradient(135deg,var(--blue2),var(--blue3));
+  color:#fff;border:none;border-radius:10px;padding:.7rem 1.5rem;
+  font-size:.88rem;font-weight:700;cursor:pointer;transition:.2s;white-space:nowrap;
+  box-shadow:0 2px 8px rgba(37,99,235,.3)}
+.btn-search:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(37,99,235,.4)}
+.btn-search:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.btn-clear2{display:flex;align-items:center;gap:.4rem;background:#f1f5f9;
+  color:var(--gray);border:1px solid #e2e8f0;border-radius:10px;padding:.7rem 1rem;
+  font-size:.85rem;font-weight:600;cursor:pointer;transition:.2s}
+.btn-clear2:hover{background:#e2e8f0}
+/* image upload */
+.img-drop{border:2px dashed #cbd5e1;border-radius:12px;padding:1.5rem;text-align:center;
+  cursor:pointer;transition:.2s;background:#f8fafc;position:relative}
+.img-drop:hover{border-color:var(--blue2);background:#eff6ff}
+.img-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.img-drop i{font-size:2rem;color:var(--gray3);margin-bottom:.5rem;display:block}
+.img-drop p{font-size:.85rem;color:var(--gray);margin:0}
+.img-drop span{font-size:.75rem;color:var(--gray2)}
+.img-preview-row{display:none;align-items:center;gap:.75rem;margin-top:.75rem;
+  background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:.75rem 1rem}
+.img-preview-row img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:2px solid #e0f2fe}
+.img-preview-info{flex:1}
+.img-preview-info .fname{font-size:.82rem;font-weight:600;color:var(--navy2)}
+.img-preview-info .fsize{font-size:.72rem;color:var(--gray)}
+.btn-rm{background:none;border:none;color:var(--red);cursor:pointer;font-size:1.1rem;padding:.2rem}
+.img-note{display:none;align-items:center;gap:.5rem;margin-top:.75rem;
+  background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.6rem 1rem;
+  font-size:.78rem;color:#92400e}
 
-        .officer-card {
-            margin: 0 1rem 1.5rem; background: linear-gradient(135deg, var(--navy), #16213e);
-            border-radius: var(--radius); padding: 1.25rem; color: var(--white);
-        }
-        .officer-avatar {
-            width: 48px; height: 48px; background: var(--gold); border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.3rem; font-weight: 700; color: var(--navy); margin-bottom: 0.75rem;
-        }
-        .officer-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.2rem; }
-        .officer-id { font-size: 0.75rem; color: rgba(255,255,255,0.55); font-family: monospace; }
-        .officer-station { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.6rem;
-            font-size: 0.78rem; color: var(--gold); }
+/* table card */
+.table-card{background:var(--white);border-radius:var(--r);box-shadow:var(--sh);
+  border:1px solid #f1f5f9;overflow:hidden}
+.tc-head{padding:1rem 1.5rem;border-bottom:1px solid #f1f5f9;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
+.tc-head h3{font-size:.95rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:.5rem}
+.cnt-badge{background:#dbeafe;color:#1e40af;font-size:.7rem;padding:.2rem .65rem;
+  border-radius:20px;font-weight:700}
+.tc-meta{font-size:.78rem;color:var(--gray)}
+table{width:100%;border-collapse:collapse}
+thead{background:linear-gradient(135deg,var(--navy),var(--navy2))}
+thead th{padding:.875rem 1.1rem;text-align:left;font-size:.7rem;font-weight:700;
+  color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+tbody tr{border-bottom:1px solid #f8fafc;transition:background .12s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#f8fafc}
+td{padding:.875rem 1.1rem;font-size:.855rem;color:#374151;vertical-align:middle}
+.g-name{font-weight:700;color:var(--navy)}
+.mono{font-family:'Courier New',monospace;font-size:.82rem}
+.masked{font-family:'Courier New',monospace;letter-spacing:1px;color:var(--gray);font-size:.8rem}
+.s-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.28rem .75rem;
+  border-radius:20px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.s-approved{background:#d1fae5;color:#065f46}
+.s-pending{background:#fef3c7;color:#92400e}
+.s-rejected{background:#fee2e2;color:#991b1b}
+.thumb{width:46px;height:46px;object-fit:cover;border-radius:9px;cursor:pointer;
+  border:2px solid #e5e7eb;transition:.2s}
+.thumb:hover{transform:scale(1.12);border-color:var(--blue2);box-shadow:0 4px 12px rgba(37,99,235,.25)}
+.empty{padding:4rem 1rem;text-align:center;color:var(--gray)}
+.empty i{font-size:3rem;color:var(--gray3);margin-bottom:1rem;display:block}
+.empty h4{font-size:1rem;font-weight:700;color:var(--navy2);margin-bottom:.4rem}
+.empty p{font-size:.85rem;color:var(--gray)}
 
-        .sidebar-section { padding: 0 1rem; margin-bottom: 0.5rem; }
-        .sidebar-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.08em; color: var(--primary); padding: 0.75rem 0.5rem 0.4rem; }
-        .sidebar-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0.75rem;
-            border-radius: 8px; color: var(--gray); font-size: 0.88rem; font-weight: 500;
-            cursor: pointer; transition: all 0.2s; text-decoration: none; margin-bottom: 2px; }
-        .sidebar-item:hover { background: #f1f5f9; color: #1e293b; }
-        .sidebar-item.active { background: #eff6ff; color: var(--primary); font-weight: 600; }
-        .sidebar-item i { width: 18px; text-align: center; }
+/* lightbox */
+#lbx{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;
+  align-items:center;justify-content:center;flex-direction:column;gap:1rem}
+#lbx img{max-width:88vw;max-height:82vh;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+#lbx .lbx-close{position:absolute;top:1.25rem;right:1.5rem;background:rgba(255,255,255,.12);
+  border:none;color:#fff;width:42px;height:42px;border-radius:50%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:1.2rem;transition:.2s}
+#lbx .lbx-close:hover{background:rgba(255,255,255,.25)}
 
-        .stat-mini { margin: 0 1rem 0.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-        .stat-mini-card { background: var(--light); border-radius: 8px; padding: 0.75rem;
-            text-align: center; border: 1px solid #e2e8f0; }
-        .stat-mini-val { font-size: 1.4rem; font-weight: 700; color: var(--primary); }
-        .stat-mini-lbl { font-size: 0.7rem; color: var(--gray); margin-top: 2px; }
-
-        /* ── MAIN ── */
-        .main {
-            margin-left: var(--sidebar-w); margin-top: var(--header-h);
-            padding: 1.75rem; min-height: calc(100vh - var(--header-h));
-        }
-
-        .page-title { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-bottom: 0.25rem; }
-        .page-sub { color: var(--gray); font-size: 0.88rem; margin-bottom: 1.5rem; }
-
-        /* Search bar */
-        .search-bar {
-            background: var(--white); border-radius: var(--radius); padding: 1rem 1.25rem;
-            box-shadow: var(--shadow); margin-bottom: 1.5rem;
-            display: flex; gap: 0.75rem; align-items: center;
-        }
-        .search-bar input {
-            flex: 1; border: 2px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 1rem;
-            font-size: 0.9rem; font-family: inherit; outline: none; transition: border-color 0.2s;
-        }
-        .search-bar input:focus { border-color: var(--primary); }
-        .btn-search { display: flex; align-items: center; gap: 0.4rem; background: var(--primary);
-            color: var(--white); border: none; border-radius: 8px; padding: 0.65rem 1.25rem;
-            font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-        .btn-search:hover { background: #1d4ed8; }
-        .btn-clear { display: flex; align-items: center; gap: 0.4rem; background: #f1f5f9;
-            color: var(--gray); border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 1rem;
-            font-size: 0.88rem; font-weight: 500; cursor: pointer; text-decoration: none; white-space: nowrap; }
-        .btn-clear:hover { background: #e2e8f0; }
-
-        /* Table card */
-        .table-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
-        .table-card-header {
-            padding: 1.1rem 1.5rem; border-bottom: 1px solid #f1f5f9;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .table-card-header h3 { font-size: 1rem; font-weight: 600; color: #0f172a;
-            display: flex; align-items: center; gap: 0.5rem; }
-        .count-badge { background: #dbeafe; color: #1e40af; font-size: 0.72rem;
-            padding: 0.2rem 0.6rem; border-radius: 20px; font-weight: 700; }
-
-        table { width: 100%; border-collapse: collapse; }
-        thead { background: linear-gradient(135deg, #1e293b, #334155); }
-        thead th { padding: 0.875rem 1.1rem; text-align: left; font-size: 0.75rem;
-            font-weight: 600; color: rgba(255,255,255,0.85); text-transform: uppercase; letter-spacing: 0.5px; }
-        tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
-        tbody tr:last-child { border-bottom: none; }
-        tbody tr:hover { background: #f8fafc; }
-        td { padding: 0.875rem 1.1rem; font-size: 0.875rem; color: #374151; vertical-align: middle; }
-
-        .guest-name { font-weight: 600; color: #0f172a; }
-        .phone-num { font-family: monospace; font-size: 0.85rem; }
-        .aadhaar-masked { font-family: monospace; letter-spacing: 1.5px; color: var(--gray); font-size: 0.82rem; }
-
-        .status-badge { display: inline-flex; align-items: center; gap: 0.3rem;
-            padding: 0.25rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
-        .status-approved { background: #d1fae5; color: #065f46; }
-        .status-pending   { background: #fef3c7; color: #92400e; }
-        .status-rejected  { background: #fee2e2; color: #991b1b; }
-
-        .img-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 8px;
-            cursor: pointer; border: 2px solid #e5e7eb; transition: transform 0.2s, border-color 0.2s; }
-        .img-thumb:hover { transform: scale(1.1); border-color: var(--primary); }
-
-        .empty-state { padding: 3.5rem 1rem; text-align: center; color: var(--gray); }
-        .empty-state i { font-size: 2.5rem; margin-bottom: 0.75rem; display: block; color: #cbd5e1; }
-        .empty-state p { font-size: 0.95rem; }
-
-        /* Lightbox */
-        #imgModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88);
-            z-index: 9999; align-items: center; justify-content: center; }
-        #imgModal img { max-width: 90vw; max-height: 88vh; border-radius: 12px;
-            box-shadow: 0 16px 48px rgba(0,0,0,0.6); }
-        #imgModal .close-btn { position: absolute; top: 1.25rem; right: 1.5rem;
-            background: rgba(255,255,255,0.15); border: none; color: #fff; font-size: 1.5rem;
-            width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex;
-            align-items: center; justify-content: center; transition: background 0.2s; }
-        #imgModal .close-btn:hover { background: rgba(255,255,255,0.3); }
-    </style>
+@media(max-width:1100px){.stat-row{grid-template-columns:1fr 1fr}}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .main{margin-left:0}
+  .stat-row{grid-template-columns:1fr 1fr}
+  .topbar{padding:0 1rem}
+}
+</style>
 </head>
 <body>
 
-    <!-- Header -->
-    <header class="header">
-        <div class="header-brand">
-            <div class="shield"><i class="fas fa-shield-alt"></i></div>
-            <div>
-                <div class="title">Police Portal</div>
-                <div class="subtitle">VisiScure Order — Secure Access</div>
-            </div>
-        </div>
-        <div class="header-right">
-            <div class="header-badge"><i class="fas fa-map-marker-alt"></i> {{ user.station_name }}</div>
-            <div class="header-badge"><i class="fas fa-id-badge"></i> {{ user.police_id }}</div>
-            <a href="{{ url_for('police.logout') }}" class="btn-logout">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
-        </div>
-    </header>
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <!-- Officer Card -->
-        <div class="officer-card">
-            <div class="officer-avatar">{{ user.username[0]|upper }}</div>
-            <div class="officer-name">{{ user.username }}</div>
-            <div class="officer-id">ID: {{ user.police_id }}</div>
-            <div class="officer-station"><i class="fas fa-building-shield"></i> {{ user.station_name }}</div>
-        </div>
-
-        <!-- Stats -->
-        <div class="stat-mini">
-            <div class="stat-mini-card">
-                <div class="stat-mini-val">{{ verifications|length }}</div>
-                <div class="stat-mini-lbl">Total Records</div>
-            </div>
-            <div class="stat-mini-card">
-                <div class="stat-mini-val" style="color:var(--success);">
-                    {{ verifications|selectattr(4, 'equalto', 'approved')|list|length }}
-                </div>
-                <div class="stat-mini-lbl">Approved</div>
-            </div>
-        </div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-label">Navigation</div>
-            <a href="{{ url_for('police.dashboard') }}" class="sidebar-item active">
-                <i class="fas fa-chart-bar"></i> Dashboard
-            </a>
-            <a href="{{ url_for('police.dashboard') }}" class="sidebar-item">
-                <i class="fas fa-id-card"></i> Guest Records
-            </a>
-        </div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-label">Account</div>
-            <a href="{{ url_for('police.logout') }}" class="sidebar-item" style="color:#ef4444;">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main">
-        <div class="page-title">Guest Verification Records</div>
-        <div class="page-sub">
-            Showing records for <strong>{{ user.station_name }}</strong>
-            {% if search %} — search: "<strong>{{ search }}</strong>"{% endif %}
-        </div>
-
-        <!-- Search -->
-        <form method="GET" class="search-bar">
-            <i class="fas fa-search" style="color:var(--gray);flex-shrink:0;"></i>
-            <input type="text" name="search" value="{{ search }}"
-                   placeholder="Search by guest name, mobile number or Aadhaar...">
-            <button type="submit" class="btn-search">
-                <i class="fas fa-search"></i> Search
-            </button>
-            {% if search %}
-            <a href="{{ url_for('police.dashboard') }}" class="btn-clear">
-                <i class="fas fa-times"></i> Clear
-            </a>
-            {% endif %}
-        </form>
-
-        <!-- Table -->
-        <div class="table-card">
-            <div class="table-card-header">
-                <h3>
-                    <i class="fas fa-id-card" style="color:var(--primary);"></i>
-                    Guest Verifications
-                    <span class="count-badge">{{ verifications|length }}</span>
-                </h3>
-                {% if search %}
-                <span style="font-size:0.82rem;color:var(--gray);">Results for "{{ search }}"</span>
-                {% endif %}
-            </div>
-
-            {% if not hotels_assigned %}
-            <div class="empty-state">
-                <i class="fas fa-exclamation-triangle" style="color:var(--warning);"></i>
-                <p style="font-weight:600;color:#92400e;">No hotels assigned to your station yet.</p>
-                <p style="font-size:0.82rem;margin-top:0.4rem;">Please ask the admin to assign hotels to <strong>{{ user.station_name }}</strong> from the Police Stations page.</p>
-            </div>
-            {% elif verifications %}
-            <div style="overflow-x:auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Guest Name</th>
-                            <th>Mobile</th>
-                            <th>Aadhaar (Masked)</th>
-                            <th>Hotel</th>
-                            <th>Status</th>
-                            <th>Selfie</th>
-                            <th>Aadhaar Doc</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for v in verifications %}
-                        {% set aadhaar = v[3]|string %}
-                        {% set masked = aadhaar[:4] + ' XXXX XXXX' if aadhaar|length >= 12 else 'XXXX-XXXX-' + aadhaar[-4:] %}
-                        <tr>
-                            <td style="color:var(--gray);font-weight:500;">{{ loop.index }}</td>
-                            <td>
-                                <div style="display:flex;align-items:center;gap:0.6rem;">
-                                    <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#2563eb,#1d4ed8);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:0.8rem;flex-shrink:0;">
-                                        {{ v[1][0]|upper if v[1] else '?' }}
-                                    </div>
-                                    <span class="guest-name">{{ v[1] }}</span>
-                                </div>
-                            </td>
-                            <td><span class="phone-num">{{ v[2] }}</span></td>
-                            <td><span class="aadhaar-masked">{{ masked }}</span></td>
-                            <td>
-                                <span style="display:inline-flex;align-items:center;gap:0.3rem;font-size:0.82rem;">
-                                    <i class="fas fa-hotel" style="color:var(--primary);font-size:0.75rem;"></i>
-                                    {{ v[5] }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="status-badge status-{{ v[4] }}">
-                                    <i class="fas fa-{% if v[4] == 'approved' %}check-circle{% elif v[4] == 'rejected' %}times-circle{% else %}clock{% endif %}"></i>
-                                    {{ v[4]|capitalize }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if v[6] %}
-                                {% set sp = v[6].replace('static/', '', 1) if v[6].startswith('static/') else v[6] %}
-                                <img src="{{ url_for('static', filename=sp) }}" class="img-thumb"
-                                     alt="Selfie" onclick="openImg(this.src)" title="View selfie">
-                                {% else %}
-                                <span style="color:#cbd5e1;font-size:0.8rem;">—</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if v[7] %}
-                                {% set ap = v[7].replace('static/', '', 1) if v[7].startswith('static/') else v[7] %}
-                                <img src="{{ url_for('static', filename=ap) }}" class="img-thumb"
-                                     alt="Aadhaar" onclick="openImg(this.src)" title="View Aadhaar">
-                                {% else %}
-                                <span style="color:#cbd5e1;font-size:0.8rem;">—</span>
-                                {% endif %}
-                            </td>
-                            <td style="font-size:0.8rem;color:var(--gray);white-space:nowrap;">
-                                {{ v[8].strftime('%d %b %Y') if v[8] else '—' }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <i class="fas fa-{% if search %}search{% else %}id-card{% endif %}"></i>
-                <p>
-                    {% if search %}No records found for "<strong>{{ search }}</strong>"
-                    {% else %}No guest verifications found for your assigned station.{% endif %}
-                </p>
-            </div>
-            {% endif %}
-        </div>
-    </main>
-
-    <!-- Image Lightbox -->
-    <div id="imgModal" onclick="closeImg(event)">
-        <button class="close-btn" onclick="document.getElementById('imgModal').style.display='none'">
-            <i class="fas fa-times"></i>
-        </button>
-        <img id="imgModalSrc" src="" alt="">
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="tb-brand">
+    <div class="tb-icon"><i class="fas fa-shield-halved"></i></div>
+    <div>
+      <div class="tb-title">Police Portal</div>
+      <div class="tb-sub">VisiScure — Secure Access</div>
     </div>
+  </div>
+  <div class="tb-right">
+    <div class="tb-pill"><i class="fas fa-location-dot"></i> {{ user.station_name }}</div>
+    <div class="tb-pill"><i class="fas fa-id-badge"></i> {{ user.police_id }}</div>
+    <a href="{{ url_for('police.logout') }}" class="btn-out">
+      <i class="fas fa-right-from-bracket"></i> Logout
+    </a>
+  </div>
+</header>
 
-    <script>
-        function openImg(src, label) {
-            const modal = document.getElementById('imgModal');
-            document.getElementById('imgModalSrc').src = src;
-            modal.style.display = 'flex';
-        }
-        function closeImg(e) {
-            if (e.target === document.getElementById('imgModal'))
-                document.getElementById('imgModal').style.display = 'none';
-        }
-    </script>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-officer">
+    <div class="sb-av">{{ user.username[0]|upper }}</div>
+    <div class="sb-name">{{ user.username }}</div>
+    <div class="sb-id">ID: {{ user.police_id }}</div>
+    <div class="sb-station"><i class="fas fa-building-shield"></i> {{ user.station_name }}</div>
+  </div>
+
+  <div class="sb-stats">
+    <div class="sb-stat">
+      <div class="sb-stat-val" id="sbTotal">—</div>
+      <div class="sb-stat-lbl">Results</div>
+    </div>
+    <div class="sb-stat">
+      <div class="sb-stat-val green" id="sbApproved">—</div>
+      <div class="sb-stat-lbl">Approved</div>
+    </div>
+  </div>
+
+  <div class="sb-divider"></div>
+  <div class="sb-label">Navigation</div>
+  <a href="{{ url_for('police.dashboard') }}" class="sb-item active">
+    <i class="fas fa-gauge-high"></i> Dashboard
+  </a>
+  <a href="{{ url_for('police.dashboard') }}" class="sb-item">
+    <i class="fas fa-id-card-clip"></i> Guest Records
+  </a>
+
+  <div class="sb-divider" style="margin-top:.75rem"></div>
+  <div class="sb-label">Account</div>
+  <a href="{{ url_for('police.logout') }}" class="sb-item danger">
+    <i class="fas fa-right-from-bracket"></i> Logout
+  </a>
+  <div class="sb-spacer"></div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- Page header -->
+  <div class="ph">
+    <div class="ph-left">
+      <h1><i class="fas fa-id-card-clip" style="color:var(--blue2);margin-right:.5rem;font-size:1.3rem"></i>Guest Verification Records</h1>
+      <p>Station: <strong>{{ user.station_name }}</strong> &nbsp;·&nbsp; Search to view records</p>
+    </div>
+    <span class="ph-badge"><i class="fas fa-shield-halved"></i> Secure Portal</span>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fas fa-magnifying-glass"></i></div>
+      <div><div class="stat-val" id="sc-total">—</div><div class="stat-lbl">Search Results</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fas fa-circle-check"></i></div>
+      <div><div class="stat-val" id="sc-approved">—</div><div class="stat-lbl">Approved</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange"><i class="fas fa-clock"></i></div>
+      <div><div class="stat-val" id="sc-pending">—</div><div class="stat-lbl">Pending</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="fas fa-circle-xmark"></i></div>
+      <div><div class="stat-val" id="sc-rejected">—</div><div class="stat-lbl">Rejected</div></div>
+    </div>
+  </div>
+
+  <!-- Search card -->
+  <div class="search-card">
+    <div class="search-card-head">
+      <i class="fas fa-magnifying-glass-location"></i>
+      <h2>Search Guest Records</h2>
+      <span style="margin-left:auto;font-size:.75rem;color:rgba(255,255,255,.5)">
+        Searches name · mobile · Aadhaar · hotel · status · date
+      </span>
+    </div>
+    <div class="search-body">
+
+      <!-- Tabs -->
+      <div class="search-tabs">
+        <div class="stab active" onclick="switchTab('text',this)">
+          <i class="fas fa-keyboard"></i> Smart Search
+        </div>
+        <div class="stab" onclick="switchTab('image',this)">
+          <i class="fas fa-camera"></i> Search by Photo
+        </div>
+      </div>
+
+      <!-- Text panel -->
+      <div class="search-panel active" id="panel-text">
+        <!-- Main search row -->
+        <div class="search-row" style="margin-bottom:.75rem">
+          <div class="s-input-wrap" style="flex:2;min-width:220px">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchText" class="s-input"
+                   placeholder="Search by name, mobile, Aadhaar, hotel, status, date…"
+                   oninput="onLiveSearch()" onkeydown="if(event.key==='Enter') doSearch()">
+          </div>
+          <button class="btn-search" id="btnSearch" onclick="doSearch()">
+            <i class="fas fa-search"></i> Search
+          </button>
+          <button class="btn-clear2" id="btnClear" onclick="clearSearch()" style="display:none">
+            <i class="fas fa-xmark"></i> Clear
+          </button>
+        </div>
+
+        <!-- Filter row -->
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+          <span style="font-size:.75rem;font-weight:700;color:var(--gray2);white-space:nowrap">
+            <i class="fas fa-filter"></i> Filters:
+          </span>
+          <select id="filterStatus" class="s-input" style="flex:0 0 auto;width:auto;padding:.45rem .9rem;font-size:.82rem"
+                  onchange="doSearch()">
+            <option value="">All Statuses</option>
+            <option value="approved">✅ Approved</option>
+            <option value="pending">⏳ Pending</option>
+            <option value="rejected">❌ Rejected</option>
+          </select>
+          <input type="date" id="filterDate" class="s-input"
+                 style="flex:0 0 auto;width:auto;padding:.45rem .9rem;font-size:.82rem"
+                 onchange="doSearch()" title="Filter by date">
+          <button onclick="resetFilters()" style="background:none;border:none;color:var(--gray2);font-size:.78rem;cursor:pointer;padding:.4rem .6rem;border-radius:6px;transition:.2s"
+                  onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+            <i class="fas fa-rotate-left"></i> Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Image panel -->
+      <div class="search-panel" id="panel-image">
+        <div class="img-drop" id="imgDrop">
+          <input type="file" id="searchImage" accept="image/jpeg,image/jpg,image/png"
+                 onchange="onImgSelected(this)">
+          <i class="fas fa-cloud-arrow-up"></i>
+          <p>Click or drag a photo here</p>
+          <span>JPG / PNG — max 5 MB</span>
+        </div>
+        <div class="img-preview-row" id="imgPreviewRow">
+          <img id="imgThumb" src="" alt="">
+          <div class="img-preview-info">
+            <div class="fname" id="imgFname"></div>
+            <div class="fsize" id="imgFsize"></div>
+          </div>
+          <button class="btn-rm" onclick="removeImg()" title="Remove"><i class="fas fa-circle-xmark"></i></button>
+        </div>
+        <div class="img-note" id="imgNote">
+          <i class="fas fa-circle-info"></i>
+          Image uploaded — showing recent records with selfies. Full face-match coming soon.
+        </div>
+        <div style="margin-top:1rem">
+          <button class="btn-search" id="btnImgSearch" onclick="doFaceSearch()">
+            <i class="fas fa-face-viewfinder"></i> Search by Face (AWS)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results table -->
+  <div class="table-card">
+    <div class="tc-head">
+      <h3>
+        <i class="fas fa-table-list" style="color:var(--blue2)"></i>
+        Guest Verifications
+        <span class="cnt-badge" id="resultCount">0</span>
+      </h3>
+      <span class="tc-meta" id="resultLabel"></span>
+    </div>
+    <div id="tableBody">
+      {% if not hotels_assigned %}
+      <div class="empty">
+        <i class="fas fa-triangle-exclamation" style="color:var(--orange)"></i>
+        <h4>No Hotels Assigned</h4>
+        <p>Ask the admin to assign hotels to <strong>{{ user.station_name }}</strong>.</p>
+      </div>
+      {% else %}
+      <div class="empty">
+        <i class="fas fa-magnifying-glass-location"></i>
+        <h4>Search to View Records</h4>
+        <p>Use the search box above — search by name, mobile, Aadhaar, hotel, status, or date.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</main>
+
+<!-- Lightbox -->
+<div id="lbx" onclick="closeLbx(event)">
+  <button class="lbx-close" onclick="document.getElementById('lbx').style.display='none'">
+    <i class="fas fa-xmark"></i>
+  </button>
+  <img id="lbxImg" src="" alt="">
+</div>
+
+<script>
+let activeTab = 'text';
+let liveTimer  = null;
+
+function switchTab(tab, el) {
+  activeTab = tab;
+  document.querySelectorAll('.stab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.search-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+/* ── Live search (debounced 400ms) ── */
+function onLiveSearch() {
+  clearTimeout(liveTimer);
+  const q = document.getElementById('searchText').value.trim();
+  if (q.length >= 2 || document.getElementById('filterStatus').value || document.getElementById('filterDate').value) {
+    liveTimer = setTimeout(doSearch, 400);
+  }
+}
+
+function resetFilters() {
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterDate').value   = '';
+  if (document.getElementById('searchText').value.trim()) doSearch();
+}
+
+/* ── Image handling ── */
+function onImgSelected(inp) {
+  const f = inp.files[0]; if (!f) return;
+  if (!['image/jpeg','image/jpg','image/png'].includes(f.type)) {
+    alert('Only JPG/PNG allowed.'); inp.value=''; return;
+  }
+  if (f.size > 5*1024*1024) { alert('Max 5 MB.'); inp.value=''; return; }
+  const r = new FileReader();
+  r.onload = e => {
+    document.getElementById('imgThumb').src = e.target.result;
+    document.getElementById('imgFname').textContent = f.name;
+    document.getElementById('imgFsize').textContent = (f.size/1024).toFixed(1) + ' KB';
+    document.getElementById('imgPreviewRow').style.display = 'flex';
+    document.getElementById('imgDrop').style.display = 'none';
+  };
+  r.readAsDataURL(f);
+}
+
+function removeImg() {
+  document.getElementById('searchImage').value = '';
+  document.getElementById('imgPreviewRow').style.display = 'none';
+  document.getElementById('imgDrop').style.display = 'block';
+  document.getElementById('imgNote').style.display = 'none';
+}
+
+/* ── Search ── */
+async function doSearch() {
+  const q      = document.getElementById('searchText').value.trim();
+  const status = document.getElementById('filterStatus').value;
+  const date   = document.getElementById('filterDate').value;
+  const imgFile = document.getElementById('searchImage').files[0];
+
+  if (!q && !status && !date && !imgFile) {
+    alert('Enter a search term, apply a filter, or upload a photo.');
+    return;
+  }
+
+  const btn = activeTab === 'text'
+    ? document.getElementById('btnSearch')
+    : document.getElementById('btnImgSearch');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching…';
+
+  const fd = new FormData();
+  if (q)      fd.append('q',      q);
+  if (status) fd.append('status', status);
+  if (date)   fd.append('date',   date);
+  if (imgFile) fd.append('image', imgFile);
+
+  try {
+    const res = await fetch('/police/search', { method: 'POST', body: fd });
+    const d   = await res.json();
+    if (!d.success) { showErr(d.message || 'Search failed.'); return; }
+    if (d.image_search && !q)
+      document.getElementById('imgNote').style.display = 'flex';
+
+    // Build label
+    const parts = [];
+    if (q)      parts.push(`"${q}"`);
+    if (status) parts.push(status.charAt(0).toUpperCase()+status.slice(1));
+    if (date)   parts.push(date);
+    renderTable(d.results, parts.join(' · '));
+    document.getElementById('btnClear').style.display = 'flex';
+  } catch(e) {
+    showErr('Network error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = activeTab === 'text'
+      ? '<i class="fas fa-search"></i> Search'
+      : '<i class="fas fa-camera"></i> Search by Photo';
+  }
+}
+
+function clearSearch() {
+  document.getElementById('searchText').value  = '';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterDate').value   = '';
+  removeImg();
+  document.getElementById('btnClear').style.display = 'none';
+  updateStats(null);
+  document.getElementById('resultCount').textContent = '0';
+  document.getElementById('resultLabel').textContent = '';
+  document.getElementById('tableBody').innerHTML = `
+    <div class="empty">
+      <i class="fas fa-magnifying-glass-location"></i>
+      <h4>Search to View Records</h4>
+      <p>Use the search box above — search by name, mobile, Aadhaar, hotel, status, or date.</p>
+    </div>`;
+}
+
+function showErr(msg) {
+  document.getElementById('tableBody').innerHTML = `
+    <div class="empty">
+      <i class="fas fa-triangle-exclamation" style="color:var(--orange)"></i>
+      <h4>Search Error</h4><p>${msg}</p>
+    </div>`;
+  updateStats(null);
+}
+
+function updateStats(rows) {
+  const total    = rows ? rows.length : '—';
+  const approved = rows ? rows.filter(r=>r.status==='approved').length : '—';
+  const pending  = rows ? rows.filter(r=>r.status==='pending').length  : '—';
+  const rejected = rows ? rows.filter(r=>r.status==='rejected').length : '—';
+  document.getElementById('sc-total').textContent    = total;
+  document.getElementById('sc-approved').textContent = approved;
+  document.getElementById('sc-pending').textContent  = pending;
+  document.getElementById('sc-rejected').textContent = rejected;
+  document.getElementById('sbTotal').textContent     = total;
+  document.getElementById('sbApproved').textContent  = approved;
+}
+
+function renderTable(rows, query, showSimilarity = false) {
+  document.getElementById('resultCount').textContent = rows.length;
+  document.getElementById('resultLabel').textContent =
+    query ? `Results for "${query}"` : (showSimilarity ? 'Face match results' : 'Photo search results');
+  updateStats(rows);
+
+  if (!rows.length) {
+    document.getElementById('tableBody').innerHTML = `
+      <div class="empty">
+        <i class="fas fa-magnifying-glass"></i>
+        <h4>No Records Found</h4>
+        <p>${query ? `No match for "<strong>${query}</strong>".` : 'No matching records.'} Try a different search.</p>
+      </div>`;
+    return;
+  }
+
+  const si = s => s==='approved'?'circle-check':s==='rejected'?'circle-xmark':'clock';
+  const th = (p, lbl) => p
+    ? `<img src="/static/${p}" class="thumb" alt="${lbl}" onclick="openLbx('/static/${p}')" title="View ${lbl}">`
+    : `<span style="color:#cbd5e1">—</span>`;
+
+  const simCell = r => showSimilarity && r.similarity != null
+    ? `<td>
+        <span style="display:inline-flex;align-items:center;gap:.3rem;font-weight:700;
+          color:${r.similarity>=95?'#059669':r.similarity>=85?'#d97706':'#6366f1'};font-size:.82rem">
+          <i class="fas fa-face-smile"></i> ${r.similarity}%
+        </span>
+       </td>`
+    : (showSimilarity ? '<td><span style="color:#cbd5e1">—</span></td>' : '');
+
+  const simHeader = showSimilarity ? '<th>Match %</th>' : '';
+
+  const html = rows.map((r,i) => `
+    <tr>
+      <td style="color:var(--gray2);font-weight:600;font-size:.8rem">${i+1}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:.65rem">
+          <div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);
+            display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.8rem;flex-shrink:0">
+            ${(r.guest_name||'?')[0].toUpperCase()}
+          </div>
+          <span class="g-name">${r.guest_name||'—'}</span>
+        </div>
+      </td>
+      <td><span class="mono">${r.phone||'—'}</span></td>
+      <td><span class="masked">${r.aadhaar||'—'}</span></td>
+      <td>
+        <span style="display:inline-flex;align-items:center;gap:.35rem;font-size:.82rem">
+          <i class="fas fa-hotel" style="color:var(--blue2);font-size:.75rem"></i>${r.hotel||'—'}
+        </span>
+      </td>
+      <td>
+        <span class="s-badge s-${r.status||'pending'}">
+          <i class="fas fa-${si(r.status)}"></i>
+          ${(r.status||'pending').charAt(0).toUpperCase()+(r.status||'pending').slice(1)}
+        </span>
+      </td>
+      ${simCell(r)}
+      <td>${th(r.selfie,'Selfie')}</td>
+      <td>${th(r.doc,'Aadhaar Doc')}</td>
+      <td style="font-size:.78rem;color:var(--gray);white-space:nowrap">${r.date}</td>
+    </tr>`).join('');
+
+  document.getElementById('tableBody').innerHTML = `
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Guest Name</th><th>Mobile</th>
+          <th>Aadhaar (Masked)</th><th>Hotel</th><th>Status</th>
+          ${simHeader}<th>Selfie</th><th>Doc</th><th>Date</th>
+        </tr></thead>
+        <tbody>${html}</tbody>
+      </table>
+    </div>`;
+}
+
+/* ── AWS Face Search ── */
+async function doFaceSearch() {
+  const imgFile = document.getElementById('searchImage').files[0];
+  if (!imgFile) { alert('Please upload a photo first.'); return; }
+
+  const btn = document.getElementById('btnImgSearch');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Comparing faces…';
+
+  const fd = new FormData();
+  fd.append('image', imgFile);
+
+  try {
+    const res = await fetch('/police/search-by-face', { method: 'POST', body: fd });
+    const d   = await res.json();
+    if (!d.success) {
+      showErr(d.message || 'Face search failed.');
+      return;
+    }
+    document.getElementById('resultLabel').textContent =
+      `Face match — ${d.total} result(s) above 80% similarity`;
+    renderTable(d.results, '', true);
+    document.getElementById('btnClear').style.display = 'flex';
+  } catch(e) {
+    showErr('Network error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-face-viewfinder"></i> Search by Face (AWS)';
+  }
+}
+
+function openLbx(src) {
+  document.getElementById('lbxImg').src = src;
+  document.getElementById('lbx').style.display = 'flex';
+}
+function closeLbx(e) {
+  if (e.target === document.getElementById('lbx'))
+    document.getElementById('lbx').style.display = 'none';
+}
+</script>
 </body>
 </html>
