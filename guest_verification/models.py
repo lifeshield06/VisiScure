@@ -68,6 +68,11 @@ class GuestVerification:
             cursor.execute("SHOW COLUMNS FROM guest_verifications LIKE 'aadhaar_path'")
             if not cursor.fetchone():
                 cursor.execute("ALTER TABLE guest_verifications ADD COLUMN aadhaar_path VARCHAR(500)")
+
+            # Ensure pan_status column exists
+            cursor.execute("SHOW COLUMNS FROM guest_verifications LIKE 'pan_status'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE guest_verifications ADD COLUMN pan_status VARCHAR(20) DEFAULT 'not_checked'")
             
             conn.commit()
             cursor.close()
@@ -135,66 +140,55 @@ class GuestVerification:
             }
     
     @staticmethod
-    def submit_multistep_verification(manager_id, guest_name, phone, address, kyc_number, kyc_type, 
-                                     selfie_path=None, kyc_document_path=None, aadhaar_path=None, hotel_id=None):
+    def submit_multistep_verification(manager_id, guest_name, phone, address, kyc_number, kyc_type,
+                                     selfie_path=None, kyc_document_path=None, aadhaar_path=None,
+                                     hotel_id=None, pan_status='not_checked',
+                                     api_name='', name_match='UNKNOWN'):
         """Submit multi-step guest verification with selfie, KYC document, and Aadhaar"""
         try:
-            print(f"\n[MODEL] submit_multistep_verification called")
-            print(f"[MODEL] Parameters received:")
-            print(f"  - manager_id: {manager_id}")
-            print(f"  - guest_name: {guest_name}")
-            print(f"  - phone: {phone}")
-            print(f"  - address: {address[:50]}..." if len(address) > 50 else f"  - address: {address}")
-            print(f"  - kyc_number: {kyc_number}")
-            print(f"  - kyc_type: {kyc_type}")
-            print(f"  - selfie_path: {selfie_path}")
-            print(f"  - kyc_document_path: {kyc_document_path}")
-            print(f"  - aadhaar_path: {aadhaar_path}")
-            print(f"  - hotel_id: {hotel_id}")
-            
             conn = get_db_connection()
             cursor = conn.cursor()
-            
-            print(f"[MODEL] Executing INSERT query with status='approved'...")
+
+            # Ensure columns exist
+            for col, defn in [
+                ('pan_status',  "VARCHAR(20) DEFAULT 'not_checked'"),
+                ('api_name',    "VARCHAR(255) DEFAULT NULL"),
+                ('name_match',  "VARCHAR(20) DEFAULT 'UNKNOWN'"),
+            ]:
+                cursor.execute(f"SHOW COLUMNS FROM guest_verifications LIKE '{col}'")
+                if not cursor.fetchone():
+                    cursor.execute(f"ALTER TABLE guest_verifications ADD COLUMN {col} {defn}")
+                    conn.commit()
+
+            # Determine overall kyc_status
+            if name_match == 'MATCHED':
+                kyc_status = 'approved'
+            elif name_match == 'MISMATCH':
+                kyc_status = 'pending'
+            else:
+                kyc_status = 'pending'
+
             cursor.execute("""
-                INSERT INTO guest_verifications 
-                (manager_id, hotel_id, guest_name, phone, address, kyc_number, kyc_type, 
-                 selfie_path, kyc_document_path, aadhaar_path, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'approved')
-            """, (manager_id, hotel_id, guest_name, phone, address, kyc_number, kyc_type, 
-                  selfie_path, kyc_document_path, aadhaar_path))
-            
+                INSERT INTO guest_verifications
+                (manager_id, hotel_id, guest_name, phone, address, kyc_number, kyc_type,
+                 selfie_path, kyc_document_path, aadhaar_path, pan_status, api_name, name_match, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (manager_id, hotel_id, guest_name, phone, address, kyc_number, kyc_type,
+                  selfie_path, kyc_document_path, aadhaar_path,
+                  pan_status, api_name, name_match, kyc_status))
+
             verification_id = cursor.lastrowid
-            print(f"[MODEL] INSERT successful, verification_id: {verification_id}, status: approved")
-            
             conn.commit()
-            print(f"[MODEL] Transaction committed")
-            
             cursor.close()
             conn.close()
-            print(f"[MODEL] Database connection closed")
-            
-            return {
-                'success': True,
-                'message': 'Multi-step verification submitted and approved successfully',
-                'id': verification_id
-            }
+
+            return {'success': True, 'message': 'Verification submitted successfully', 'id': verification_id}
         except Error as e:
-            print(f"[MODEL] ❌ Database Error: {e}")
-            import traceback
-            traceback.print_exc()
-            return {
-                'success': False,
-                'message': f'Failed to submit verification: {str(e)}'
-            }
+            import traceback; traceback.print_exc()
+            return {'success': False, 'message': f'Failed to submit verification: {str(e)}'}
         except Exception as e:
-            print(f"[MODEL] ❌ Unexpected Error: {e}")
-            import traceback
-            traceback.print_exc()
-            return {
-                'success': False,
-                'message': f'Failed to submit verification: {str(e)}'
-            }
+            import traceback; traceback.print_exc()
+            return {'success': False, 'message': f'Failed to submit verification: {str(e)}'}
     
     @staticmethod
     def save_selfie_from_base64(base64_data, manager_id):

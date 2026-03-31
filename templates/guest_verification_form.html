@@ -216,6 +216,17 @@
                        placeholder="Select document type first" disabled
                        value="{{ request.form.get('kyc_number','') }}">
                 <div class="ferr" id="e-knum">Document number is required.</div>
+
+                <!-- PAN verify button — shown only when PAN Card is selected -->
+                <div id="panVerifySection" style="display:none;margin-top:10px">
+                  <button type="button" id="btnVerifyPan" onclick="verifyPAN()"
+                          style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;
+                                 padding:9px 20px;border-radius:9px;font-size:.82rem;font-weight:700;
+                                 cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+                    <i class="fas fa-id-card"></i> Verify PAN
+                  </button>
+                  <div id="panMsg" style="margin-top:8px;font-size:.8rem;display:none;padding:8px 12px;border-radius:8px"></div>
+                </div>
             </div>
 
             <div class="fg" id="kycUpSec" style="display:none">
@@ -266,6 +277,7 @@
 ═══════════════════════════════════════════════════════ */
 let camStream   = null;
 let otpVerified = false;   // master gate
+let panVerified = false;   // PAN gate (required when PAN Card selected)
 let resendTimer = null;
 
 const ALLOWED_MIME = ['image/png','image/jpeg','image/jpg','application/pdf'];
@@ -328,6 +340,11 @@ function onKycType(){
     n.disabled=!t;
     n.placeholder = t && KYC_PAT[t] ? KYC_PAT[t].hint : 'Select document type first';
     clearE('e-ktype');
+    // Show PAN verify button only for PAN Card
+    document.getElementById('panVerifySection').style.display = (t === 'PAN Card') ? 'block' : 'none';
+    // Reset PAN gate when switching doc type
+    if(t !== 'PAN Card'){ panVerified = false; }
+    checkSubmitReady();
 }
 
 function toggleKyc(){
@@ -449,10 +466,8 @@ async function verifyOTP(){
             document.getElementById('btnSendOtp').style.display='none';
             document.getElementById('verifiedBadge').style.display='block';
             setOtpMsg('','ok');
-            // Unlock submit
-            const sub=document.getElementById('btnSubmit');
-            sub.disabled=false;
-            sub.innerHTML='<i class="fas fa-check-circle"></i> Submit Verification';
+            // Unlock submit (also checks PAN gate)
+            checkSubmitReady();
             if(resendTimer) clearInterval(resendTimer);
         } else {
             setOtpMsg(d.message||'Invalid OTP.','fail');
@@ -504,6 +519,15 @@ document.getElementById('gvForm').addEventListener('submit',function(e){
         document.getElementById('otpMsg').scrollIntoView({behavior:'smooth',block:'center'});
         return;
     }
+    const isPan = document.getElementById('kycType').value === 'PAN Card';
+    if(isPan && !panVerified){
+        e.preventDefault();
+        const msg=document.getElementById('panMsg');
+        msg.style.cssText='display:block;background:#fee2e2;color:#991b1b;padding:8px 12px;border-radius:8px;font-size:.8rem;margin-top:8px';
+        msg.textContent='Please verify your PAN before submitting.';
+        msg.scrollIntoView({behavior:'smooth',block:'center'});
+        return;
+    }
     if(!validateAllFields()){
         e.preventDefault();
         document.querySelector('.ferr.show')?.scrollIntoView({behavior:'smooth',block:'center'});
@@ -523,6 +547,70 @@ document.getElementById('phone').addEventListener('input',function(){
 document.getElementById('otpCode')?.addEventListener('input',function(){
     this.value=this.value.replace(/\D/g,'').slice(0,6);
 });
+
+/* ── PAN Verification via Surepass ── */
+async function verifyPAN(){
+    const pan = document.getElementById('kycNumber').value.trim().toUpperCase();
+    const name = document.getElementById('guestName')?.value.trim() || '';
+    const msg = document.getElementById('panMsg');
+    if(!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)){
+        msg.style.cssText='display:block;background:#fee2e2;color:#991b1b;padding:8px 12px;border-radius:8px;font-size:.8rem;margin-top:8px';
+        msg.textContent='Invalid PAN format. Expected: ABCDE1234F'; return;
+    }
+    const btn=document.getElementById('btnVerifyPan');
+    btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Verifying…';
+    msg.style.display='none';
+    try{
+        const res=await fetch('/guest-verification/api/verify-pan',{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({pan_number:pan, name:name})
+        });
+        const d=await res.json();
+        const colors={
+            VALID:   d.name_match==='MATCHED' ? 'background:#dcfce7;color:#166534' : 'background:#fef3c7;color:#92400e',
+            INVALID: 'background:#fee2e2;color:#991b1b',
+            UNKNOWN: 'background:#fef3c7;color:#92400e',
+            invalid_format: 'background:#fee2e2;color:#991b1b'
+        };
+        const c = colors[d.pan_status] || colors.UNKNOWN;
+        msg.style.cssText=`display:block;${c};padding:8px 12px;border-radius:8px;font-size:.8rem;margin-top:8px`;
+        // Show name match badge
+        let extra = '';
+        if(d.name_match === 'MATCHED'){
+            extra = ' <strong>✅ Name Matched</strong>';
+            panVerified = true;
+        } else if(d.name_match === 'MISMATCH'){
+            extra = ` <strong>⚠️ Mismatch — PAN name: ${d.api_name}</strong>`;
+            panVerified = false;
+        } else {
+            // UNKNOWN / no name — allow submission but mark as pending
+            panVerified = true;
+        }
+        msg.innerHTML = d.message + extra;
+        checkSubmitReady();
+    }catch(e){
+        msg.style.cssText='display:block;background:#fef3c7;color:#92400e;padding:8px 12px;border-radius:8px;font-size:.8rem;margin-top:8px';
+        msg.textContent='PAN verification failed. Will be marked as Pending.';
+        panVerified = true; // allow submit on API error (marked pending server-side)
+        checkSubmitReady();
+    }finally{
+        btn.disabled=false; btn.innerHTML='<i class="fas fa-id-card"></i> Verify PAN';
+    }
+}
+
+/* Check if submit should be enabled */
+function checkSubmitReady(){
+    const isPan = document.getElementById('kycType').value === 'PAN Card';
+    const panOk = !isPan || panVerified;
+    const sub = document.getElementById('btnSubmit');
+    if(otpVerified && panOk){
+        sub.disabled=false;
+        sub.innerHTML='<i class="fas fa-check-circle"></i> Submit Verification';
+    } else if(otpVerified && isPan && !panVerified){
+        sub.disabled=true;
+        sub.innerHTML='<i class="fas fa-lock"></i> Verify PAN to Submit';
+    }
+}
 </script>
 </body>
 </html>

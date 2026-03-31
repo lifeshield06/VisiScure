@@ -325,7 +325,7 @@ td{padding:.875rem 1.1rem;font-size:.855rem;color:#374151;vertical-align:middle}
           <button class="btn-clear2" id="btnClear" onclick="clearSearch()" style="display:none">
             <i class="fas fa-xmark"></i> Clear
           </button>
-        </div>
+        </div>  
 
         <!-- Filter row -->
         <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
@@ -587,8 +587,39 @@ function renderTable(rows, query, showSimilarity = false) {
 
   const simHeader = showSimilarity ? '<th>Match %</th>' : '';
 
+  const panBadge = ps => {
+    const map = {
+      VALID:   'background:#d1fae5;color:#065f46',
+      INVALID: 'background:#fee2e2;color:#991b1b',
+      UNKNOWN: 'background:#fef3c7;color:#92400e',
+    };
+    const label = ps === 'VALID' ? '✅ Valid' : ps === 'INVALID' ? '❌ Invalid' : '⏳ Pending';
+    return `<span style="font-size:.72rem;font-weight:700;padding:.25rem .65rem;border-radius:20px;
+      ${map[ps]||map.UNKNOWN}">${label}</span>`;
+  };
+
+  const nameBadge = nm => {
+    if(nm === 'MATCHED')  return '<span style="font-size:.72rem;font-weight:700;padding:.25rem .65rem;border-radius:20px;background:#d1fae5;color:#065f46">✅ MATCHED</span>';
+    if(nm === 'MISMATCH') return '<span style="font-size:.72rem;font-weight:700;padding:.25rem .65rem;border-radius:20px;background:#fee2e2;color:#991b1b">❌ MISMATCH</span>';
+    return '<span style="font-size:.72rem;font-weight:700;padding:.25rem .65rem;border-radius:20px;background:#fef3c7;color:#92400e">— UNKNOWN</span>';
+  };
+
+  const actionBtns = r => r.status === 'pending' ? `
+    <div style="display:flex;gap:6px">
+      <button onclick="updateStatus(${r.id},'approved',this)"
+        style="background:#10b981;color:#fff;border:none;padding:5px 12px;border-radius:7px;
+               font-size:.75rem;font-weight:700;cursor:pointer">
+        <i class="fas fa-check"></i> Approve
+      </button>
+      <button onclick="updateStatus(${r.id},'rejected',this)"
+        style="background:#ef4444;color:#fff;border:none;padding:5px 12px;border-radius:7px;
+               font-size:.75rem;font-weight:700;cursor:pointer">
+        <i class="fas fa-times"></i> Reject
+      </button>
+    </div>` : `<span style="font-size:.75rem;color:var(--gray)">—</span>`;
+
   const html = rows.map((r,i) => `
-    <tr>
+    <tr id="row-${r.id}">
       <td style="color:var(--gray2);font-weight:600;font-size:.8rem">${i+1}</td>
       <td>
         <div style="display:flex;align-items:center;gap:.65rem">
@@ -612,10 +643,14 @@ function renderTable(rows, query, showSimilarity = false) {
           ${(r.status||'pending').charAt(0).toUpperCase()+(r.status||'pending').slice(1)}
         </span>
       </td>
+      <td>${panBadge(r.pan_status||'UNKNOWN')}</td>
+      <td style="font-size:.78rem;color:var(--gray)">${r.api_name||'—'}</td>
+      <td>${nameBadge(r.name_match||'UNKNOWN')}</td>
       ${simCell(r)}
       <td>${th(r.selfie,'Selfie')}</td>
       <td>${th(r.doc,'Aadhaar Doc')}</td>
       <td style="font-size:.78rem;color:var(--gray);white-space:nowrap">${r.date}</td>
+      <td>${actionBtns(r)}</td>
     </tr>`).join('');
 
   document.getElementById('tableBody').innerHTML = `
@@ -624,7 +659,8 @@ function renderTable(rows, query, showSimilarity = false) {
         <thead><tr>
           <th>#</th><th>Guest Name</th><th>Mobile</th>
           <th>Aadhaar (Masked)</th><th>Hotel</th><th>Status</th>
-          ${simHeader}<th>Selfie</th><th>Doc</th><th>Date</th>
+          <th>PAN Status</th><th>API Name</th><th>Name Match</th>
+          ${simHeader}<th>Selfie</th><th>Doc</th><th>Date</th><th>Action</th>
         </tr></thead>
         <tbody>${html}</tbody>
       </table>
@@ -659,6 +695,37 @@ async function doFaceSearch() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-face-viewfinder"></i> Search by Face (AWS)';
+  }
+}
+
+/* ── Approve / Reject ── */
+async function updateStatus(id, status, btn) {
+  btn.disabled = true;
+  // Routes are /approve/<id> and /reject/<id> (no trailing 'd')
+  const endpoint = status === 'approved' ? 'approve' : 'reject';
+  try {
+    const res = await fetch(`/guest-verification/api/${endpoint}/${id}`, { method: 'POST' });
+    const d   = await res.json();
+    if (d.success) {
+      const row = document.getElementById('row-' + id);
+      if (row) {
+        // Update status badge
+        const badge = row.querySelector('.s-badge');
+        if (badge) {
+          const icons = {approved:'circle-check', rejected:'circle-xmark'};
+          badge.className = `s-badge s-${status}`;
+          badge.innerHTML = `<i class="fas fa-${icons[status]}"></i> ${status.charAt(0).toUpperCase()+status.slice(1)}`;
+        }
+        // Remove action buttons
+        const actionCell = row.cells[row.cells.length - 1];
+        actionCell.innerHTML = `<span style="font-size:.75rem;color:var(--gray)">—</span>`;
+      }
+    } else {
+      alert('Failed: ' + d.message);
+      btn.disabled = false;
+    }
+  } catch(e) {
+    alert('Network error'); btn.disabled = false;
   }
 }
 

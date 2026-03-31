@@ -237,7 +237,8 @@ def search_api():
             SELECT gv.id, gv.guest_name, gv.phone, gv.kyc_number, gv.status,
                    h.hotel_name, gv.selfie_path,
                    COALESCE(gv.aadhaar_path, gv.kyc_document_path),
-                   gv.submitted_at
+                   gv.submitted_at,
+                   COALESCE(gv.pan_status, 'not_checked') AS pan_status
             FROM guest_verifications gv
             JOIN hotels h ON gv.hotel_id = h.id
             WHERE gv.hotel_id IN ({ph}) AND gv.selfie_path IS NOT NULL
@@ -250,7 +251,10 @@ def search_api():
             SELECT gv.id, gv.guest_name, gv.phone, gv.kyc_number, gv.status,
                    h.hotel_name, gv.selfie_path,
                    COALESCE(gv.aadhaar_path, gv.kyc_document_path),
-                   gv.submitted_at
+                   gv.submitted_at,
+                   COALESCE(gv.pan_status, 'not_checked') AS pan_status,
+                   COALESCE(gv.api_name, '') AS api_name,
+                   COALESCE(gv.name_match, 'UNKNOWN') AS name_match
             FROM guest_verifications gv
             JOIN hotels h ON gv.hotel_id = h.id
             WHERE gv.hotel_id IN ({ph}) AND ({where_clause})
@@ -286,6 +290,9 @@ def search_api():
         "doc":        norm_path(r[7]),
         "date":       r[8].strftime("%d %b %Y") if r[8] else "—",
         "datetime":   r[8].strftime("%Y-%m-%d") if r[8] else "",
+        "pan_status": r[9] if len(r) > 9 else "not_checked",
+        "api_name":   r[10] if len(r) > 10 else "",
+        "name_match": r[11] if len(r) > 11 else "UNKNOWN",
     } for r in rows]
 
     PoliceUser.log_action(
