@@ -1,616 +1,785 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guest Verification – {{ hotel_name or 'VisiScure Order' }}</title>
-    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:15px}
-        .wrap{max-width:620px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
-        .hdr{background:linear-gradient(135deg,#667eea,#764ba2);padding:26px 20px;text-align:center;color:#fff}
-        .hdr img{height:52px;border-radius:50%;margin-bottom:10px;object-fit:cover}
-        .hdr h1{font-size:22px;font-weight:700;margin-bottom:4px}
-        .hdr p{font-size:13px;opacity:.88}
-        .body{padding:26px 22px}
-        .sec{font-size:15px;font-weight:700;color:#1a202c;margin:22px 0 14px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:8px}
-        .sec:first-child{margin-top:0}
-        .sec i{color:#667eea}
-        .fg{margin-bottom:16px}
-        .fg label{display:block;font-size:13px;font-weight:600;color:#2d3748;margin-bottom:6px}
-        .req{color:#e53e3e}
-        .fc{width:100%;padding:11px 13px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;transition:border-color .2s;background:#fff}
-        .fc:focus{border-color:#667eea}
-        .fc.err{border-color:#e53e3e}
-        .ferr{color:#e53e3e;font-size:12px;margin-top:4px;display:none}
-        .ferr.show{display:block}
-        .gerr{background:#fff5f5;border:1px solid #fed7d7;color:#c53030;padding:11px 14px;border-radius:8px;font-size:13px;margin-bottom:18px}
-        /* camera */
-        .cam-wrap{position:relative;width:100%;max-width:360px;margin:0 auto;border-radius:14px;overflow:hidden;background:#000}
-        #camVideo{width:100%;display:block;transform:scaleX(-1)}
-        .cam-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:62%;aspect-ratio:1;border:3px solid #48bb78;border-radius:50%;pointer-events:none}
-        #camPreview{display:none;width:100%;border-radius:14px}
-        .cam-hint{text-align:center;font-size:12px;color:#718096;margin-top:6px}
-        .cam-btns{display:flex;gap:10px;margin-top:10px;justify-content:center}
-        /* file */
-        .fbox{border:2px dashed #cbd5e1;border-radius:12px;padding:22px 16px;text-align:center;background:#f8fafc;cursor:pointer;transition:all .2s}
-        .fbox:hover{border-color:#667eea;background:#f0f4ff}
-        .fbox i{font-size:32px;color:#667eea;margin-bottom:8px}
-        .fbox p{font-size:13px;color:#4a5568;margin:0}
-        .fbox span{font-size:11px;color:#94a3b8}
-        .fname{font-size:12px;color:#10b981;margin-top:6px}
-        .fimg{max-width:100%;max-height:160px;border-radius:8px;margin-top:8px;display:none}
-        /* buttons */
-        .btn-cap{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;padding:10px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
-        .btn-ret{background:#e2e8f0;color:#4a5568;border:none;padding:10px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;display:none}
-        .btn-otp{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;padding:11px 18px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%}
-        .btn-otp:disabled{opacity:.55;cursor:not-allowed}
-        .btn-verify{background:#10b981;color:#fff;border:none;padding:11px 18px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;flex:1}
-        .btn-resend{background:#e2e8f0;color:#4a5568;border:none;padding:11px 18px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;flex:1}
-        .btn-resend:disabled{opacity:.55;cursor:not-allowed}
-        .btn-submit{width:100%;padding:14px;background:linear-gradient(135deg,#48bb78,#38a169);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;margin-top:20px;transition:opacity .2s}
-        .btn-submit:disabled{opacity:.45;cursor:not-allowed;background:#94a3b8}
-        canvas{display:none}
-        /* OTP box */
-        .otp-box{background:linear-gradient(135deg,#f0f4ff,#e8eeff);padding:18px;border-radius:14px;border:2px solid #e0e7ff}
-        .otp-row{display:flex;gap:10px;margin-top:10px}
-        .verified-badge{display:inline-flex;align-items:center;gap:6px;background:#10b981;color:#fff;padding:7px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-top:10px}
-        .otp-msg{font-size:13px;margin-top:8px;padding:8px 12px;border-radius:8px}
-        .otp-msg.ok{background:#d1fae5;color:#065f46}
-        .otp-msg.fail{background:#fee2e2;color:#991b1b}
-        /* radio */
-        .radio-row{display:flex;gap:12px;flex-wrap:wrap}
-        .rcard{flex:1;min-width:140px;border:2px solid #e2e8f0;border-radius:10px;padding:11px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#4a5568;transition:all .2s}
-        .rcard input{accent-color:#667eea}
-        .rcard:has(input:checked){border-color:#667eea;background:#f0f4ff;color:#667eea}
-        @media(max-width:480px){.body{padding:18px 14px}.cam-wrap{max-width:100%}.radio-row{flex-direction:column}.otp-row{flex-direction:column}}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Guest Verification – {{ hotel_name or 'VisiScure' }}</title>
+<link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
+<style>
+:root{
+  --primary:#5b4fcf;--primary-dark:#4338ca;--primary-light:#ede9fe;
+  --success:#059669;--success-light:#d1fae5;
+  --danger:#dc2626;--danger-light:#fee2e2;
+  --warn:#d97706;--warn-light:#fef3c7;
+  --gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;
+  --gray-400:#9ca3af;--gray-600:#4b5563;--gray-800:#1f2937;
+  --radius:16px;--radius-sm:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:linear-gradient(160deg,#5b4fcf 0%,#7c3aed 55%,#4338ca 100%);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding-bottom:env(safe-area-inset-bottom)}
+
+/* ── HEADER ── */
+.app-hdr{width:100%;max-width:480px;padding:32px 20px 0;text-align:center;color:#fff}
+.logo-ring{width:76px;height:76px;border-radius:50%;border:3px solid rgba(255,255,255,.35);overflow:hidden;margin:0 auto 14px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.logo-ring img{width:100%;height:100%;object-fit:cover}
+.logo-ring i{font-size:30px;color:#fff}
+.app-hdr h1{font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:4px}
+.app-hdr .sub{font-size:13px;opacity:.8;margin-bottom:22px}
+
+/* ── CARD ── */
+.card{width:100%;max-width:480px;background:#fff;border-radius:28px 28px 0 0;flex:1;padding:26px 18px 40px;box-shadow:0 -6px 40px rgba(0,0,0,.15)}
+
+/* ── SECTION HEADER ── */
+.sec{display:flex;align-items:center;gap:10px;margin:24px 0 16px;padding-bottom:10px;border-bottom:2px solid var(--gray-100)}
+.sec:first-child{margin-top:0}
+.sec-icon{width:32px;height:32px;border-radius:10px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sec-icon i{font-size:14px;color:var(--primary)}
+.sec h2{font-size:13px;font-weight:700;color:var(--gray-800);letter-spacing:.4px;text-transform:uppercase}
+
+/* ── FORM FIELDS ── */
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:7px;letter-spacing:.3px;text-transform:uppercase}
+.req{color:var(--danger)}
+.fc{width:100%;padding:14px 15px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:15px;outline:none;transition:border-color .2s,box-shadow .2s;background:#fff;color:var(--gray-800);appearance:none;-webkit-appearance:none}
+.fc:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.fc.err{border-color:var(--danger);box-shadow:0 0 0 3px var(--danger-light)}
+select.fc{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239ca3af' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px}
+textarea.fc{resize:vertical;min-height:88px}
+.ferr{color:var(--danger);font-size:11.5px;margin-top:5px;display:none;align-items:center;gap:4px}
+.ferr.show{display:flex}
+.gerr{background:var(--danger-light);border-left:4px solid var(--danger);color:#991b1b;padding:13px 15px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:18px;display:flex;align-items:flex-start;gap:9px}
+
+/* ── CAMERA ── */
+.cam-card{background:var(--gray-50);border-radius:var(--radius);overflow:hidden;border:1.5px solid var(--gray-200)}
+.cam-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#111;overflow:hidden}
+#camVideo{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block}
+.cam-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:58%;aspect-ratio:1;border:2.5px solid #4ade80;border-radius:50%;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.35)}
+#camPreview{display:none;width:100%;aspect-ratio:4/3;object-fit:cover}
+.cam-hint{text-align:center;font-size:12px;color:var(--gray-600);padding:10px 14px 0}
+.cam-btns{display:flex;gap:10px;padding:12px 14px 14px;justify-content:center}
+.btn-cap{flex:1;background:var(--primary);color:#fff;border:none;padding:13px 18px;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .2s}
+.btn-cap:active{background:var(--primary-dark)}
+.btn-ret{flex:1;background:var(--gray-100);color:var(--gray-800);border:none;padding:13px 18px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;display:none;align-items:center;justify-content:center;gap:7px}
+canvas{display:none}
+
+/* ── OTP BOX ── */
+.otp-card{background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-radius:var(--radius);border:1.5px solid #ddd6fe;padding:18px}
+.otp-card .fg{margin-bottom:12px}
+.btn-otp{width:100%;background:var(--primary);color:#fff;border:none;padding:14px;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s}
+.btn-otp:disabled{opacity:.5;cursor:not-allowed}
+.btn-otp:active:not(:disabled){background:var(--primary-dark)}
+.otp-input-row{margin-top:14px}
+.otp-input-row label{display:block;font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:7px;letter-spacing:.3px;text-transform:uppercase}
+.otp-actions{display:flex;gap:10px;margin-top:10px}
+.btn-verify-otp{flex:1;background:var(--success);color:#fff;border:none;padding:13px;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-resend{flex:1;background:var(--gray-100);color:var(--gray-800);border:none;padding:13px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer}
+.btn-resend:disabled{opacity:.5;cursor:not-allowed}
+.verified-badge{display:inline-flex;align-items:center;gap:7px;background:var(--success);color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;font-weight:700;margin-top:12px}
+.otp-msg{font-size:13px;margin-top:10px;padding:10px 13px;border-radius:var(--radius-sm);display:none}
+.otp-msg.ok{background:var(--success-light);color:#065f46;display:block}
+.otp-msg.fail{background:var(--danger-light);color:#991b1b;display:block}
+
+/* ── KYC METHOD TOGGLE ── */
+.method-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mcard{border:2px solid var(--gray-200);border-radius:var(--radius-sm);padding:13px 14px;cursor:pointer;display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:var(--gray-600);transition:all .2s;background:#fff}
+.mcard input[type=radio]{accent-color:var(--primary);width:16px;height:16px;flex-shrink:0}
+.mcard.active{border-color:var(--primary);background:var(--primary-light);color:var(--primary)}
+
+/* ── FILE UPLOAD ── */
+.fbox{border:2px dashed var(--gray-200);border-radius:var(--radius);padding:28px 16px;text-align:center;background:var(--gray-50);cursor:pointer;transition:all .2s}
+.fbox:hover,.fbox:active{border-color:var(--primary);background:var(--primary-light)}
+.fbox i{font-size:36px;color:var(--primary);margin-bottom:10px;display:block}
+.fbox p{font-size:14px;color:var(--gray-600);margin:0 0 4px}
+.fbox span{font-size:11px;color:var(--gray-400)}
+.fname{font-size:12px;color:var(--success);margin-top:8px;font-weight:600}
+.fimg{max-width:100%;max-height:180px;border-radius:var(--radius-sm);margin-top:10px;display:none;object-fit:contain}
+
+/* ── VERIFY RESULT ── */
+.vresult{display:none;margin-top:12px;padding:12px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;line-height:1.5}
+.vresult.ok{background:var(--success-light);color:#065f46;border-left:4px solid var(--success)}
+.vresult.fail{background:var(--danger-light);color:#991b1b;border-left:4px solid var(--danger)}
+.vresult.warn{background:var(--warn-light);color:#92400e;border-left:4px solid var(--warn)}
+
+/* ── SPINNER INLINE ── */
+.spin-wrap{position:relative}
+.spin-wrap .spin-ic{position:absolute;right:13px;top:50%;transform:translateY(-50%);color:var(--primary);display:none}
+
+/* ── SUBMIT BUTTON ── */
+.btn-submit{width:100%;padding:16px;background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:var(--radius);font-size:16px;font-weight:800;cursor:pointer;margin-top:24px;display:flex;align-items:center;justify-content:center;gap:9px;transition:opacity .2s;letter-spacing:.2px;box-shadow:0 4px 16px rgba(5,150,105,.3)}
+.btn-submit:disabled{opacity:.45;cursor:not-allowed;background:#94a3b8;box-shadow:none}
+.btn-submit:active:not(:disabled){opacity:.88}
+
+/* ── NAME LOCK NOTICE ── */
+.name-lock{background:#fef3c7;border:1.5px solid #fcd34d;border-radius:var(--radius-sm);padding:10px 13px;font-size:12px;color:#92400e;display:none;align-items:center;gap:7px;margin-top:8px}
+.name-lock.show{display:flex}
+</style>
 </head>
 <body>
-<div class="wrap">
-    <div class="hdr">
-        {% if hotel_logo %}
-            {% if '/' in hotel_logo %}
-                <img src="/static/{{ hotel_logo }}" alt="{{ hotel_name }}" onerror="this.style.display='none'">
-            {% else %}
-                <img src="/static/uploads/hotel_logos/{{ hotel_logo }}" alt="{{ hotel_name }}" onerror="this.style.display='none'">
-            {% endif %}
-        {% endif %}
-        <h1><i class="fas fa-id-card"></i> Guest Verification</h1>
-        <p>{{ hotel_name or 'VisiScure Order' }}</p>
+
+<!-- HEADER -->
+<div class="app-hdr">
+  <div class="logo-ring">
+    {% if hotel_logo %}
+      {% if '/' in hotel_logo %}
+        <img src="/static/{{ hotel_logo }}" alt="{{ hotel_name }}" onerror="this.parentElement.innerHTML='<i class=\'fas fa-hotel\'></i>'">
+      {% else %}
+        <img src="/static/uploads/hotel_logos/{{ hotel_logo }}" alt="{{ hotel_name }}" onerror="this.parentElement.innerHTML='<i class=\'fas fa-hotel\'></i>'">
+      {% endif %}
+    {% else %}<i class="fas fa-id-card"></i>{% endif %}
+  </div>
+  <h1>Guest Verification</h1>
+  <p class="sub">{{ hotel_name or 'VisiScure' }}</p>
+</div>
+
+<!-- CARD -->
+<div class="card">
+  {% if error %}
+  <div class="gerr"><i class="fas fa-exclamation-triangle"></i><span>{{ error }}</span></div>
+  {% endif %}
+
+  <form id="gvForm" method="POST"
+        action="{{ url_for('guest_verification.submit_verification', manager_id=manager_id) }}"
+        enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="hotel_id"    value="{{ hotel_id }}">
+    <input type="hidden" name="selfie_data" id="selfieData">
+    <input type="hidden" name="otp_verified" id="otpVerifiedFlag" value="0">
+
+    <!-- ── 1. Basic Details ── -->
+    <div class="sec">
+      <div class="sec-icon"><i class="fas fa-user"></i></div>
+      <h2>Basic Details</h2>
     </div>
 
-    <div class="body">
-        {% if error %}
-        <div class="gerr"><i class="fas fa-exclamation-triangle"></i> {{ error }}</div>
-        {% endif %}
+    <div class="fg">
+      <label>Full Name <span class="req">*</span></label>
+      <input type="text" id="guestName" name="guest_name" class="fc"
+             placeholder="Enter your full name"
+             autocomplete="name" autocapitalize="words"
+             value="{{ request.form.get('guest_name','') }}">
+      <div class="ferr" id="e-name"><i class="fas fa-exclamation-circle"></i> Full name is required.</div>
+      <div class="name-lock" id="nameLockNotice">
+        <i class="fas fa-lock"></i> Enter your full name to enable KYC verification.
+      </div>
+    </div>
 
-        <form id="gvForm" method="POST"
-              action="{{ url_for('guest_verification.submit_verification', manager_id=manager_id) }}"
-              enctype="multipart/form-data" novalidate>
-            <input type="hidden" name="hotel_id"    value="{{ hotel_id }}">
-            <input type="hidden" name="selfie_data" id="selfieData">
-            <input type="hidden" name="otp_verified" id="otpVerifiedFlag" value="0">
+    <div class="fg">
+      <label>Capture Selfie <span class="req">*</span></label>
+      <div class="cam-card">
+        <div class="cam-wrap" id="camWrap">
+          <video id="camVideo" autoplay playsinline muted></video>
+          <div class="cam-ring"></div>
+        </div>
+        <img id="camPreview" alt="Selfie preview">
+        <canvas id="camCanvas"></canvas>
+        <p class="cam-hint" id="camHint">Align your face inside the circle, then tap Capture.</p>
+        <div class="cam-btns">
+          <button type="button" class="btn-cap" id="btnCap" onclick="captureSelfie()">
+            <i class="fas fa-camera"></i> Capture
+          </button>
+          <button type="button" class="btn-ret" id="btnRet" onclick="retakeSelfie()">
+            <i class="fas fa-redo"></i> Retake
+          </button>
+        </div>
+      </div>
+      <div class="ferr" id="e-selfie"><i class="fas fa-exclamation-circle"></i> Please capture a selfie.</div>
+    </div>
 
-            <!-- ── 1. Basic Details ── -->
-            <div class="sec"><i class="fas fa-user"></i> Basic Details</div>
+    <!-- ── 2. Address ── -->
+    <div class="sec">
+      <div class="sec-icon"><i class="fas fa-map-marker-alt"></i></div>
+      <h2>Address Details</h2>
+    </div>
 
-            <div class="fg">
-                <label>Full Name <span class="req">*</span></label>
-                <input type="text" id="guestName" name="guest_name" class="fc"
-                       placeholder="Enter your full name"
-                       value="{{ request.form.get('guest_name','') }}">
-                <div class="ferr" id="e-name">Full name is required.</div>
-            </div>
+    <div class="fg">
+      <label>Full Address <span class="req">*</span></label>
+      <textarea id="address" name="address" class="fc"
+                placeholder="Enter your complete address"
+                autocomplete="street-address">{{ request.form.get('address','') }}</textarea>
+      <div class="ferr" id="e-addr"><i class="fas fa-exclamation-circle"></i> Address is required.</div>
+    </div>
 
-            <div class="fg">
-                <label>Capture Selfie <span class="req">*</span></label>
-                <div class="cam-wrap" id="camWrap">
-                    <video id="camVideo" autoplay playsinline></video>
-                    <div class="cam-ring"></div>
-                </div>
-                <img id="camPreview" alt="Selfie">
-                <canvas id="camCanvas"></canvas>
-                <p class="cam-hint" id="camHint">Align your face inside the circle, then tap Capture.</p>
-                <div class="cam-btns">
-                    <button type="button" class="btn-cap" id="btnCap" onclick="captureSelfie()">
-                        <i class="fas fa-camera"></i> Capture
-                    </button>
-                    <button type="button" class="btn-ret" id="btnRet" onclick="retakeSelfie()">
-                        <i class="fas fa-redo"></i> Retake
-                    </button>
-                </div>
-                <div class="ferr" id="e-selfie">Please capture a selfie.</div>
-            </div>
+    <!-- ── 3. Mobile OTP ── -->
+    <div class="sec">
+      <div class="sec-icon"><i class="fas fa-mobile-alt"></i></div>
+      <h2>Mobile Verification</h2>
+    </div>
 
-            <!-- ── 2. Address ── -->
-            <div class="sec"><i class="fas fa-map-marker-alt"></i> Address Details</div>
+    <div class="otp-card">
+      <div class="fg">
+        <label>Mobile Number <span class="req">*</span></label>
+        <input type="tel" id="phone" name="phone" class="fc"
+               placeholder="10-digit mobile number"
+               maxlength="10" inputmode="numeric" autocomplete="tel"
+               value="{{ request.form.get('phone','') }}">
+        <div class="ferr" id="e-phone"><i class="fas fa-exclamation-circle"></i> Enter a valid 10-digit number.</div>
+      </div>
 
-            <div class="fg">
-                <label>Full Address <span class="req">*</span></label>
-                <textarea id="address" name="address" class="fc" rows="3"
-                          placeholder="Enter your complete address">{{ request.form.get('address','') }}</textarea>
-                <div class="ferr" id="e-addr">Address is required.</div>
-            </div>
+      <button type="button" class="btn-otp" id="btnSendOtp" onclick="sendOTP()">
+        <i class="fas fa-paper-plane"></i> Send OTP
+      </button>
 
-            <!-- ── 3. Mobile OTP ── -->
-            <div class="sec"><i class="fas fa-mobile-alt"></i> Mobile Verification</div>
+      <div id="otpSection" style="display:none" class="otp-input-row">
+        <label>Enter OTP <span class="req">*</span></label>
+        <input type="text" id="otpCode" class="fc" maxlength="6"
+               inputmode="numeric" placeholder="6-digit OTP">
+        <div class="otp-actions">
+          <button type="button" class="btn-verify-otp" id="btnVerify" onclick="verifyOTP()">
+            <i class="fas fa-check"></i> Verify OTP
+          </button>
+          <button type="button" class="btn-resend" id="btnResend" onclick="resendOTP()" disabled>
+            <i class="fas fa-redo"></i> Resend
+          </button>
+        </div>
+      </div>
 
-            <div class="otp-box">
-                <div class="fg" style="margin-bottom:12px">
-                    <label>Mobile Number <span class="req">*</span></label>
-                    <input type="tel" id="phone" name="phone" class="fc"
-                           placeholder="10-digit mobile number"
-                           maxlength="10" inputmode="numeric"
-                           value="{{ request.form.get('phone','') }}">
-                    <div class="ferr" id="e-phone">Enter a valid 10-digit mobile number.</div>
-                </div>
+      <div id="verifiedBadge" style="display:none;text-align:center">
+        <span class="verified-badge"><i class="fas fa-check-circle"></i> Mobile Verified</span>
+      </div>
+      <div id="otpMsg" class="otp-msg"></div>
+    </div>
 
-                <!-- Send OTP button -->
-                <button type="button" class="btn-otp" id="btnSendOtp" onclick="sendOTP()">
-                    <i class="fas fa-paper-plane"></i> Send OTP
-                </button>
+    <!-- ── 4. KYC ── -->
+    <div class="sec">
+      <div class="sec-icon"><i class="fas fa-id-card"></i></div>
+      <h2>KYC Verification</h2>
+    </div>
 
-                <!-- OTP input (hidden until OTP sent) -->
-                <div id="otpSection" style="display:none;margin-top:14px">
-                    <label style="font-size:13px;font-weight:600;color:#2d3748;margin-bottom:6px;display:block">
-                        Enter OTP <span class="req">*</span>
-                    </label>
-                    <input type="text" id="otpCode" class="fc" maxlength="6"
-                           inputmode="numeric" placeholder="6-digit OTP"
-                           style="margin-bottom:10px">
-                    <div class="otp-row">
-                        <button type="button" class="btn-verify" id="btnVerify" onclick="verifyOTP()">
-                            <i class="fas fa-check"></i> Verify OTP
-                        </button>
-                        <button type="button" class="btn-resend" id="btnResend" onclick="resendOTP()" disabled>
-                            <i class="fas fa-redo"></i> Resend
-                        </button>
-                    </div>
-                </div>
+    <div class="fg">
+      <label>Document Type <span class="req">*</span></label>
+      <select id="kycType" name="kyc_type" class="fc" onchange="onKycType()">
+        <option value="">-- Select Document Type --</option>
+        <option value="Aadhaar Card"    {% if request.form.get('kyc_type')=='Aadhaar Card'    %}selected{% endif %}>Aadhaar Card</option>
+        <option value="PAN Card"        {% if request.form.get('kyc_type')=='PAN Card'        %}selected{% endif %}>PAN Card</option>
+        <option value="Driving License" {% if request.form.get('kyc_type')=='Driving License' %}selected{% endif %}>Driving License</option>
+        <option value="Voter ID"        {% if request.form.get('kyc_type')=='Voter ID'        %}selected{% endif %}>Voter ID</option>
+        <option value="Passport"        {% if request.form.get('kyc_type')=='Passport'        %}selected{% endif %}>Passport</option>
+      </select>
+      <div class="ferr" id="e-ktype"><i class="fas fa-exclamation-circle"></i> Please select a document type.</div>
+    </div>
 
-                <!-- Verified badge (hidden until verified) -->
-                <div id="verifiedBadge" style="display:none;text-align:center;margin-top:12px">
-                    <span class="verified-badge"><i class="fas fa-check-circle"></i> Mobile Verified</span>
-                </div>
+    <div class="fg">
+      <label>Verification Method <span class="req">*</span></label>
+      <div class="method-row">
+        <label class="mcard active" id="mcardNum">
+          <input type="radio" name="kyc_method" value="number" id="kycNum" onchange="toggleKyc()" checked>
+          <i class="fas fa-keyboard"></i> Enter Number
+        </label>
+        <label class="mcard" id="mcardUp">
+          <input type="radio" name="kyc_method" value="upload" id="kycUp" onchange="toggleKyc()">
+          <i class="fas fa-upload"></i> Upload Doc
+        </label>
+      </div>
+    </div>
 
-                <div id="otpMsg"></div>
-            </div>
+    <!-- Number entry -->
+    <div class="fg" id="kycNumSec">
+      <label>Document Number <span class="req">*</span></label>
+      <div class="spin-wrap">
+        <input type="text" id="kycNumber" name="kyc_number" class="fc"
+               placeholder="Select document type first" disabled
+               value="{{ request.form.get('kyc_number','') }}"
+               autocomplete="off" autocorrect="off" spellcheck="false">
+        <span class="spin-ic" id="kycNumSpinner"><i class="fas fa-spinner fa-spin"></i></span>
+      </div>
+      <div class="ferr" id="e-knum"><i class="fas fa-exclamation-circle"></i> Document number is required.</div>
+      <div class="vresult" id="panMsg"></div>
+    </div>
 
-            <!-- ── 4. KYC ── -->
-            <div class="sec"><i class="fas fa-id-card"></i> KYC Verification</div>
+    <!-- File upload -->
+    <div class="fg" id="kycUpSec" style="display:none">
+      <label>Upload Document <span class="req">*</span></label>
+      <div class="fbox" onclick="document.getElementById('identityFile').click()" id="kycDropZone">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <p>Tap to upload document</p>
+        <span>PNG, JPG or PDF — max 5 MB</span>
+      </div>
+      <input type="file" id="identityFile" name="identity_file"
+             accept="image/png,image/jpeg,image/jpg,application/pdf"
+             style="display:none" onchange="onDocFileChange(this)">
+      <div class="fname" id="kycFname"></div>
+      <img class="fimg" id="kycImg" alt="Document preview">
+      <div class="ferr" id="e-kfile"><i class="fas fa-exclamation-circle"></i> Upload a valid document (image/PDF, max 5 MB).</div>
+      <div class="vresult" id="verify_result"></div>
+    </div>
 
-            <div class="fg">
-                <label>Document Type <span class="req">*</span></label>
-                <select id="kycType" name="kyc_type" class="fc" onchange="onKycType()">
-                    <option value="">-- Select Document Type --</option>
-                    <option value="Aadhaar Card"    {% if request.form.get('kyc_type')=='Aadhaar Card'    %}selected{% endif %}>Aadhaar Card</option>
-                    <option value="PAN Card"        {% if request.form.get('kyc_type')=='PAN Card'        %}selected{% endif %}>PAN Card</option>
-                    <option value="Driving License" {% if request.form.get('kyc_type')=='Driving License' %}selected{% endif %}>Driving License</option>
-                    <option value="Voter ID"        {% if request.form.get('kyc_type')=='Voter ID'        %}selected{% endif %}>Voter ID</option>
-                    <option value="Passport"        {% if request.form.get('kyc_type')=='Passport'        %}selected{% endif %}>Passport</option>
-                </select>
-                <div class="ferr" id="e-ktype">Please select a document type.</div>
-            </div>
+    <button type="submit" class="btn-submit" id="btnSubmit" disabled>
+      <i class="fas fa-lock"></i> Submit Verification
+    </button>
+  </form>
+</div><!-- /card -->
 
-            <div class="fg">
-                <label>Verification Method <span class="req">*</span></label>
-                <div class="radio-row">
-                    <label class="rcard">
-                        <input type="radio" name="kyc_method" value="number" id="kycNum" onchange="toggleKyc()" checked>
-                        <i class="fas fa-keyboard"></i> Enter Number
-                    </label>
-                    <label class="rcard">
-                        <input type="radio" name="kyc_method" value="upload" id="kycUp" onchange="toggleKyc()">
-                        <i class="fas fa-upload"></i> Upload Document
-                    </label>
-                </div>
-            </div>
 
-            <div class="fg" id="kycNumSec">
-                <label>Document Number <span class="req">*</span></label>
-                <input type="text" id="kycNumber" name="kyc_number" class="fc"
-                       placeholder="Select document type first" disabled
-                       value="{{ request.form.get('kyc_number','') }}">
-                <div class="ferr" id="e-knum">Document number is required.</div>
-
-                <!-- PAN verify button — shown only when PAN Card is selected -->
-                <div id="panVerifySection" style="display:none;margin-top:10px">
-                  <button type="button" id="btnVerifyPan" onclick="verifyPAN()"
-                          style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;
-                                 padding:9px 20px;border-radius:9px;font-size:.82rem;font-weight:700;
-                                 cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-                    <i class="fas fa-id-card"></i> Verify PAN
-                  </button>
-                  <div id="panMsg" style="margin-top:8px;font-size:.8rem;display:none;padding:8px 12px;border-radius:8px"></div>
-                </div>
-            </div>
-
-            <div class="fg" id="kycUpSec" style="display:none">
-                <label>Upload Document <span class="req">*</span></label>
-                <div class="fbox" onclick="document.getElementById('identityFile').click()">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Click to upload document</p>
-                    <span>PNG, JPG or PDF — max 5 MB</span>
-                </div>
-                <input type="file" id="identityFile" name="identity_file"
-                       accept="image/png,image/jpeg,image/jpg,application/pdf"
-                       style="display:none" onchange="previewFile(this,'kycImg','kycFname')">
-                <div class="fname" id="kycFname"></div>
-                <img class="fimg" id="kycImg" alt="Document preview">
-                <div class="ferr" id="e-kfile">Upload a valid document (image/PDF, max 5 MB).</div>
-            </div>
-
-            <!-- ── 5. Aadhaar ── -->
-            <div class="sec"><i class="fas fa-address-card"></i> Aadhaar Verification</div>
-
-            <div class="fg">
-                <label>Upload Aadhaar Card <span class="req">*</span></label>
-                <div class="fbox" onclick="document.getElementById('aadhaarFile').click()">
-                    <i class="fas fa-id-card"></i>
-                    <p>Click to upload Aadhaar</p>
-                    <span>PNG, JPG or PDF — max 5 MB</span>
-                </div>
-                <input type="file" id="aadhaarFile" name="aadhaar_file"
-                       accept="image/png,image/jpeg,image/jpg,application/pdf"
-                       style="display:none" onchange="previewFile(this,'aadhaarImg','aadhaarFname')">
-                <div class="fname" id="aadhaarFname"></div>
-                <img class="fimg" id="aadhaarImg" alt="Aadhaar preview">
-                <div class="ferr" id="e-aadhaar">Upload Aadhaar (image/PDF, max 5 MB).</div>
-            </div>
-
-            <!-- Submit (disabled until OTP verified) -->
-            <button type="submit" class="btn-submit" id="btnSubmit" disabled>
-                <i class="fas fa-lock"></i> Submit Verification
-            </button>
-        </form>
-    </div><!-- /body -->
-</div><!-- /wrap -->
-
-<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 <script>
 /* ═══════════════════════════════════════════════════════
    STATE
 ═══════════════════════════════════════════════════════ */
 let camStream   = null;
-let otpVerified = false;   // master gate
-let panVerified = false;   // PAN gate (required when PAN Card selected)
+let otpVerified = false;
+let panVerified = false;
+let ocrVerified = false;
 let resendTimer = null;
 
 const ALLOWED_MIME = ['image/png','image/jpeg','image/jpg','application/pdf'];
 const MAX_BYTES    = 5 * 1024 * 1024;
 const KYC_PAT = {
-    'Aadhaar Card':    { re:/^\d{12}$/,              hint:'12-digit Aadhaar number' },
-    'PAN Card':        { re:/^[A-Z]{5}[0-9]{4}[A-Z]$/,hint:'e.g. ABCDE1234F' },
-    'Driving License': { re:/^[A-Z]{2}\d{2}\s?\d{11}$/,hint:'State code + 13 digits' },
-    'Voter ID':        { re:/^[A-Z]{3}\d{7}$/,       hint:'3 letters + 7 digits' },
-    'Passport':        { re:/^[A-Z]\d{7}$/,           hint:'1 letter + 7 digits' },
+  'Aadhaar Card':    { re:/^\d{12}$/,                hint:'12-digit Aadhaar number' },
+  'PAN Card':        { re:/^[A-Z]{5}[0-9]{4}[A-Z]$/, hint:'e.g. ABCDE1234F' },
+  'Driving License': { re:/^[A-Z]{2}\d{2}\s?\d{11}$/, hint:'State code + 13 digits' },
+  'Voter ID':        { re:/^[A-Z]{3}\d{7}$/,          hint:'3 letters + 7 digits' },
+  'Passport':        { re:/^[A-Z]\d{7}$/,             hint:'1 letter + 7 digits' },
 };
 
 /* ═══════════════════════════════════════════════════════
    CAMERA
 ═══════════════════════════════════════════════════════ */
 (function startCam(){
-    navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false})
-        .then(s=>{ camStream=s; document.getElementById('camVideo').srcObject=s; })
-        .catch(()=>{
-            document.getElementById('camHint').textContent='Camera unavailable – allow camera access.';
-            document.getElementById('btnCap').disabled=true;
-        });
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false})
+    .then(s=>{ camStream=s; document.getElementById('camVideo').srcObject=s; })
+    .catch(()=>{
+      document.getElementById('camHint').textContent='Camera unavailable – please allow camera access.';
+      document.getElementById('btnCap').disabled=true;
+    });
 })();
 
 function captureSelfie(){
-    const v=document.getElementById('camVideo'), c=document.getElementById('camCanvas');
-    const ctx=c.getContext('2d');
-    c.width=v.videoWidth||320; c.height=v.videoHeight||240;
-    ctx.translate(c.width,0); ctx.scale(-1,1);
-    ctx.drawImage(v,0,0);
-    const url=c.toDataURL('image/jpeg',0.88);
-    document.getElementById('selfieData').value=url;
-    const p=document.getElementById('camPreview');
-    p.src=url; p.style.display='block';
-    document.getElementById('camWrap').style.display='none';
-    document.getElementById('camHint').style.display='none';
-    document.getElementById('btnCap').style.display='none';
-    document.getElementById('btnRet').style.display='inline-block';
-    clearE('e-selfie');
-    if(camStream) camStream.getTracks().forEach(t=>t.stop());
+  const v=document.getElementById('camVideo'), c=document.getElementById('camCanvas');
+  const ctx=c.getContext('2d');
+  c.width=v.videoWidth||320; c.height=v.videoHeight||240;
+  ctx.translate(c.width,0); ctx.scale(-1,1);
+  ctx.drawImage(v,0,0);
+  const url=c.toDataURL('image/jpeg',0.88);
+  document.getElementById('selfieData').value=url;
+  const p=document.getElementById('camPreview');
+  p.src=url; p.style.display='block';
+  document.getElementById('camWrap').style.display='none';
+  document.getElementById('camHint').style.display='none';
+  document.getElementById('btnCap').style.display='none';
+  const ret=document.getElementById('btnRet');
+  ret.style.display='flex';
+  clearE('e-selfie');
+  if(camStream) camStream.getTracks().forEach(t=>t.stop());
 }
 
 function retakeSelfie(){
-    document.getElementById('selfieData').value='';
-    document.getElementById('camPreview').style.display='none';
-    document.getElementById('camWrap').style.display='block';
-    document.getElementById('camHint').style.display='block';
-    document.getElementById('btnCap').style.display='inline-block';
-    document.getElementById('btnRet').style.display='none';
-    navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false})
-        .then(s=>{ camStream=s; document.getElementById('camVideo').srcObject=s; });
+  document.getElementById('selfieData').value='';
+  document.getElementById('camPreview').style.display='none';
+  document.getElementById('camWrap').style.display='block';
+  document.getElementById('camHint').style.display='block';
+  document.getElementById('btnCap').style.display='flex';
+  document.getElementById('btnRet').style.display='none';
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false})
+    .then(s=>{ camStream=s; document.getElementById('camVideo').srcObject=s; });
 }
 
 /* ═══════════════════════════════════════════════════════
-   KYC TOGGLES
+   KYC METHOD TOGGLE
 ═══════════════════════════════════════════════════════ */
 function onKycType(){
-    const t=document.getElementById('kycType').value;
-    const n=document.getElementById('kycNumber');
-    n.disabled=!t;
-    n.placeholder = t && KYC_PAT[t] ? KYC_PAT[t].hint : 'Select document type first';
-    clearE('e-ktype');
-    // Show PAN verify button only for PAN Card
-    document.getElementById('panVerifySection').style.display = (t === 'PAN Card') ? 'block' : 'none';
-    // Reset PAN gate when switching doc type
-    if(t !== 'PAN Card'){ panVerified = false; }
-    checkSubmitReady();
+  const t=document.getElementById('kycType').value;
+  const n=document.getElementById('kycNumber');
+  n.disabled=!t;
+  n.placeholder = t && KYC_PAT[t] ? KYC_PAT[t].hint : 'Select document type first';
+  clearE('e-ktype');
+  panVerified=false; ocrVerified=false;
+  setVResult('panMsg','','');
+  setVResult('verify_result','','');
+  checkSubmitReady();
 }
 
 function toggleKyc(){
-    const isNum=document.getElementById('kycNum').checked;
-    document.getElementById('kycNumSec').style.display=isNum?'block':'none';
-    document.getElementById('kycUpSec').style.display=isNum?'none':'block';
+  const isNum=document.getElementById('kycNum').checked;
+  document.getElementById('kycNumSec').style.display=isNum?'block':'none';
+  document.getElementById('kycUpSec').style.display=isNum?'none':'block';
+  document.getElementById('mcardNum').classList.toggle('active',isNum);
+  document.getElementById('mcardUp').classList.toggle('active',!isNum);
+  panVerified=false; ocrVerified=false;
+  setVResult('panMsg','','');
+  setVResult('verify_result','','');
+  checkSubmitReady();
 }
 
 /* ═══════════════════════════════════════════════════════
-   FILE PREVIEW
+   HELPERS
 ═══════════════════════════════════════════════════════ */
-function previewFile(inp,imgId,nameId){
-    const f=inp.files[0], ne=document.getElementById(nameId), pe=document.getElementById(imgId);
-    ne.textContent=''; pe.style.display='none';
-    if(!f) return;
-    if(!ALLOWED_MIME.includes(f.type)){ inp.value=''; ne.textContent='⚠ Only PNG, JPG or PDF.'; ne.style.color='#e53e3e'; return; }
-    if(f.size>MAX_BYTES){ inp.value=''; ne.textContent='⚠ File exceeds 5 MB.'; ne.style.color='#e53e3e'; return; }
-    ne.textContent='✔ '+f.name; ne.style.color='#10b981';
-    if(f.type.startsWith('image/')){
-        const r=new FileReader();
-        r.onload=e=>{ pe.src=e.target.result; pe.style.display='block'; };
-        r.readAsDataURL(f);
-    }
-    if(nameId==='kycFname')    clearE('e-kfile');
-    if(nameId==='aadhaarFname') clearE('e-aadhaar');
-}
+function showE(id){ const el=document.getElementById(id); if(el) el.classList.add('show'); }
+function clearE(id){ const el=document.getElementById(id); if(el) el.classList.remove('show'); }
+function markE(el){ if(el) el.classList.add('err'); }
+function clearF(el){ if(el) el.classList.remove('err'); }
 
-/* ═══════════════════════════════════════════════════════
-   VALIDATION HELPERS
-═══════════════════════════════════════════════════════ */
-function showE(id){ document.getElementById(id).classList.add('show'); }
-function clearE(id){ document.getElementById(id).classList.remove('show'); }
-function markE(el){ el.classList.add('err'); }
-function clearF(el){ el.classList.remove('err'); }
+function setVResult(id, msg, type){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.className='vresult'+(type?' '+type:'');
+  el.innerHTML=msg;
+  el.style.display=msg?'block':'none';
+}
 
 function validateAllFields(){
-    let ok=true;
-    const name=document.getElementById('guestName');
-    if(!name.value.trim()){ markE(name); showE('e-name'); ok=false; } else { clearF(name); clearE('e-name'); }
-    if(!document.getElementById('selfieData').value){ showE('e-selfie'); ok=false; } else clearE('e-selfie');
-    const addr=document.getElementById('address');
-    if(!addr.value.trim()){ markE(addr); showE('e-addr'); ok=false; } else { clearF(addr); clearE('e-addr'); }
-    const ph=document.getElementById('phone');
-    if(!/^\d{10}$/.test(ph.value.trim())){ markE(ph); showE('e-phone'); ok=false; } else { clearF(ph); clearE('e-phone'); }
-    const kt=document.getElementById('kycType');
-    if(!kt.value){ markE(kt); showE('e-ktype'); ok=false; } else { clearF(kt); clearE('e-ktype'); }
-    if(document.getElementById('kycNum').checked){
-        const kn=document.getElementById('kycNumber');
-        const val=kn.value.trim().toUpperCase();
-        const pat=KYC_PAT[kt.value];
-        const numOk=val && (!pat || pat.re.test(val));
-        if(!numOk){ markE(kn); showE('e-knum'); ok=false; } else { clearF(kn); clearE('e-knum'); }
-    } else {
-        if(!document.getElementById('identityFile').files.length){ showE('e-kfile'); ok=false; } else clearE('e-kfile');
-    }
-    if(!document.getElementById('aadhaarFile').files.length){ showE('e-aadhaar'); ok=false; } else clearE('e-aadhaar');
-    return ok;
+  let ok=true;
+  const name=document.getElementById('guestName');
+  if(!name.value.trim()){ markE(name); showE('e-name'); ok=false; } else { clearF(name); clearE('e-name'); }
+  if(!document.getElementById('selfieData').value){ showE('e-selfie'); ok=false; } else clearE('e-selfie');
+  const addr=document.getElementById('address');
+  if(!addr.value.trim()){ markE(addr); showE('e-addr'); ok=false; } else { clearF(addr); clearE('e-addr'); }
+  const ph=document.getElementById('phone');
+  if(!/^\d{10}$/.test(ph.value.trim())){ markE(ph); showE('e-phone'); ok=false; } else { clearF(ph); clearE('e-phone'); }
+  const kt=document.getElementById('kycType');
+  if(!kt.value){ markE(kt); showE('e-ktype'); ok=false; } else { clearF(kt); clearE('e-ktype'); }
+  if(document.getElementById('kycNum').checked){
+    const kn=document.getElementById('kycNumber');
+    const val=kn.value.trim().toUpperCase();
+    const pat=KYC_PAT[kt.value];
+    if(!val||( pat && !pat.re.test(val))){ markE(kn); showE('e-knum'); ok=false; } else { clearF(kn); clearE('e-knum'); }
+  } else {
+    if(!document.getElementById('identityFile').files.length){ showE('e-kfile'); ok=false; } else clearE('e-kfile');
+  }
+  return ok;
 }
+
+/* ═══════════════════════════════════════════════════════
+   NAME LOCK NOTICE
+═══════════════════════════════════════════════════════ */
+function updateNameLock(){
+  const hasName = document.getElementById('guestName').value.trim().length > 0;
+  const notice  = document.getElementById('nameLockNotice');
+  const docType = document.getElementById('kycType').value;
+  // Show notice only when doc type is selected but name is empty
+  if(docType && !hasName){
+    notice.classList.add('show');
+  } else {
+    notice.classList.remove('show');
+  }
+}
+
+document.getElementById('guestName').addEventListener('input', function(){
+  updateNameLock();
+  // If user corrects name after a mismatch, re-trigger verification
+  const docType = document.getElementById('kycType').value;
+  const isNum   = document.getElementById('kycNum').checked;
+  if(docType && this.value.trim().length >= 3){
+    if(isNum){
+      const val = document.getElementById('kycNumber').value.trim().toUpperCase();
+      const pat = KYC_PAT[docType];
+      if(val && (!pat || pat.re.test(val))){
+        clearTimeout(_numDebounce);
+        _numDebounce = setTimeout(()=>verifyDocument(), 600);
+      }
+    }
+  }
+});
 
 /* ═══════════════════════════════════════════════════════
    OTP – SEND
 ═══════════════════════════════════════════════════════ */
 async function sendOTP(){
-    // Validate all fields first
-    if(!validateAllFields()){
-        setOtpMsg('Please fill all required fields before sending OTP.','fail');
-        document.querySelector('.ferr.show')?.scrollIntoView({behavior:'smooth',block:'center'});
-        return;
+  if(!validateAllFields()){
+    setOtpMsg('Please fill all required fields before sending OTP.','fail');
+    document.querySelector('.ferr.show')?.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  const phone=document.getElementById('phone').value.trim();
+  const btn=document.getElementById('btnSendOtp');
+  btn.disabled=true;
+  btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Sending…';
+  try{
+    const res=await fetch('/guest-verification/api/send-otp',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({phone_number:phone, hotel_id:'{{ hotel_id }}'})
+    });
+    const d=await res.json();
+    if(d.success){
+      setOtpMsg('OTP sent to '+phone+'. Valid for 5 minutes.','ok');
+      document.getElementById('otpSection').style.display='block';
+      startResendTimer();
+    } else {
+      setOtpMsg(d.message||'Failed to send OTP.','fail');
     }
-    const phone=document.getElementById('phone').value.trim();
-    const btn=document.getElementById('btnSendOtp');
-    btn.disabled=true;
-    btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Sending…';
-    try {
-        const res=await fetch('/guest-verification/api/send-otp',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({phone_number:phone, hotel_id:'{{ hotel_id }}'})
-        });
-        const d=await res.json();
-        if(d.success){
-            setOtpMsg('OTP sent to '+phone+'. Valid for 5 minutes.','ok');
-            document.getElementById('otpSection').style.display='block';
-            startResendTimer();
-        } else {
-            setOtpMsg(d.message||'Failed to send OTP.','fail');
-        }
-    } catch(e){
-        setOtpMsg('Network error. Please try again.','fail');
-    } finally {
-        btn.disabled=false;
-        btn.innerHTML='<i class="fas fa-paper-plane"></i> Send OTP';
-    }
+  } catch(e){
+    setOtpMsg('Network error. Please try again.','fail');
+  } finally {
+    btn.disabled=false;
+    btn.innerHTML='<i class="fas fa-paper-plane"></i> Send OTP';
+  }
 }
 
 /* ═══════════════════════════════════════════════════════
    OTP – VERIFY
 ═══════════════════════════════════════════════════════ */
 async function verifyOTP(){
-    const phone=document.getElementById('phone').value.trim();
-    const code=document.getElementById('otpCode').value.trim();
-    if(!code||code.length!==6||!/^\d{6}$/.test(code)){
-        setOtpMsg('Enter a valid 6-digit OTP.','fail'); return;
+  const phone=document.getElementById('phone').value.trim();
+  const code=document.getElementById('otpCode').value.trim();
+  if(!code||!/^\d{6}$/.test(code)){ setOtpMsg('Enter a valid 6-digit OTP.','fail'); return; }
+  const btn=document.getElementById('btnVerify');
+  btn.disabled=true;
+  btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Verifying…';
+  try{
+    const res=await fetch('/guest-verification/api/verify-otp',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({phone_number:phone, otp_code:code})
+    });
+    const d=await res.json();
+    if(d.success){
+      otpVerified=true;
+      document.getElementById('otpVerifiedFlag').value='1';
+      document.getElementById('otpSection').style.display='none';
+      document.getElementById('btnSendOtp').style.display='none';
+      document.getElementById('verifiedBadge').style.display='block';
+      setOtpMsg('','');
+      checkSubmitReady();
+      if(resendTimer) clearInterval(resendTimer);
+    } else {
+      setOtpMsg(d.message||'Invalid OTP.','fail');
+      btn.disabled=false;
+      btn.innerHTML='<i class="fas fa-check"></i> Verify OTP';
     }
-    const btn=document.getElementById('btnVerify');
-    btn.disabled=true;
-    btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Verifying…';
-    try {
-        const res=await fetch('/guest-verification/api/verify-otp',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({phone_number:phone, otp_code:code})
-        });
-        const d=await res.json();
-        if(d.success){
-            otpVerified=true;
-            document.getElementById('otpVerifiedFlag').value='1';
-            document.getElementById('otpSection').style.display='none';
-            document.getElementById('btnSendOtp').style.display='none';
-            document.getElementById('verifiedBadge').style.display='block';
-            setOtpMsg('','ok');
-            // Unlock submit (also checks PAN gate)
-            checkSubmitReady();
-            if(resendTimer) clearInterval(resendTimer);
-        } else {
-            setOtpMsg(d.message||'Invalid OTP.','fail');
-            btn.disabled=false;
-            btn.innerHTML='<i class="fas fa-check"></i> Verify OTP';
-        }
-    } catch(e){
-        setOtpMsg('Network error. Please try again.','fail');
-        btn.disabled=false;
-        btn.innerHTML='<i class="fas fa-check"></i> Verify OTP';
-    }
+  } catch(e){
+    setOtpMsg('Network error. Please try again.','fail');
+    btn.disabled=false;
+    btn.innerHTML='<i class="fas fa-check"></i> Verify OTP';
+  }
 }
 
-/* ═══════════════════════════════════════════════════════
-   OTP – RESEND
-═══════════════════════════════════════════════════════ */
-function resendOTP(){
-    document.getElementById('otpCode').value='';
-    sendOTP();
-}
+function resendOTP(){ document.getElementById('otpCode').value=''; sendOTP(); }
 
 function startResendTimer(){
-    const btn=document.getElementById('btnResend');
-    btn.disabled=true;
-    let t=30;
-    btn.textContent='Resend ('+t+'s)';
-    if(resendTimer) clearInterval(resendTimer);
-    resendTimer=setInterval(()=>{
-        t--;
-        if(t<=0){ clearInterval(resendTimer); btn.disabled=false; btn.innerHTML='<i class="fas fa-redo"></i> Resend'; }
-        else btn.textContent='Resend ('+t+'s)';
-    },1000);
+  const btn=document.getElementById('btnResend');
+  btn.disabled=true; let t=30;
+  btn.textContent='Resend ('+t+'s)';
+  if(resendTimer) clearInterval(resendTimer);
+  resendTimer=setInterval(()=>{
+    t--;
+    if(t<=0){ clearInterval(resendTimer); btn.disabled=false; btn.innerHTML='<i class="fas fa-redo"></i> Resend'; }
+    else btn.textContent='Resend ('+t+'s)';
+  },1000);
 }
 
 function setOtpMsg(msg,type){
-    const el=document.getElementById('otpMsg');
-    el.className='otp-msg '+(type||'');
-    el.textContent=msg;
-    el.style.display=msg?'block':'none';
+  const el=document.getElementById('otpMsg');
+  el.className='otp-msg'+(type?' '+type:'');
+  el.textContent=msg;
+  el.style.display=msg?'block':'none';
 }
 
 /* ═══════════════════════════════════════════════════════
-   FORM SUBMIT GATE
+   SUBMIT GATE
 ═══════════════════════════════════════════════════════ */
-document.getElementById('gvForm').addEventListener('submit',function(e){
-    if(!otpVerified){
-        e.preventDefault();
-        setOtpMsg('You must verify your mobile number via OTP before submitting.','fail');
-        document.getElementById('otpMsg').scrollIntoView({behavior:'smooth',block:'center'});
-        return;
-    }
-    const isPan = document.getElementById('kycType').value === 'PAN Card';
-    if(isPan && !panVerified){
-        e.preventDefault();
-        const msg=document.getElementById('panMsg');
-        msg.style.cssText='display:block;background:#fee2e2;color:#991b1b;padding:8px 12px;border-radius:8px;font-size:.8rem;margin-top:8px';
-        msg.textContent='Please verify your PAN before submitting.';
-        msg.scrollIntoView({behavior:'smooth',block:'center'});
-        return;
-    }
-    if(!validateAllFields()){
-        e.preventDefault();
-        document.querySelector('.ferr.show')?.scrollIntoView({behavior:'smooth',block:'center'});
-        return;
-    }
-    // Disable to prevent double-submit
-    const sub=document.getElementById('btnSubmit');
-    sub.disabled=true;
-    sub.innerHTML='<i class="fas fa-spinner fa-spin"></i> Submitting…';
-});
-
-// Phone: digits only
-document.getElementById('phone').addEventListener('input',function(){
-    this.value=this.value.replace(/\D/g,'').slice(0,10);
-});
-// OTP: digits only
-document.getElementById('otpCode')?.addEventListener('input',function(){
-    this.value=this.value.replace(/\D/g,'').slice(0,6);
-});
-
-/* ── PAN Verification via Surepass ── */
-async function verifyPAN(){
-    const pan = document.getElementById('kycNumber').value.trim().toUpperCase();
-    const name = document.getElementById('guestName')?.value.trim() || '';
-    const msg = document.getElementById('panMsg');
-    if(!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)){
-        msg.style.cssText='display:block;background:#fee2e2;color:#991b1b;padding:8px 12px;border-radius:8px;font-size:.8rem;margin-top:8px';
-        msg.textContent='Invalid PAN format. Expected: ABCDE1234F'; return;
-    }
-    const btn=document.getElementById('btnVerifyPan');
-    btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Verifying…';
-    msg.style.display='none';
-    try{
-        const res=await fetch('/guest-verification/api/verify-pan',{
-            method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({pan_number:pan, name:name})
-        });
-        const d=await res.json();
-        const colors={
-            VALID:   d.name_match==='MATCHED' ? 'background:#dcfce7;color:#166534' : 'background:#fef3c7;color:#92400e',
-            INVALID: 'background:#fee2e2;color:#991b1b',
-            UNKNOWN: 'background:#fef3c7;color:#92400e',
-            invalid_format: 'background:#fee2e2;color:#991b1b'
-        };
-        const c = colors[d.pan_status] || colors.UNKNOWN;
-        msg.style.cssText=`display:block;${c};padding:8px 12px;border-radius:8px;font-size:.8rem;margin-top:8px`;
-        // Show name match badge
-        let extra = '';
-        if(d.name_match === 'MATCHED'){
-            extra = ' <strong>✅ Name Matched</strong>';
-            panVerified = true;
-        } else if(d.name_match === 'MISMATCH'){
-            extra = ` <strong>⚠️ Mismatch — PAN name: ${d.api_name}</strong>`;
-            panVerified = false;
-        } else {
-            // UNKNOWN / no name — allow submission but mark as pending
-            panVerified = true;
-        }
-        msg.innerHTML = d.message + extra;
-        checkSubmitReady();
-    }catch(e){
-        msg.style.cssText='display:block;background:#fef3c7;color:#92400e;padding:8px 12px;border-radius:8px;font-size:.8rem;margin-top:8px';
-        msg.textContent='PAN verification failed. Will be marked as Pending.';
-        panVerified = true; // allow submit on API error (marked pending server-side)
-        checkSubmitReady();
-    }finally{
-        btn.disabled=false; btn.innerHTML='<i class="fas fa-id-card"></i> Verify PAN';
-    }
-}
-
-/* Check if submit should be enabled */
 function checkSubmitReady(){
-    const isPan = document.getElementById('kycType').value === 'PAN Card';
-    const panOk = !isPan || panVerified;
-    const sub = document.getElementById('btnSubmit');
-    if(otpVerified && panOk){
-        sub.disabled=false;
-        sub.innerHTML='<i class="fas fa-check-circle"></i> Submit Verification';
-    } else if(otpVerified && isPan && !panVerified){
-        sub.disabled=true;
-        sub.innerHTML='<i class="fas fa-lock"></i> Verify PAN to Submit';
-    }
+  const docType   = document.getElementById('kycType').value;
+  const isNum     = document.getElementById('kycNum').checked;
+  const isUp      = document.getElementById('kycUp').checked;
+  const needsNum  = !!docType && isNum;
+  const needsOcr  = !!docType && isUp;
+  const sub       = document.getElementById('btnSubmit');
+  const ready     = otpVerified && (!needsNum||panVerified) && (!needsOcr||ocrVerified);
+  if(ready){
+    sub.disabled=false;
+    sub.innerHTML='<i class="fas fa-check-circle"></i> Submit Verification';
+  } else if(otpVerified && needsOcr && !ocrVerified){
+    sub.disabled=true;
+    sub.innerHTML='<i class="fas fa-lock"></i> Verify Document to Submit';
+  } else if(otpVerified && needsNum && !panVerified){
+    sub.disabled=true;
+    sub.innerHTML='<i class="fas fa-lock"></i> Verify '+(docType||'Document')+' to Submit';
+  } else {
+    sub.disabled=true;
+    sub.innerHTML='<i class="fas fa-lock"></i> Submit Verification';
+  }
 }
+
+document.getElementById('gvForm').addEventListener('submit',function(e){
+  if(!otpVerified){
+    e.preventDefault();
+    setOtpMsg('You must verify your mobile number via OTP before submitting.','fail');
+    document.getElementById('otpMsg').scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  const docType = document.getElementById('kycType').value;
+  const isNum   = document.getElementById('kycNum').checked;
+  if(isNum && docType && !panVerified){
+    e.preventDefault();
+    setVResult('panMsg','<i class="fas fa-exclamation-circle"></i> Please verify your '+docType+' before submitting.','fail');
+    document.getElementById('panMsg').scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  if(!validateAllFields()){
+    e.preventDefault();
+    document.querySelector('.ferr.show')?.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  const sub=document.getElementById('btnSubmit');
+  sub.disabled=true;
+  sub.innerHTML='<i class="fas fa-spinner fa-spin"></i> Submitting…';
+});
+
+/* ═══════════════════════════════════════════════════════
+   FILE PREVIEW
+═══════════════════════════════════════════════════════ */
+function previewFile(inp,imgId,nameId){
+  const f=inp.files[0], ne=document.getElementById(nameId), pe=document.getElementById(imgId);
+  ne.textContent=''; pe.style.display='none';
+  if(!f) return;
+  if(!ALLOWED_MIME.includes(f.type)){ inp.value=''; ne.textContent='⚠ Only PNG, JPG or PDF.'; ne.style.color='var(--danger)'; return; }
+  if(f.size>MAX_BYTES){ inp.value=''; ne.textContent='⚠ File exceeds 5 MB.'; ne.style.color='var(--danger)'; return; }
+  ne.textContent='✔ '+f.name; ne.style.color='var(--success)';
+  if(f.type.startsWith('image/')){
+    const r=new FileReader();
+    r.onload=e=>{ pe.src=e.target.result; pe.style.display='block'; };
+    r.readAsDataURL(f);
+  }
+  clearE('e-kfile');
+}
+
+function onDocFileChange(inp){
+  previewFile(inp,'kycImg','kycFname');
+  ocrVerified=false;
+  setVResult('verify_result','','');
+  checkSubmitReady();
+  if(!inp.files.length) return;
+  verifyUploadOCR();
+}
+
+/* ═══════════════════════════════════════════════════════
+   AUTO-VERIFY: NUMBER (debounced)
+═══════════════════════════════════════════════════════ */
+let _numDebounce=null;
+document.getElementById('kycNumber').addEventListener('input',function(){
+  clearTimeout(_numDebounce);
+  const docType=document.getElementById('kycType').value;
+  const val=this.value.trim().toUpperCase();
+  const pat=KYC_PAT[docType];
+  panVerified=false;
+  setVResult('panMsg','','');
+  checkSubmitReady();
+  if(!docType||!val) return;
+  if(pat && !pat.re.test(val)) return;
+  _numDebounce=setTimeout(()=>verifyDocument(),500);
+});
+
+async function verifyDocument(){
+  const docType = document.getElementById('kycType').value;
+  const docNum  = document.getElementById('kycNumber').value.trim().toUpperCase();
+  const name    = document.getElementById('guestName').value.trim();
+  const spinner = document.getElementById('kycNumSpinner');
+  const pat     = KYC_PAT[docType];
+
+  if(!docType||!docNum||(pat&&!pat.re.test(docNum))) return;
+
+  // Block if name is empty
+  if(!name){
+    setVResult('panMsg','<i class="fas fa-lock"></i> Please enter your Full Name before verification.','fail');
+    document.getElementById('nameLockNotice').classList.add('show');
+    panVerified=false; checkSubmitReady(); return;
+  }
+
+  spinner.style.display='inline';
+  setVResult('panMsg','<i class="fas fa-spinner fa-spin"></i> Verifying…','warn');
+
+  try{
+    const res=await fetch('/guest-verification/api/verify-document',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({doc_type:docType, doc_number:docNum, user_name:name})
+    });
+    const d=await res.json();
+
+    if(!d.success && d.doc_status==='NAME_REQUIRED'){
+      setVResult('panMsg','<i class="fas fa-lock"></i> Please enter your Full Name before verification.','fail');
+      panVerified=false;
+    } else if(d.name_match==='MATCHED'){
+      setVResult('panMsg','<i class="fas fa-check-circle"></i> Document Verified ✔ (Name: '+d.api_name+') &nbsp;<strong>✅ Name Matched</strong>','ok');
+      panVerified=true;
+    } else if(d.name_match==='MISMATCH'){
+      setVResult('panMsg','<i class="fas fa-times-circle"></i> Name does not match document — Document shows: "'+d.api_name+'"','fail');
+      panVerified=false;
+    } else if(d.name_match==='UNKNOWN'){
+      setVResult('panMsg','<i class="fas fa-check-circle"></i> '+d.message,'ok');
+      panVerified=true;
+    } else {
+      setVResult('panMsg','<i class="fas fa-info-circle"></i> '+(d.message||'Verification pending.'),'warn');
+      panVerified=false;
+    }
+  } catch(e){
+    setVResult('panMsg','<i class="fas fa-exclamation-triangle"></i> Network error. Please try again.','fail');
+    panVerified=false;
+  } finally {
+    spinner.style.display='none';
+    checkSubmitReady();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   AUTO-VERIFY: UPLOAD OCR
+═══════════════════════════════════════════════════════ */
+async function verifyUploadOCR(){
+  const fileInput = document.getElementById('identityFile');
+  const docType   = document.getElementById('kycType').value;
+  const resultEl  = document.getElementById('verify_result');
+  const dropZone  = document.getElementById('kycDropZone');
+  const userName  = document.getElementById('guestName').value.trim();
+
+  if(!fileInput.files.length) return;
+
+  // Block if name is empty
+  if(!userName){
+    setVResult('verify_result','<i class="fas fa-lock"></i> Please enter your Full Name before verification.','fail');
+    document.getElementById('nameLockNotice').classList.add('show');
+    ocrVerified=false; checkSubmitReady(); return;
+  }
+
+  setVResult('verify_result','<i class="fas fa-spinner fa-spin"></i> Verifying document…','warn');
+  if(dropZone) dropZone.style.opacity='0.5';
+
+  const fd=new FormData();
+  fd.append('file', fileInput.files[0]);
+  fd.append('user_name', userName);
+  fd.append('doc_type', docType);
+
+  try{
+    const res=await fetch('/guest-verification/api/verify-upload',{method:'POST',body:fd});
+    const d=await res.json();
+
+    if(d.status==='VERIFIED'){
+      setVResult('verify_result','<i class="fas fa-check-circle"></i> '+d.message+' &nbsp;<strong>✅ Name Matched</strong>','ok');
+      ocrVerified=true;
+    } else if(d.status==='MISMATCH'){
+      setVResult('verify_result','<i class="fas fa-times-circle"></i> Name does not match document — '+d.message,'fail');
+      ocrVerified=false;
+    } else if(d.status==='CONFIRM'){
+      setVResult('verify_result','<i class="fas fa-exclamation-circle"></i> '+d.message+' — Please correct your Full Name to match.','warn');
+      ocrVerified=false;
+    } else if(d.status==='NAME_REQUIRED'){
+      setVResult('verify_result','<i class="fas fa-lock"></i> Please enter your Full Name before verification.','fail');
+      ocrVerified=false;
+    } else if(d.status==='MANUAL'){
+      setVResult('verify_result','<i class="fas fa-info-circle"></i> '+d.message,'warn');
+      ocrVerified=true;
+    } else if(!d.success||d.status==='INVALID'){
+      setVResult('verify_result','<i class="fas fa-times-circle"></i> '+(d.message||'Verification failed.'),'fail');
+      ocrVerified=false;
+    } else {
+      setVResult('verify_result','<i class="fas fa-info-circle"></i> '+(d.message||'Verification pending.'),'warn');
+      ocrVerified=false;
+    }
+  } catch(e){
+    setVResult('verify_result','<i class="fas fa-exclamation-triangle"></i> OCR verification failed. Will be marked as Pending.','warn');
+    ocrVerified=true;
+  } finally {
+    if(dropZone) dropZone.style.opacity='1';
+    checkSubmitReady();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   INPUT FILTERS
+═══════════════════════════════════════════════════════ */
+document.getElementById('phone').addEventListener('input',function(){
+  this.value=this.value.replace(/\D/g,'').slice(0,10);
+});
+document.getElementById('otpCode').addEventListener('input',function(){
+  this.value=this.value.replace(/\D/g,'').slice(0,6);
+});
+document.getElementById('kycType').addEventListener('change', updateNameLock);
 </script>
 </body>
 </html>

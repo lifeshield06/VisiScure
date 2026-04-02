@@ -138,7 +138,7 @@ def submit_verification(manager_id):
         # ── OTP session check (server-side gate) ────────────────────────────
         verified_phone = session.get('otp_verified_phone')
         if not verified_phone or verified_phone != phone:
-            hn, hl = get_hotel_data(hotel_id)
+            hn, hl, *_ = get_hotel_data(hotel_id)
             return render_template('guest_verification_form.html',
                                    manager_id=manager_id, hotel_id=hotel_id,
                                    hotel_name=hn, hotel_logo=hl,
@@ -148,7 +148,7 @@ def submit_verification(manager_id):
         print(f"\n[VALIDATION] Checking required fields...")
         if not guest_name:
             print(f"[VALIDATION] ❌ guest_name is missing")
-            hotel_name, hotel_logo = get_hotel_data(hotel_id)
+            hotel_name, hotel_logo, *_ = get_hotel_data(hotel_id)
             return render_template('guest_verification_form.html', 
                                  manager_id=manager_id, 
                                  hotel_id=hotel_id,
@@ -158,7 +158,7 @@ def submit_verification(manager_id):
         
         if not phone:
             print(f"[VALIDATION] ❌ phone is missing")
-            hotel_name, hotel_logo = get_hotel_data(hotel_id)
+            hotel_name, hotel_logo, *_ = get_hotel_data(hotel_id)
             return render_template('guest_verification_form.html', 
                                  manager_id=manager_id, 
                                  hotel_id=hotel_id,
@@ -169,7 +169,7 @@ def submit_verification(manager_id):
         # Validate phone: exactly 10 digits, numbers only
         if not phone.isdigit() or len(phone) != 10:
             print(f"[VALIDATION] ❌ phone format invalid: {phone}")
-            hotel_name, hotel_logo = get_hotel_data(hotel_id)
+            hotel_name, hotel_logo, *_ = get_hotel_data(hotel_id)
             return render_template('guest_verification_form.html', 
                                  manager_id=manager_id, 
                                  hotel_id=hotel_id,
@@ -179,7 +179,7 @@ def submit_verification(manager_id):
         
         if not address:
             print(f"[VALIDATION] ❌ address is missing")
-            hotel_name, hotel_logo = get_hotel_data(hotel_id)
+            hotel_name, hotel_logo, *_ = get_hotel_data(hotel_id)
             return render_template('guest_verification_form.html', 
                                  manager_id=manager_id, 
                                  hotel_id=hotel_id,
@@ -189,7 +189,7 @@ def submit_verification(manager_id):
         
         if not selfie_data:
             print(f"[VALIDATION] ❌ selfie_data is missing")
-            hotel_name, hotel_logo = get_hotel_data(hotel_id)
+            hotel_name, hotel_logo, *_ = get_hotel_data(hotel_id)
             return render_template('guest_verification_form.html', 
                                  manager_id=manager_id, 
                                  hotel_id=hotel_id,
@@ -207,7 +207,7 @@ def submit_verification(manager_id):
             print(f"[WALLET] Balance check result: {balance_check}")
             if not balance_check.get('sufficient', True):
                 print(f"[WALLET] ❌ Insufficient balance")
-                hotel_name, hotel_logo = get_hotel_data(hotel_id)
+                hotel_name, hotel_logo, *_ = get_hotel_data(hotel_id)
                 return render_template('guest_verification_form.html', 
                                      manager_id=manager_id, 
                                      hotel_id=hotel_id,
@@ -315,14 +315,19 @@ def submit_verification(manager_id):
             
             # Clear OTP session after successful submission (one-time use)
             session.pop('otp_verified_phone', None)
-            success_hotel_name, success_hotel_logo = get_hotel_data(hotel_id)
+            success_hotel_name, success_hotel_logo, success_hotel_address, success_hotel_phone, success_hotel_email, success_hotel_city, success_hotel_upi = get_hotel_data(hotel_id)
             return render_template('verification_success.html',
                                  hotel_name=success_hotel_name,
-                                 hotel_logo=success_hotel_logo)
+                                 hotel_logo=success_hotel_logo,
+                                 hotel_address=success_hotel_address,
+                                 hotel_phone=success_hotel_phone,
+                                 hotel_email=success_hotel_email,
+                                 hotel_city=success_hotel_city,
+                                 hotel_upi=success_hotel_upi)
         else:
             print(f"\n[ERROR] ❌ Submission failed: {result['message']}")
             print("="*80 + "\n")
-            hotel_name, hotel_logo = get_hotel_data(hotel_id)
+            hotel_name, hotel_logo, *_ = get_hotel_data(hotel_id)
             return render_template('guest_verification_form.html', 
                                  manager_id=manager_id,
                                  hotel_id=hotel_id,
@@ -336,7 +341,7 @@ def submit_verification(manager_id):
         traceback.print_exc()
         print("="*80 + "\n")
         
-        hotel_name, hotel_logo = get_hotel_data(hotel_id if 'hotel_id' in locals() else None)
+        hotel_name, hotel_logo, *_ = get_hotel_data(hotel_id if 'hotel_id' in locals() else None)
         return render_template('guest_verification_form.html', 
                              manager_id=manager_id,
                              hotel_id=hotel_id if 'hotel_id' in locals() else None,
@@ -345,23 +350,57 @@ def submit_verification(manager_id):
                              error=f"Error: {str(e)}")
 
 def get_hotel_data(hotel_id):
-    """Helper function to fetch hotel name and logo"""
-    hotel_name = None
-    hotel_logo = None
+    """Helper function to fetch hotel name, logo, and contact details"""
+    hotel_name    = None
+    hotel_logo    = None
+    hotel_address = None
+    hotel_phone   = None
+    hotel_email   = None
+    hotel_city    = None
+    hotel_upi     = None
     if hotel_id:
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT hotel_name, logo FROM hotels WHERE id = %s", (hotel_id,))
+            # Fetch all available columns safely
+            cursor.execute("""
+                SELECT hotel_name, logo, address, city,
+                       IFNULL(phone, NULL)  AS phone,
+                       IFNULL(email, NULL)  AS email,
+                       IFNULL(upi_id, NULL) AS upi_id
+                FROM hotels WHERE id = %s
+            """, (hotel_id,))
             result = cursor.fetchone()
             if result:
-                hotel_name = result[0]
-                hotel_logo = result[1]
+                hotel_name    = result[0]
+                hotel_logo    = result[1]
+                hotel_address = result[2]
+                hotel_city    = result[3]
+                hotel_phone   = result[4]
+                hotel_email   = result[5]
+                hotel_upi     = result[6]
             cursor.close()
             conn.close()
         except Exception as e:
-            print(f"Error fetching hotel data: {e}")
-    return hotel_name, hotel_logo
+            # Fallback: try without optional columns
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT hotel_name, logo, address, city FROM hotels WHERE id = %s",
+                    (hotel_id,)
+                )
+                result = cursor.fetchone()
+                if result:
+                    hotel_name    = result[0]
+                    hotel_logo    = result[1]
+                    hotel_address = result[2]
+                    hotel_city    = result[3]
+                cursor.close()
+                conn.close()
+            except Exception as e2:
+                print(f"Error fetching hotel data: {e2}")
+    return hotel_name, hotel_logo, hotel_address, hotel_phone, hotel_email, hotel_city, hotel_upi
 
 @guest_verification_bp.route('/update-status', methods=['POST'])
 def update_status():
@@ -663,75 +702,275 @@ def verification_success():
     return render_template('verification_success.html')
 
 
-# ─── Surepass PAN Verification ────────────────────────────────────────────────
+# ─── OCR Document Upload Verification ────────────────────────────────────────
 
+@guest_verification_bp.route('/api/verify-upload', methods=['POST'])
+def verify_upload():
+    """OCR-based document verification: extract name and match with user input."""
+    from .ocr_service import (
+        allowed_file, save_document, extract_text, extract_name,
+        match_names, MAX_BYTES
+    )
+
+    file      = request.files.get('file')
+    user_name = (request.form.get('user_name') or '').strip()
+    doc_type  = (request.form.get('doc_type') or '').strip()
+
+    if not user_name:
+        return jsonify({'success': False, 'status': 'NAME_REQUIRED',
+                        'message': 'Please enter your Full Name before verification.'}), 400
+
+    if not file or not file.filename:
+        return jsonify({'success': False, 'status': 'ERROR', 'message': 'No file uploaded.'})
+
+    if not allowed_file(file.filename):
+        return jsonify({'success': False, 'status': 'ERROR',
+                        'message': 'Invalid file type. Only PNG, JPG, PDF allowed.'})
+
+    # Check size
+    file.seek(0, 2)
+    size = file.tell()
+    file.seek(0)
+    if size > MAX_BYTES:
+        return jsonify({'success': False, 'status': 'ERROR',
+                        'message': 'File exceeds 5 MB limit.'})
+
+    try:
+        file_path = save_document(file)
+    except Exception as e:
+        return jsonify({'success': False, 'status': 'ERROR',
+                        'message': f'Failed to save file: {e}'})
+
+    # Image quality check (selfie detection, blur, brightness)
+    from .ocr_service import check_image_quality
+    qc = check_image_quality(file_path)
+    if not qc['ok']:
+        return jsonify({'success': False, 'status': 'INVALID', 'message': qc['reason']})
+
+    try:
+        from .ocr_service import _surepass_name_cache
+        _surepass_name_cache['doc_type'] = doc_type  # pass doc_type for endpoint selection
+        raw_text   = extract_text(file_path)
+        doc_name   = extract_name(doc_type, raw_text)
+        result     = match_names(user_name, doc_name)
+    except Exception as e:
+        import traceback
+        err_detail = traceback.format_exc()
+        print(f"[OCR ERROR] {err_detail}")
+        return jsonify({
+            'success': True,
+            'status': 'RETRY',
+            'message': f'OCR error: {str(e)} — Please try uploading a clearer image.',
+            'doc_name': '',
+            'debug': str(e)
+        })
+
+    # Persist to DB
+    try:
+        conn   = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS document_verifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255),
+                doc_type VARCHAR(100),
+                file_path VARCHAR(500),
+                extracted_name VARCHAR(255),
+                verification_status VARCHAR(20),
+                created_at DATETIME DEFAULT NOW()
+            )
+        """)
+        cursor.execute("""
+            INSERT INTO document_verifications
+                (name, doc_type, file_path, extracted_name, verification_status)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (user_name, doc_type, file_path, result['doc_name'], result['status']))
+        conn.commit()
+        cursor.close(); conn.close()
+    except Exception as e:
+        print(f"[OCR DB] Error: {e}")
+
+    # Store in session for form submission
+    session.update(
+        pan_status=result['status'],
+        name_match='MATCHED' if result['status'] == 'VERIFIED' else result['status'],
+        api_name=result['doc_name'],
+        kyc_status=result['status']
+    )
+
+    return jsonify({
+        'success': True,
+        'status':  result['status'],
+        'message': result['message'],
+        'doc_name': result['doc_name']
+    })
+
+
+# ─── Unified Document Verification (PAN / Aadhaar / DL / Voter / Passport) ───
+
+# Keep old route as alias for backward compat
 @guest_verification_bp.route('/api/verify-pan', methods=['POST'])
 def verify_pan():
+    data = request.json or {}
+    data['doc_type'] = 'PAN Card'
+    data['doc_number'] = data.get('pan_number', '')
+    data['user_name'] = data.get('name', '')
+    return _verify_document(data)
+
+
+@guest_verification_bp.route('/api/verify-document', methods=['POST'])
+def verify_document():
+    return _verify_document(request.json or {})
+
+
+def _verify_document(data):
     import os, re, requests as req
-    from flask import jsonify
     from dotenv import load_dotenv
     load_dotenv(override=True)
-    data = request.json or {}
-    pan_number = data.get('pan_number', '').strip().upper()
-    user_name  = data.get('name', '').strip()
-    if not re.match(r'^[A-Z]{5}[0-9]{4}[A-Z]$', pan_number):
-        return jsonify({'success': False, 'pan_status': 'invalid_format', 'message': 'Invalid PAN format. Expected: ABCDE1234F'})
+
+    doc_type   = data.get('doc_type', '').strip()
+    doc_number = data.get('doc_number', '').strip().upper()
+    user_name  = data.get('user_name', '').strip()
+
+    # Block verification if name is missing
+    if not user_name:
+        return jsonify({'success': False, 'doc_status': 'NAME_REQUIRED',
+                        'name_match': 'NAME_REQUIRED', 'api_name': '',
+                        'kyc_status': 'PENDING',
+                        'message': 'Please enter your Full Name before verification.'}), 400
+
+    # ── Aadhaar: no direct number-lookup API (OTP-based only) ────────────────
+    if doc_type == 'Aadhaar Card':
+        if not re.match(r'^\d{12}$', doc_number):
+            return jsonify({'success': False, 'doc_status': 'INVALID',
+                            'message': 'Invalid Aadhaar number. Must be 12 digits.'})
+        session.update(pan_status='UNKNOWN', name_match='UNKNOWN', api_name='', kyc_status='PENDING')
+        return jsonify({'success': True, 'doc_status': 'UNKNOWN', 'name_match': 'UNKNOWN',
+                        'api_name': '', 'kyc_status': 'PENDING',
+                        'message': 'Aadhaar number recorded. Will be verified manually by hotel staff.'})
+
+    # ── API endpoint map ──────────────────────────────────────────────────────
+    API_MAP = {
+        'PAN Card':        'https://kyc-api.surepass.io/api/v1/pan/pan',
+        'Driving License': 'https://kyc-api.surepass.io/api/v1/driving-license/driving-license',
+        'Voter ID':        'https://kyc-api.surepass.io/api/v1/voter-id/voter-id',
+        'Passport':        'https://kyc-api.surepass.io/api/v1/passport/passport',
+    }
+
+    # ── Format validation ─────────────────────────────────────────────────────
+    PATTERNS = {
+        'PAN Card':        r'^[A-Z]{5}[0-9]{4}[A-Z]$',
+        'Aadhaar Card':    r'^\d{12}$',
+        'Driving License': r'^[A-Z]{2}\d{2}\s?\d{11}$',
+        'Voter ID':        r'^[A-Z]{3}\d{7}$',
+        'Passport':        r'^[A-Z]\d{7}$',
+    }
+
+    if doc_type not in API_MAP:
+        return jsonify({'success': False, 'doc_status': 'ERROR',
+                        'message': f'Unsupported document type: {doc_type}'})
+
+    pat = PATTERNS.get(doc_type)
+    if pat and not re.match(pat, doc_number):
+        return jsonify({'success': False, 'doc_status': 'INVALID',
+                        'message': f'Invalid {doc_type} format'})
+
     token = os.getenv('SUREPASS_TOKEN', '').strip()
     if not token or token == 'your_surepass_bearer_token':
-        session['pan_status'] = 'UNKNOWN'; session['name_match'] = 'UNKNOWN'
-        session['api_name'] = ''; session['kyc_status'] = 'PENDING'
-        return jsonify({'success': True, 'pan_status': 'UNKNOWN', 'name_match': 'UNKNOWN', 'api_name': '', 'kyc_status': 'PENDING', 'message': 'PAN API not configured. Marked as Pending.'})
+        session.update(doc_status='UNKNOWN', name_match='UNKNOWN', api_name='', kyc_status='PENDING')
+        return jsonify({'success': True, 'doc_status': 'UNKNOWN', 'name_match': 'UNKNOWN',
+                        'api_name': '', 'kyc_status': 'PENDING',
+                        'message': 'Verification API not configured. Marked as Pending.'})
+
     try:
-        resp = req.post('https://kyc-api.surepass.io/api/v1/pan/pan',
+        resp = req.post(
+            API_MAP[doc_type],
             headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
-            json={'id_number': pan_number}, timeout=10)
-        result = resp.json()
-        print(f"[SUREPASS] Raw response: {result}")
+            json={'id_number': doc_number},
+            timeout=10
+        )
+        print(f"[SUREPASS:{doc_type}] status={resp.status_code} raw={resp.text[:300]}")
+        try:
+            result = resp.json()
+        except Exception:
+            print(f"[SUREPASS:{doc_type}] Non-JSON response (status={resp.status_code}): {resp.text[:500]}")
+            session.update(pan_status='UNKNOWN', name_match='UNKNOWN', api_name='', kyc_status='PENDING')
+            if resp.status_code == 401:
+                msg = 'Verification API token expired or invalid. Marked as Pending.'
+            elif resp.status_code == 403:
+                msg = 'Verification API access denied. Marked as Pending.'
+            elif resp.status_code == 422:
+                msg = 'Invalid document number format. Marked as Pending.'
+            else:
+                msg = f'Verification API error (HTTP {resp.status_code}). Marked as Pending.'
+            return jsonify({'success': True, 'doc_status': 'UNKNOWN', 'name_match': 'UNKNOWN',
+                            'api_name': '', 'kyc_status': 'PENDING', 'message': msg})
+        print(f"[SUREPASS:{doc_type}] response={result}")
+
         if result.get('success'):
-            data_obj = result.get('data') or {}
-            # Try all known field names Surepass uses for the holder name
+            d = result.get('data') or {}
+            # Try all known name fields across different Surepass endpoints
             api_name = (
-                data_obj.get('name') or
-                data_obj.get('full_name') or
-                data_obj.get('pan_holder_name') or
-                data_obj.get('first_name', '') + ' ' + data_obj.get('last_name', '') or
-                ''
+                d.get('name') or d.get('full_name') or d.get('pan_holder_name') or
+                d.get('holder_name') or d.get('name_on_card') or
+                (d.get('first_name', '') + ' ' + d.get('last_name', '')).strip() or ''
             ).strip()
-            print(f"[SUREPASS] Extracted api_name='{api_name}', data keys={list(data_obj.keys())}")
-            pan_status = 'VALID'
-            if user_name and api_name:
-                # Normalise: lowercase, collapse spaces
+            print(f"[SUREPASS:{doc_type}] api_name='{api_name}' keys={list(d.keys())}")
+
+            # Name is mandatory — block if not provided
+            if not user_name:
+                session.update(pan_status='NAME_REQUIRED', name_match='NAME_REQUIRED',
+                               api_name=api_name, kyc_status='PENDING')
+                return jsonify({'success': False, 'doc_status': 'NAME_REQUIRED',
+                                'name_match': 'NAME_REQUIRED', 'api_name': api_name,
+                                'kyc_status': 'PENDING',
+                                'message': 'Please enter your Full Name before verification.'})
+
+            doc_status = 'VALID'
+            if api_name:
                 u = ' '.join(user_name.lower().split())
                 a = ' '.join(api_name.lower().split())
-                if u == a:
+                # Allow minor variations: word-overlap similarity
+                u_words = set(u.split()); a_words = set(a.split())
+                overlap = len(u_words & a_words)
+                sim = overlap / max(len(u_words), len(a_words)) if (u_words and a_words) else 0
+                if sim >= 0.7:
                     name_match = 'MATCHED'; kyc_status = 'VERIFIED'
-                    message = f'PAN Verified ✔ Name Matched: {api_name}'
+                    message = f'Document Verified ✔ (Name: {api_name}) ✅ Name Matched'
                 else:
                     name_match = 'MISMATCH'; kyc_status = 'REVIEW'
-                    message = f'Name Mismatch ❌ — PAN name: {api_name}'
-            elif api_name:
-                # name returned but user didn't enter one — treat as verified
-                name_match = 'MATCHED'; kyc_status = 'VERIFIED'
-                message = f'PAN Verified ✔ (Name on PAN: {api_name})'
+                    message = f'Name does not match document — Document shows: "{api_name}"'
             else:
-                # API genuinely returned no name — mark VERIFIED so user isn't blocked
                 name_match = 'UNKNOWN'; kyc_status = 'VERIFIED'
-                message = 'PAN Verified ✔ (Name not available in registry)'
+                message = 'Document Verified ✔ (Name not available in registry)'
         else:
-            api_name = ''; pan_status = 'INVALID'; name_match = 'UNKNOWN'; kyc_status = 'PENDING'
-            message = result.get('message', 'PAN verification failed')
-    except req.exceptions.ConnectionError:
-        api_name = ''; pan_status = 'UNKNOWN'; name_match = 'UNKNOWN'; kyc_status = 'PENDING'
-        message = 'Cannot reach Surepass API. Marked as Pending.'
-    except req.exceptions.Timeout:
-        api_name = ''; pan_status = 'UNKNOWN'; name_match = 'UNKNOWN'; kyc_status = 'PENDING'
-        message = 'Surepass API timed out. Marked as Pending.'
-    except Exception:
-        api_name = ''; pan_status = 'UNKNOWN'; name_match = 'UNKNOWN'; kyc_status = 'PENDING'
-        message = 'PAN API unavailable. Marked as Pending.'
-    session['pan_status'] = pan_status; session['name_match'] = name_match
-    session['api_name'] = api_name; session['kyc_status'] = kyc_status
-    return jsonify({'success': True, 'pan_status': pan_status, 'name_match': name_match, 'api_name': api_name, 'kyc_status': kyc_status, 'message': message})
+            api_name = ''; doc_status = 'INVALID'; name_match = 'UNKNOWN'; kyc_status = 'PENDING'
+            message = result.get('message', 'Document verification failed')
+
+    except req.exceptions.ConnectionError as e:
+        print(f"[SUREPASS:{doc_type}] ConnectionError: {e}")
+        api_name = ''; doc_status = 'UNKNOWN'; name_match = 'UNKNOWN'; kyc_status = 'PENDING'
+        message = 'Cannot reach verification API. Marked as Pending.'
+    except req.exceptions.Timeout as e:
+        print(f"[SUREPASS:{doc_type}] Timeout: {e}")
+        api_name = ''; doc_status = 'UNKNOWN'; name_match = 'UNKNOWN'; kyc_status = 'PENDING'
+        message = 'Verification API timed out. Marked as Pending.'
+    except req.exceptions.JSONDecodeError as e:
+        print(f"[SUREPASS:{doc_type}] JSONDecodeError (non-JSON response): {e}")
+        api_name = ''; doc_status = 'UNKNOWN'; name_match = 'UNKNOWN'; kyc_status = 'PENDING'
+        message = 'Verification API returned invalid response. Marked as Pending.'
+    except Exception as e:
+        import traceback
+        print(f"[SUREPASS:{doc_type}] Unexpected Exception: {type(e).__name__}: {e}")
+        traceback.print_exc()
+        api_name = ''; doc_status = 'UNKNOWN'; name_match = 'UNKNOWN'; kyc_status = 'PENDING'
+        message = f'Verification API unavailable. Marked as Pending.'
+
+    session.update(pan_status=doc_status, name_match=name_match,
+                   api_name=api_name, kyc_status=kyc_status)
+    return jsonify({'success': True, 'doc_status': doc_status, 'pan_status': doc_status,
+                    'name_match': name_match, 'api_name': api_name,
+                    'kyc_status': kyc_status, 'message': message})
 
 
 # ─── Manager: Approve / Reject verification ───────────────────────────────────
@@ -758,7 +997,7 @@ def reject_verification(verification_id):
 
 @guest_verification_bp.route('/submit/<int:hotel_id>', methods=['GET'])
 def submit_form(hotel_id):
-    hotel_name, hotel_logo = get_hotel_data(hotel_id)
+    hotel_name, hotel_logo, *_ = get_hotel_data(hotel_id)
     return render_template('guest_verification_submit.html',
                            hotel_id=hotel_id, hotel_name=hotel_name, hotel_logo=hotel_logo)
 
@@ -769,7 +1008,7 @@ def submit_form_post(hotel_id):
         name        = request.form.get('name', '').strip()
         phone       = request.form.get('phone', '').strip()
         selfie_data = request.form.get('selfie_data', '')
-        hotel_name, hotel_logo = get_hotel_data(hotel_id)
+        hotel_name, hotel_logo, *_ = get_hotel_data(hotel_id)
 
         def _err(msg):
             return render_template('guest_verification_submit.html',
@@ -798,7 +1037,7 @@ def submit_form_post(hotel_id):
         return render_template('verification_success.html',
                                hotel_name=hotel_name, hotel_logo=hotel_logo)
     except Exception as e:
-        hotel_name, hotel_logo = get_hotel_data(hotel_id)
+        hotel_name, hotel_logo, *_ = get_hotel_data(hotel_id)
         return render_template('guest_verification_submit.html',
                                hotel_id=hotel_id, hotel_name=hotel_name,
                                hotel_logo=hotel_logo, error=str(e))

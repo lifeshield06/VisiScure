@@ -1,88 +1,248 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verification Submitted - {{ hotel_name or 'VisiScure Order' }}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #10b981 0%, #059669 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-        .success-container { background: white; border-radius: 20px; padding: 3rem; box-shadow: 0 25px 50px rgba(0,0,0,0.15); max-width: 550px; width: 100%; text-align: center; position: relative; overflow: hidden; }
-        .success-container::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-        .hotel-logo-section { margin-bottom: 1.5rem; }
-        .hotel-logo-img { max-height: 60px; max-width: 200px; object-fit: contain; }
-        .hotel-name-text { font-size: 1.1rem; font-weight: 600; color: #2d3748; margin-top: 0.5rem; }
-        .success-icon { font-size: 5rem; color: #10b981; margin-bottom: 1.5rem; animation: checkmark 0.6s ease-in-out; }
-        @keyframes checkmark { 0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
-        .success-container h1 { color: #2d3748; margin-bottom: 1rem; font-size: 2rem; font-weight: 700; }
-        .success-container p { color: #718096; margin-bottom: 2.5rem; line-height: 1.6; font-size: 1.1rem; }
-        .success-details { background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); padding: 2rem; border-radius: 16px; margin-bottom: 2.5rem; text-align: left; border: 1px solid #bbf7d0; }
-        .success-details h3 { color: #065f46; margin-bottom: 1.5rem; font-size: 1.2rem; font-weight: 600; text-align: center; }
-        .success-details ul { list-style: none; }
-        .success-details li { color: #047857; margin-bottom: 1rem; display: flex; align-items: center; font-size: 0.95rem; }
-        .success-details li i { margin-right: 1rem; width: 24px; color: #10b981; font-size: 1.1rem; }
-        .success-details li:last-child { margin-bottom: 0; }
-        .action-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-        .home-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 1rem 2rem; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.3s ease; }
-        .home-btn:hover { transform: translateY(-2px); box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4); }
-        .track-btn { background: white; color: #667eea; border: 2px solid #667eea; padding: 1rem 2rem; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.3s ease; }
-        .track-btn:hover { background: #667eea; color: white; transform: translateY(-2px); }
-        .reference-number { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin: 1.5rem 0; font-family: 'Courier New', monospace; font-weight: 600; color: #2d3748; }
-        @media (max-width: 768px) { 
-            .success-container { padding: 2rem; margin: 0.5rem; }
-            .success-container h1 { font-size: 1.7rem; }
-            .action-buttons { flex-direction: column; }
-            .home-btn, .track-btn { width: 100%; justify-content: center; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Verification Submitted – {{ hotel_name or 'VisiScure' }}</title>
+  <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
+  <style>
+    :root{
+      --green:#059669;--green-dark:#047857;--green-deep:#065f46;
+      --green-light:#d1fae5;--green-mid:#a7f3d0;--green-bg:#ecfdf5;
+      --gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;
+      --gray-400:#9ca3af;--gray-500:#6b7280;--gray-700:#374151;--gray-900:#111827;
+      --radius:20px;--radius-sm:12px;--radius-xs:8px;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    html{font-size:16px;-webkit-text-size-adjust:100%}
+    body{
+      font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+      background:linear-gradient(160deg,#059669 0%,#047857 55%,#065f46 100%);
+      min-height:100vh;display:flex;flex-direction:column;
+      align-items:center;padding:20px 14px 48px;
+    }
+
+    /* ── CARD ── */
+    .card{width:100%;max-width:460px;background:#fff;border-radius:var(--radius);box-shadow:0 24px 64px rgba(0,0,0,.2);overflow:hidden}
+
+    /* ── BANNER ── */
+    .banner{background:linear-gradient(135deg,#059669 0%,#047857 100%);padding:38px 24px 30px;text-align:center;color:#fff;position:relative;overflow:hidden}
+    .banner::before{content:'';position:absolute;top:-50px;right:-50px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.06)}
+    .banner::after{content:'';position:absolute;bottom:-40px;left:-40px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.05)}
+    .check-ring{width:84px;height:84px;border-radius:50%;background:rgba(255,255,255,.18);border:3px solid rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;position:relative;z-index:1;animation:popIn .55s cubic-bezier(.175,.885,.32,1.275) both}
+    .check-ring i{font-size:38px;color:#fff}
+    @keyframes popIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+    .banner h1{font-size:19px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px;position:relative;z-index:1}
+    .banner p{font-size:13px;opacity:.88;line-height:1.5;position:relative;z-index:1}
+
+    /* ── BODY ── */
+    .body{padding:22px 18px 28px}
+
+    /* ── REF BOX ── */
+    .ref-box{background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);padding:13px 16px;display:flex;align-items:center;gap:12px;margin-bottom:20px}
+    .ref-box .ri{width:36px;height:36px;border-radius:var(--radius-xs);background:var(--green-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .ref-box .ri i{font-size:15px;color:var(--green)}
+    .ref-label{font-size:10.5px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+    .ref-val{font-size:15px;font-weight:800;color:var(--gray-900);font-family:'Courier New',monospace;letter-spacing:.8px}
+
+    /* ── SECTION HEADER ── */
+    .sec{display:flex;align-items:center;gap:10px;margin:20px 0 13px}
+    .sec-ic{width:32px;height:32px;border-radius:var(--radius-xs);background:var(--green-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .sec-ic i{font-size:13px;color:var(--green)}
+    .sec h2{font-size:12px;font-weight:800;color:var(--gray-700);text-transform:uppercase;letter-spacing:.5px}
+
+    /* ── HOTEL CARD ── */
+    .hotel-card{background:var(--green-bg);border:1.5px solid var(--green-mid);border-radius:var(--radius-sm);overflow:hidden}
+    .hotel-top{padding:20px 18px 16px;text-align:center;border-bottom:1px solid var(--green-mid)}
+    .hotel-logo-wrap{margin-bottom:12px}
+    .hotel-logo-wrap img{max-height:68px;max-width:190px;object-fit:contain;border-radius:var(--radius-xs);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+    .hotel-logo-placeholder{width:60px;height:60px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+    .hotel-logo-placeholder i{font-size:26px;color:var(--green)}
+    .hotel-name{font-size:18px;font-weight:800;color:var(--gray-900);margin-bottom:4px}
+    .hotel-city{font-size:13px;color:var(--gray-500);display:flex;align-items:center;justify-content:center;gap:5px}
+    .hotel-city i{font-size:11px;color:var(--green)}
+
+    /* ── HOTEL DETAILS GRID ── */
+    .hotel-details{padding:14px 18px}
+    .hd-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--green-mid)}
+    .hd-row:last-child{border-bottom:none;padding-bottom:0}
+    .hd-ic{width:30px;height:30px;border-radius:var(--radius-xs);background:#fff;border:1px solid var(--green-mid);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+    .hd-ic i{font-size:12px;color:var(--green)}
+    .hd-content{}
+    .hd-label{font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+    .hd-val{font-size:13.5px;color:var(--gray-700);font-weight:500;line-height:1.4}
+
+    /* ── WELCOME STRIP ── */
+    .welcome-strip{background:linear-gradient(135deg,var(--green),var(--green-dark));border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:20px}
+    .welcome-strip i{font-size:22px;color:rgba(255,255,255,.9);flex-shrink:0}
+    .welcome-strip .wt{font-size:13px;font-weight:700;color:#fff;margin-bottom:2px}
+    .welcome-strip .ws{font-size:12px;color:rgba(255,255,255,.82)}
+
+    /* ── NEXT STEPS ── */
+    .next-card{background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:var(--radius-sm)}
+    .next-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--gray-200)}
+    .next-item:last-child{border-bottom:none}
+    .ni-ic{width:32px;height:32px;border-radius:var(--radius-xs);background:var(--green-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+    .ni-ic i{font-size:13px;color:var(--green)}
+    .next-item span{font-size:13px;color:var(--gray-700);line-height:1.5;padding-top:6px}
+
+    /* ── FOOTER ── */
+    .footer{text-align:center;font-size:11.5px;color:var(--gray-400);margin-top:18px;line-height:1.6}
+    .footer i{color:var(--green);margin-right:3px}
+
+    /* ── DIVIDER ── */
+    .divider{height:1px;background:var(--gray-200);margin:18px 0}
+  </style>
 </head>
 <body>
-    <div class="success-container">
-        {% if hotel_logo and logo_file_exists(hotel_logo) %}
-        <div class="hotel-logo-section">
-            <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel_logo) }}" 
-                 alt="{{ hotel_name or 'Hotel' }} Logo" 
-                 class="hotel-logo-img">
-            {% if hotel_name %}
-            <div class="hotel-name-text">{{ hotel_name }}</div>
-            {% endif %}
-        </div>
-        {% endif %}
-        
-        <div class="success-icon">
-            <i class="fas fa-check-circle"></i>
-        </div>
-        
-        <h1>Verification Submitted Successfully!</h1>
-        
-        <p>Thank you for submitting your verification details. Your request has been received and is being processed by our team.</p>
-        
-        <div class="reference-number">
-            <strong>Reference ID:</strong> VER-20241201-{{ range(1000, 9999) | random }}
-        </div>
-        
-        <div class="success-details">
-            <h3><i class="fas fa-info-circle"></i> What happens next?</h3>
-            <ul>
-                <li><i class="fas fa-clock"></i> Your verification request is under review by the hotel manager</li>
-                <li><i class="fas fa-user-check"></i> Our team will verify your submitted documents and information</li>
-                <li><i class="fas fa-bell"></i> You'll receive a notification once your verification is processed</li>
-                <li><i class="fas fa-shield-alt"></i> Your personal data is secure and protected with us</li>
-                <li><i class="fas fa-phone"></i> Contact hotel reception if you have any questions</li>
-            </ul>
-        </div>
-        
-        <div class="action-buttons">
-            <a href="/" class="home-btn">
-                <i class="fas fa-home"></i> Back to Home
-            </a>
-            <a href="#" class="track-btn" onclick="alert('Tracking feature coming soon!')">
-                <i class="fas fa-search"></i> Track Status
-            </a>
-        </div>
+
+<div class="card">
+
+  <!-- BANNER -->
+  <div class="banner">
+    <div class="check-ring"><i class="fas fa-check"></i></div>
+    <h1>KYC Verification Submitted</h1>
+    <p>Your details have been successfully verified and recorded.</p>
+  </div>
+
+  <div class="body">
+
+    <!-- REFERENCE ID -->
+    <div class="ref-box">
+      <div class="ri"><i class="fas fa-hashtag"></i></div>
+      <div>
+        <div class="ref-label">Reference ID</div>
+        <div class="ref-val">VER-{{ range(100000, 999999) | random }}</div>
+      </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    {% if hotel_name %}
+    <!-- WELCOME STRIP -->
+    <div class="welcome-strip">
+      <i class="fas fa-hand-sparkles"></i>
+      <div>
+        <div class="wt">Welcome to {{ hotel_name }}!</div>
+        <div class="ws">We're glad to have you. Your stay is confirmed.</div>
+      </div>
+    </div>
+
+    <!-- HOTEL INFORMATION -->
+    <div class="sec">
+      <div class="sec-ic"><i class="fas fa-hotel"></i></div>
+      <h2>Hotel Information</h2>
+    </div>
+
+    <div class="hotel-card">
+      <div class="hotel-top">
+        {% if hotel_logo %}
+          <div class="hotel-logo-wrap">
+            {% if '/' in hotel_logo %}
+              <img src="/static/{{ hotel_logo }}" alt="{{ hotel_name }}" onerror="this.style.display='none'">
+            {% else %}
+              <img src="/static/uploads/hotel_logos/{{ hotel_logo }}" alt="{{ hotel_name }}" onerror="this.style.display='none'">
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="hotel-logo-placeholder"><i class="fas fa-hotel"></i></div>
+        {% endif %}
+        <div class="hotel-name">{{ hotel_name }}</div>
+        {% if hotel_city %}
+          <div class="hotel-city"><i class="fas fa-map-pin"></i> {{ hotel_city }}</div>
+        {% endif %}
+      </div>
+
+      <div class="hotel-details">
+        {% if hotel_address %}
+        <div class="hd-row">
+          <div class="hd-ic"><i class="fas fa-map-marker-alt"></i></div>
+          <div class="hd-content">
+            <div class="hd-label">Address</div>
+            <div class="hd-val">{{ hotel_address }}{% if hotel_city %}, {{ hotel_city }}{% endif %}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if hotel_phone %}
+        <div class="hd-row">
+          <div class="hd-ic"><i class="fas fa-phone"></i></div>
+          <div class="hd-content">
+            <div class="hd-label">Contact</div>
+            <div class="hd-val">{{ hotel_phone }}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if hotel_email %}
+        <div class="hd-row">
+          <div class="hd-ic"><i class="fas fa-envelope"></i></div>
+          <div class="hd-content">
+            <div class="hd-label">Email</div>
+            <div class="hd-val">{{ hotel_email }}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if hotel_upi %}
+        <div class="hd-row">
+          <div class="hd-ic"><i class="fas fa-qrcode"></i></div>
+          <div class="hd-content">
+            <div class="hd-label">UPI Payment</div>
+            <div class="hd-val">{{ hotel_upi }}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Check-in info row always shown -->
+        <div class="hd-row">
+          <div class="hd-ic"><i class="fas fa-clock"></i></div>
+          <div class="hd-content">
+            <div class="hd-label">Check-in Status</div>
+            <div class="hd-val" style="color:var(--green);font-weight:700">✔ Verified &amp; Confirmed</div>
+          </div>
+        </div>
+
+        <div class="hd-row">
+          <div class="hd-ic"><i class="fas fa-shield-alt"></i></div>
+          <div class="hd-content">
+            <div class="hd-label">KYC Status</div>
+            <div class="hd-val" style="color:var(--green);font-weight:700">✔ Submitted Successfully</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="divider"></div>
+
+    <!-- WHAT HAPPENS NEXT -->
+    <div class="sec">
+      <div class="sec-ic"><i class="fas fa-list-check"></i></div>
+      <h2>What Happens Next</h2>
+    </div>
+
+    <div class="next-card">
+      <div class="next-item">
+        <div class="ni-ic"><i class="fas fa-door-open"></i></div>
+        <span>Your check-in is confirmed. You're all set to proceed.</span>
+      </div>
+      <div class="next-item">
+        <div class="ni-ic"><i class="fas fa-id-card"></i></div>
+        <span>Please show this verification screen at the reception desk.</span>
+      </div>
+      <div class="next-item">
+        <div class="ni-ic"><i class="fas fa-phone"></i></div>
+        <span>Contact hotel reception if you have any questions or need assistance.</span>
+      </div>
+    </div>
+
+    <p class="footer">
+      <i class="fas fa-shield-alt"></i> Your personal data is secure and protected.<br>
+      Powered by <strong>VisiScure</strong>
+    </p>
+
+  </div>
+</div>
+
 </body>
 </html>

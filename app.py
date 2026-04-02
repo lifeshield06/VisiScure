@@ -7,7 +7,7 @@ load_dotenv()
 import mysql.connector
 from datetime import datetime, date
 from decimal import Decimal
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask.json.provider import DefaultJSONProvider
 from mysql.connector import Error
 from hotel_manager import hotel_manager_bp
@@ -414,6 +414,14 @@ def init_db():
 @app.route("/")
 def home():
     return render_template("index.html")
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(
+        os.path.join(app.root_path, 'static', 'images'),
+        'logo.jpeg', mimetype='image/jpeg'
+    )
 
 
 @app.route("/db-test")
