@@ -586,25 +586,7 @@ function renderTable(rows, query, showSimilarity = false) {
     : (showSimilarity ? '<td><span style="color:#cbd5e1">—</span></td>' : '');
 
   const simHeader = showSimilarity ? '<th>Match %</th>' : '';
-
-  const panBadge = ps => {
-    const map = {
-      VALID:   'background:#d1fae5;color:#065f46',
-      INVALID: 'background:#fee2e2;color:#991b1b',
-      UNKNOWN: 'background:#fef3c7;color:#92400e',
-    };
-    const label = ps === 'VALID' ? '✅ Valid' : ps === 'INVALID' ? '❌ Invalid' : '⏳ Pending';
-    return `<span style="font-size:.72rem;font-weight:700;padding:.25rem .65rem;border-radius:20px;
-      ${map[ps]||map.UNKNOWN}">${label}</span>`;
-  };
-
-  const nameBadge = nm => {
-    if(nm === 'MATCHED')  return '<span style="font-size:.72rem;font-weight:700;padding:.25rem .65rem;border-radius:20px;background:#d1fae5;color:#065f46">✅ MATCHED</span>';
-    if(nm === 'MISMATCH') return '<span style="font-size:.72rem;font-weight:700;padding:.25rem .65rem;border-radius:20px;background:#fee2e2;color:#991b1b">❌ MISMATCH</span>';
-    return '<span style="font-size:.72rem;font-weight:700;padding:.25rem .65rem;border-radius:20px;background:#fef3c7;color:#92400e">— UNKNOWN</span>';
-  };
-
-  const actionBtns = r => r.status === 'pending' ? `
+const actionBtns = r => r.status === 'pending' ? `
     <div style="display:flex;gap:6px">
       <button onclick="updateStatus(${r.id},'approved',this)"
         style="background:#10b981;color:#fff;border:none;padding:5px 12px;border-radius:7px;
@@ -631,7 +613,7 @@ function renderTable(rows, query, showSimilarity = false) {
         </div>
       </td>
       <td><span class="mono">${r.phone||'—'}</span></td>
-      <td><span class="masked">${r.aadhaar||'—'}</span></td>
+      <td><span class="mono" style="font-size:.82rem;letter-spacing:.5px;color:var(--navy2);font-weight:600">${r.aadhaar||'—'}</span></td>
       <td>
         <span style="display:inline-flex;align-items:center;gap:.35rem;font-size:.82rem">
           <i class="fas fa-hotel" style="color:var(--blue2);font-size:.75rem"></i>${r.hotel||'—'}
@@ -643,14 +625,10 @@ function renderTable(rows, query, showSimilarity = false) {
           ${(r.status||'pending').charAt(0).toUpperCase()+(r.status||'pending').slice(1)}
         </span>
       </td>
-      <td>${panBadge(r.pan_status||'UNKNOWN')}</td>
-      <td style="font-size:.78rem;color:var(--gray)">${r.api_name||'—'}</td>
-      <td>${nameBadge(r.name_match||'UNKNOWN')}</td>
       ${simCell(r)}
       <td>${th(r.selfie,'Selfie')}</td>
-      <td>${th(r.doc,'Aadhaar Doc')}</td>
-      <td style="font-size:.78rem;color:var(--gray);white-space:nowrap">${r.date}</td>
-      <td>${actionBtns(r)}</td>
+      <td>${th(r.doc,'Document')}</td>
+      <td><div style="font-size:.78rem;color:var(--gray);white-space:nowrap;line-height:1.6"><i class="fas fa-calendar-alt" style="color:var(--blue2);font-size:.7rem;margin-right:3px"></i>${r.datetime||r.date}</div></td>
     </tr>`).join('');
 
   document.getElementById('tableBody').innerHTML = `
@@ -658,9 +636,8 @@ function renderTable(rows, query, showSimilarity = false) {
       <table>
         <thead><tr>
           <th>#</th><th>Guest Name</th><th>Mobile</th>
-          <th>Aadhaar (Masked)</th><th>Hotel</th><th>Status</th>
-          <th>PAN Status</th><th>API Name</th><th>Name Match</th>
-          ${simHeader}<th>Selfie</th><th>Doc</th><th>Date</th><th>Action</th>
+          <th>Document Number</th><th>Hotel</th><th>Status</th>
+          ${simHeader}<th>Selfie</th><th>Doc</th><th>Date &amp; Time</th>
         </tr></thead>
         <tbody>${html}</tbody>
       </table>
