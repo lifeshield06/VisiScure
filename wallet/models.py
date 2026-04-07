@@ -64,6 +64,12 @@ class HotelWallet:
             cursor.execute("SHOW COLUMNS FROM wallet_transactions LIKE 'description'")
             if cursor.fetchone():
                 cursor.execute("ALTER TABLE wallet_transactions DROP COLUMN description")
+
+            # Add bill-level charge-deduction flag if it doesn't exist
+            # Used as an additional guard to prevent duplicate bill-charge deductions.
+            cursor.execute("SHOW COLUMNS FROM bills LIKE 'is_charge_deducted'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE bills ADD COLUMN is_charge_deducted BOOLEAN DEFAULT FALSE")
             
             connection.commit()
             cursor.close()
@@ -384,7 +390,7 @@ class HotelWallet:
     
     @staticmethod
     def deduct_for_order(hotel_id, order_id):
-        """Deduct charge for order placement - returns success/failure"""
+        """Deduct configured per-order charge for one order placement action."""
         try:
             # Auto-create wallet if not exists
             wallet_check = HotelWallet.get_or_create_wallet(hotel_id)
@@ -405,7 +411,8 @@ class HotelWallet:
                 connection.close()
                 return {'success': False, 'message': 'Wallet not found', 'insufficient_balance': False}
             
-            charge = float(wallet['per_order_charge'])
+            per_order_charge = float(wallet['per_order_charge'])
+            charge = per_order_charge
             current_balance = float(wallet['balance'])
             
             # If charge is 0, allow without deduction
@@ -442,9 +449,186 @@ class HotelWallet:
             cursor.close()
             connection.close()
             
-            return {'success': True, 'message': 'Charge deducted successfully', 'deducted': charge, 'new_balance': new_balance}
+            return {
+                'success': True,
+                'message': f'₹{charge:.2f} deducted for order charges',
+                'deducted': charge,
+                'new_balance': new_balance,
+                'components': {
+                    'per_order_charge': per_order_charge
+                },
+                'reference_type': 'ORDER',
+                'transaction_type': 'DEBIT'
+            }
         except Error as exc:
             print(f"Error deducting order charge: {exc}")
+            return {'success': False, 'message': f'Database error: {str(exc)}'}
+
+    @staticmethod
+    def deduct_order_charge_on_payment(hotel_id, bill_id, table_id=None, session_id=None, guest_name=None):
+        """Deduct configured per guest-bill charge once when payment is completed.
+
+        Rules:
+        - Deduct only after bill payment is marked PAID
+        - Deduct only once per bill (idempotent by bill_id transaction reference)
+        - Deduct hotel_wallet.per_order_charge (fixed configured charge), not bill total
+        - Record a single ORDER/DEBIT transaction per bill
+        """
+        try:
+            wallet_check = HotelWallet.get_or_create_wallet(hotel_id)
+            if not wallet_check:
+                return {'success': False, 'message': 'Could not create or retrieve wallet', 'insufficient_balance': False}
+
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+
+            # Idempotency: prevent duplicate debits on retries/refreshes.
+            cursor.execute("""
+                SELECT id, amount, balance_after
+                FROM wallet_transactions
+                WHERE hotel_id = %s
+                  AND transaction_type = 'DEBIT'
+                  AND reference_type = 'ORDER'
+                  AND reference_id = %s
+                LIMIT 1
+            """, (hotel_id, bill_id))
+            existing_txn = cursor.fetchone()
+            if existing_txn:
+                cursor.close()
+                connection.close()
+                return {
+                    'success': True,
+                    'already_deducted': True,
+                    'deducted': float(existing_txn.get('amount') or 0),
+                    'new_balance': float(existing_txn.get('balance_after') or 0),
+                    'message': 'Payment already settled in wallet for this bill',
+                    'reference_type': 'ORDER',
+                    'transaction_type': 'DEBIT'
+                }
+
+            # Deduct only after payment is successful.
+            cursor.execute(
+                """
+                  SELECT id, payment_status, payment_method, bill_status, grand_total, total_amount,
+                      COALESCE(is_charge_deducted, 0) as is_charge_deducted
+                FROM bills
+                WHERE id = %s
+                LIMIT 1
+                """,
+                (bill_id,)
+            )
+            bill = cursor.fetchone()
+            if not bill:
+                cursor.close()
+                connection.close()
+                return {'success': False, 'message': 'Bill not found for wallet settlement', 'insufficient_balance': False}
+
+            if str(bill.get('payment_status') or '').upper() != 'PAID':
+                cursor.close()
+                connection.close()
+                return {
+                    'success': False,
+                    'message': 'Payment is not completed yet. Wallet deduction is allowed only after successful payment.',
+                    'insufficient_balance': False
+                }
+
+            if bool(bill.get('is_charge_deducted')):
+                cursor.close()
+                connection.close()
+                return {
+                    'success': True,
+                    'already_deducted': True,
+                    'deducted': 0.0,
+                    'message': 'Bill charge already deducted for this bill',
+                    'reference_type': 'ORDER',
+                    'transaction_type': 'DEBIT'
+                }
+
+            cursor.execute("""
+                SELECT balance, per_order_charge
+                FROM hotel_wallet
+                WHERE hotel_id = %s
+                FOR UPDATE
+            """, (hotel_id,))
+            wallet = cursor.fetchone()
+
+            if not wallet:
+                cursor.close()
+                connection.close()
+                return {'success': False, 'message': 'Wallet not found', 'insufficient_balance': False}
+
+            current_balance = float(wallet.get('balance') or 0)
+            charge = round(float(wallet.get('per_order_charge') or 0), 2)
+
+            if charge <= 0:
+                cursor.close()
+                connection.close()
+                return {
+                    'success': True,
+                    'already_deducted': False,
+                    'deducted': 0.0,
+                    'message': 'Payment successful. No per guest bill charge configured for wallet deduction',
+                    'reference_type': 'ORDER',
+                    'transaction_type': 'DEBIT'
+                }
+
+            if current_balance < charge:
+                cursor.close()
+                connection.close()
+                return {
+                    'success': False,
+                    'message': f'Insufficient wallet balance. Required: ₹{charge:.2f}, Available: ₹{current_balance:.2f}',
+                    'insufficient_balance': True
+                }
+
+            new_balance = round(current_balance - charge, 2)
+
+            cursor.execute("""
+                UPDATE hotel_wallet
+                SET balance = %s
+                WHERE hotel_id = %s
+            """, (new_balance, hotel_id))
+
+            cursor.execute("""
+                INSERT INTO wallet_transactions
+                (hotel_id, transaction_type, amount, balance_after, reference_type, reference_id, created_by_type)
+                VALUES (%s, 'DEBIT', %s, %s, 'ORDER', %s, 'SYSTEM')
+            """, (hotel_id, charge, new_balance, bill_id))
+
+            cursor.execute("""
+                UPDATE bills
+                SET is_charge_deducted = TRUE
+                WHERE id = %s
+            """, (bill_id,))
+
+            if table_id and session_id:
+                cursor.execute("""
+                    UPDATE table_orders
+                    SET charge_deducted = TRUE
+                    WHERE table_id = %s AND session_id = %s AND payment_status = 'PAID'
+                """, (table_id, session_id))
+            elif table_id and guest_name:
+                cursor.execute("""
+                    UPDATE table_orders
+                    SET charge_deducted = TRUE
+                    WHERE table_id = %s AND guest_name = %s AND payment_status = 'PAID'
+                """, (table_id, guest_name))
+
+            connection.commit()
+            cursor.close()
+            connection.close()
+
+            return {
+                'success': True,
+                'already_deducted': False,
+                'deducted': charge,
+                'new_balance': new_balance,
+                'message': f'Payment successful. Per guest bill charge ₹{charge:.2f} deducted from wallet',
+                'reference_type': 'ORDER',
+                'transaction_type': 'DEBIT'
+            }
+        except Error as exc:
+            print(f"Error deducting payment-time order charge: {exc}")
             return {'success': False, 'message': f'Database error: {str(exc)}'}
     
     @staticmethod

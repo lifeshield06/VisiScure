@@ -247,27 +247,6 @@ class WaiterAuth:
             
             connection.commit()
             
-            # Deduct wallet charge when order is COMPLETED
-            if new_status == 'COMPLETED' and not order.get('charge_deducted'):
-                hotel_id = order.get('hotel_id') or order.get('table_hotel_id')
-                if hotel_id:
-                    from wallet.models import HotelWallet
-                    
-                    # Check balance first
-                    balance_check = HotelWallet.check_balance_for_order(hotel_id)
-                    if balance_check.get('sufficient', True):
-                        deduct_result = HotelWallet.deduct_for_order(hotel_id, order_id)
-                        if deduct_result.get('success'):
-                            cursor.execute("""
-                                UPDATE table_orders SET charge_deducted = TRUE WHERE id = %s
-                            """, (order_id,))
-                            connection.commit()
-                            print(f"[WAITER_COMPLETE] Wallet deducted for order {order_id}")
-                        else:
-                            print(f"[WAITER_COMPLETE] Wallet deduction failed: {deduct_result.get('message')}")
-                    else:
-                        print(f"[WAITER_COMPLETE] Insufficient balance for order {order_id}")
-            
             cursor.close()
             connection.close()
             

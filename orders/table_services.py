@@ -2,7 +2,7 @@ import os
 import qrcode
 import uuid
 from flask import url_for
-from .table_models import Table, TableOrder, Bill
+from .table_models import Table, TableOrder, Bill, BillRequest
 
 class TableService:
     @staticmethod
@@ -306,15 +306,31 @@ class OrderService:
                 except Exception as e:
                     print(f"Error fetching waiter assignment: {e}")
             
-            # Add ACTIVE order with guest_name and waiter_id from assigned table waiter
-            order_id, error_message = TableOrder.add_order(table_id, session_id, items, total_amount, hotel_id, guest_name, waiter_id)
-            if not order_id:
-                if error_message:
-                    return {"success": False, "message": f"Failed to create order: {error_message}"}
-                return {"success": False, "message": "Failed to create order"}
+            # Merge into existing active order for same table + same guest/session (if any)
+            active_order = TableOrder.get_active_order_for_guest(table_id, session_id=session_id, guest_name=guest_name)
+
+            if active_order:
+                order_id = active_order['id']
+                order_id, error_message = TableOrder.add_items_to_order(order_id, items)
+                if not order_id:
+                    if error_message:
+                        return {"success": False, "message": f"Failed to update active order: {error_message}"}
+                    return {"success": False, "message": "Failed to update active order"}
+                order_message = "Items added to existing active order"
+            else:
+                # Create new ACTIVE order only if no existing active order is found
+                order_id, error_message = TableOrder.add_order(table_id, session_id, items, total_amount, hotel_id, guest_name, waiter_id)
+                if not order_id:
+                    if error_message:
+                        return {"success": False, "message": f"Failed to create order: {error_message}"}
+                    return {"success": False, "message": "Failed to create order"}
+                order_message = "Order created successfully"
             
             # Create or update bill for this guest (same guest + same table = same bill)
             bill_info = Bill.create_bill(order_id, table_id, session_id, items, total_amount, hotel_id, guest_name)
+
+            # New items were added: reopen bill-request flow for this active session.
+            BillRequest.reset_for_new_order(table_id, session_id)
             
             # Create or update Active Table entry (links table to open bill)
             if bill_info:
@@ -323,7 +339,7 @@ class OrderService:
             
             return {
                 "success": True,
-                "message": "Order created successfully",
+                "message": order_message,
                 "order_id": order_id,
                 "session_id": session_id,
                 "guest_name": guest_name,
@@ -337,52 +353,7 @@ class OrderService:
     def complete_order(order_id):
         """Complete order (mark as served). Bill stays OPEN until payment."""
         try:
-            # Get hotel_id from order before completing
-            from database.db import get_db_connection
-            connection = get_db_connection()
-            cursor = connection.cursor(dictionary=True)
-            cursor.execute("SELECT hotel_id FROM table_orders WHERE id = %s", (order_id,))
-            order_data = cursor.fetchone()
-            cursor.close()
-            connection.close()
-            
-            hotel_id = order_data.get('hotel_id') if order_data else None
-            
-            # Check wallet balance before completing order
-            if hotel_id:
-                from wallet.models import HotelWallet
-                balance_check = HotelWallet.check_balance_for_order(hotel_id)
-                if not balance_check.get('sufficient', True):
-                    return {
-                        "success": False, 
-                        "message": f"Cannot complete order: Insufficient wallet balance. Required: ₹{balance_check.get('charge', 0):.2f}, Available: ₹{balance_check.get('balance', 0):.2f}. Please add balance first.",
-                        "insufficient_balance": True
-                    }
-            
             if TableOrder.complete_order(order_id):
-                # Deduct wallet balance ONLY when order is COMPLETED
-                if hotel_id:
-                    from wallet.models import HotelWallet
-                    deduct_result = HotelWallet.deduct_for_order(hotel_id, order_id)
-                    if not deduct_result.get('success') and deduct_result.get('insufficient_balance'):
-                        print(f"Warning: Could not deduct order charge: {deduct_result.get('message')}")
-                    elif deduct_result.get('success'):
-                        # Mark charge as deducted to prevent double charging
-                        try:
-                            connection = get_db_connection()
-                            cursor = connection.cursor()
-                            cursor.execute("""
-                                UPDATE table_orders
-                                SET charge_deducted = TRUE
-                                WHERE id = %s
-                            """, (order_id,))
-                            connection.commit()
-                            cursor.close()
-                            connection.close()
-                            print(f"[COMPLETE_ORDER] Marked charge_deducted = TRUE for order {order_id}")
-                        except Exception as e:
-                            print(f"[COMPLETE_ORDER] Warning: Could not set charge_deducted flag: {e}")
-                
                 return {"success": True, "message": "Order marked as completed (served). Bill stays open until payment."}
             else:
                 return {"success": False, "message": "Failed to complete order"}
@@ -457,7 +428,10 @@ class OrderService:
             cursor.close()
             connection.close()
 
-            return {"success": True, "message": "Payment completed. Table is now available."}
+            return {
+                "success": True,
+                "message": 'Payment completed. Table is now available.'
+            }
         except Exception as e:
             print(f"Error completing payment: {e}")
             return {"success": False, "message": "Server error"}
@@ -481,74 +455,7 @@ class OrderService:
             if status not in {"ACTIVE", "PREPARING", "COMPLETED"}:
                 return {"success": False, "message": "Invalid status"}
 
-            # For COMPLETED status, check wallet balance first and deduct charges
-            if status == "COMPLETED":
-                from database.db import get_db_connection
-                connection = get_db_connection()
-                cursor = connection.cursor(dictionary=True)
-                
-                # Get order details including hotel_id and charge_deducted status
-                cursor.execute("""
-                    SELECT o.hotel_id, o.charge_deducted, t.hotel_id as table_hotel_id
-                    FROM table_orders o
-                    LEFT JOIN tables t ON o.table_id = t.id
-                    WHERE o.id = %s
-                """, (order_id,))
-                order_data = cursor.fetchone()
-                cursor.close()
-                connection.close()
-                
-                if order_data:
-                    hotel_id = order_data.get('hotel_id') or order_data.get('table_hotel_id')
-                    charge_deducted = order_data.get('charge_deducted')
-                    
-                    if hotel_id and not charge_deducted:
-                        from wallet.models import HotelWallet
-                        
-                        # Check wallet balance before completing
-                        balance_check = HotelWallet.check_balance_for_order(hotel_id)
-                        if not balance_check.get('sufficient', True):
-                            return {
-                                "success": False, 
-                                "message": f"Cannot complete order: Insufficient wallet balance. Required: ₹{balance_check.get('charge', 0):.2f}, Available: ₹{balance_check.get('balance', 0):.2f}. Please add balance first.",
-                                "insufficient_balance": True
-                            }
-
             if TableOrder.update_order_status(order_id, status):
-                # Deduct wallet charge when order is COMPLETED
-                if status == "COMPLETED":
-                    from database.db import get_db_connection
-                    connection = get_db_connection()
-                    cursor = connection.cursor(dictionary=True)
-                    
-                    cursor.execute("""
-                        SELECT o.hotel_id, o.charge_deducted, t.hotel_id as table_hotel_id
-                        FROM table_orders o
-                        LEFT JOIN tables t ON o.table_id = t.id
-                        WHERE o.id = %s
-                    """, (order_id,))
-                    order_data = cursor.fetchone()
-                    
-                    if order_data:
-                        hotel_id = order_data.get('hotel_id') or order_data.get('table_hotel_id')
-                        charge_deducted = order_data.get('charge_deducted')
-                        
-                        if hotel_id and not charge_deducted:
-                            from wallet.models import HotelWallet
-                            deduct_result = HotelWallet.deduct_for_order(hotel_id, order_id)
-                            
-                            if deduct_result.get('success'):
-                                cursor.execute("""
-                                    UPDATE table_orders SET charge_deducted = TRUE WHERE id = %s
-                                """, (order_id,))
-                                connection.commit()
-                                print(f"[UPDATE_ORDER_STATUS] Wallet deducted for order {order_id}: ₹{deduct_result.get('deducted', 0)}")
-                            else:
-                                print(f"[UPDATE_ORDER_STATUS] Wallet deduction failed: {deduct_result.get('message')}")
-                    
-                    cursor.close()
-                    connection.close()
-                
                 return {"success": True, "message": "Order status updated"}
 
             return {"success": False, "message": "Failed to update order status"}

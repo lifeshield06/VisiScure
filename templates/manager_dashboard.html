@@ -12,9 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/manager_dashboard.css') }}?v={{ range(10000, 99999) | random }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/menu_dashboard.css') }}?v={{ range(10000, 99999) | random }}">
     <style>
@@ -3822,67 +3821,48 @@
             
             #table-orders .page-header h1 {
                 font-size: 20px !important;
+                margin-bottom: 0 !important;
             }
             
             #table-orders .page-header p {
                 font-size: 14px !important;
             }
             
-            /* Sub-Navigation Tabs - Wrap on Mobile */
-            .sub-nav {
-                display: flex !important;
-                flex-wrap: wrap !important;
-                gap: 8px !important;
-                padding: 0 12px !important;
-                margin-bottom: 20px !important;
-            }
-            
-            .sub-nav-btn {
-                flex: 1 1 calc(50% - 4px) !important;
-                min-width: 140px !important;
-                padding: 12px 14px !important;
-                font-size: 14px !important;
-                min-height: 48px !important;
-                justify-content: center !important;
-                border-radius: 10px !important;
-                white-space: nowrap !important;
-            }
-            
-            .sub-nav-btn i {
-                font-size: 14px !important;
-            }
-            
             /* View Orders Section */
-            #view-orders .table-card {
-                padding: 15px !important;
-                border-radius: 14px !important;
+            #view-orders .table-card.orders-card {
+                padding: 16px !important;
+                border-radius: 12px !important;
+                box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08) !important;
             }
             
             /* Table Card Header - Stack Vertically */
-            #view-orders .table-card > div[style*="display: flex"] {
+            #view-orders .orders-card-header {
+                display: flex !important;
                 flex-direction: column !important;
                 align-items: stretch !important;
-                gap: 12px !important;
+                gap: 10px !important;
+                margin-bottom: 14px !important;
             }
             
-            #view-orders .table-card h3 {
-                font-size: 17px !important;
+            #view-orders .orders-card-title {
+                font-size: 18px !important;
                 margin-bottom: 0 !important;
             }
             
             /* Action Buttons Container - Stack Vertically */
-            #view-orders .table-card div[style*="gap: 0.5rem"] {
+            #view-orders .orders-card-actions {
+                display: flex !important;
                 flex-direction: column !important;
                 width: 100% !important;
                 gap: 10px !important;
             }
             
             /* Refresh and Clear Buttons - Full Width */
-            #view-orders .btn-secondary.btn-sm,
-            #view-orders .btn-danger.btn-sm {
+            #view-orders .orders-card-actions .btn-sm {
                 width: 100% !important;
-                padding: 12px 16px !important;
-                font-size: 15px !important;
+                min-width: 162px !important;
+                padding: 11px 14px !important;
+                font-size: 14px !important;
                 min-height: 48px !important;
                 justify-content: center !important;
                 border-radius: 10px !important;
@@ -3890,42 +3870,6 @@
             
             /* Orders List */
             #orders-list {
-                overflow-x: auto !important;
-                -webkit-overflow-scrolling: touch !important;
-            }
-            
-            /* Active Bills Section */
-            #active-bills .table-card {
-                padding: 15px !important;
-                border-radius: 14px !important;
-            }
-            
-            #active-bills .table-card > div[style*="display: flex"] {
-                flex-direction: column !important;
-                align-items: stretch !important;
-                gap: 12px !important;
-            }
-            
-            #active-bills .table-card h3 {
-                font-size: 17px !important;
-                margin-bottom: 0 !important;
-            }
-            
-            #active-bills .table-card p {
-                font-size: 13px !important;
-                line-height: 1.5 !important;
-            }
-            
-            #active-bills .btn-secondary.btn-sm {
-                width: 100% !important;
-                padding: 12px 16px !important;
-                font-size: 15px !important;
-                min-height: 48px !important;
-                justify-content: center !important;
-            }
-            
-            /* Active Bills List */
-            #active-bills-list {
                 overflow-x: auto !important;
                 -webkit-overflow-scrolling: touch !important;
             }
@@ -4823,75 +4767,58 @@
                 
                 #table-orders .page-header h1 {
                     font-size: 2rem !important;
-                    margin-bottom: 0.5rem !important;
-                }
-                
-                /* Sub-Navigation Tabs - Horizontal Layout */
-                .sub-nav {
-                    display: flex !important;
-                    justify-content: center !important;
-                    gap: 1rem !important;
-                    padding: 0 2rem !important;
-                    margin-bottom: 2rem !important;
-                }
-                
-                .sub-nav-btn {
-                    flex: none !important;
-                    min-width: 180px !important;
-                    padding: 1rem 1.5rem !important;
-                    font-size: 1rem !important;
-                    border-radius: 12px !important;
+                    margin-bottom: 0 !important;
                 }
                 
                 /* Table Card Layout */
-                #view-orders .table-card,
-                #active-bills .table-card {
-                    padding: 2rem !important;
-                    border-radius: 16px !important;
-                    margin: 0 2rem !important;
+                #view-orders .table-card.orders-card {
+                    padding: 1.75rem !important;
+                    border-radius: 12px !important;
+                    margin: 0 2rem 0.25rem !important;
+                    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1) !important;
                 }
                 
                 /* Table Card Header - Horizontal Layout */
-                #view-orders .table-card > div[style*="display: flex"],
-                #active-bills .table-card > div[style*="display: flex"] {
+                #view-orders .orders-card-header {
+                    display: flex !important;
                     flex-direction: row !important;
                     align-items: center !important;
-                    justify-content: space-between !important;
-                    margin-bottom: 1.5rem !important;
+                    justify-content: flex-start !important;
+                    gap: 0.75rem !important;
+                    margin-bottom: 1.25rem !important;
                 }
                 
-                #view-orders .table-card h3,
-                #active-bills .table-card h3 {
-                    font-size: 1.5rem !important;
+                #view-orders .orders-card-title {
+                    font-size: 1.65rem !important;
                     margin-bottom: 0 !important;
                 }
                 
                 /* Action Buttons Container - Horizontal Layout */
-                #view-orders .table-card div[style*="gap: 0.5rem"],
-                #active-bills .table-card div[style*="gap: 0.5rem"] {
+                #view-orders .orders-card-actions {
+                    display: flex !important;
                     flex-direction: row !important;
                     width: auto !important;
-                    gap: 1rem !important;
+                    gap: 0.6rem !important;
                 }
                 
                 /* Refresh and Clear Buttons */
-                #view-orders .btn-secondary.btn-sm,
-                #view-orders .btn-danger.btn-sm,
-                #active-bills .btn-secondary.btn-sm {
+                #view-orders .orders-card-actions .btn-sm {
                     width: auto !important;
-                    padding: 0.75rem 1.5rem !important;
+                    min-width: 168px !important;
+                    padding: 0.68rem 1rem !important;
                     font-size: 0.9rem !important;
-                    min-height: auto !important;
+                    min-height: 40px !important;
                     white-space: nowrap !important;
+                    border-radius: 10px !important;
                 }
                 
                 /* Table Styling */
                 #orders-list table {
                     border-collapse: collapse !important;
                     background: white !important;
-                    border-radius: 12px !important;
+                    border-radius: 10px !important;
                     overflow: hidden !important;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+                    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06) !important;
                 }
                 
                 #orders-list table thead th {
@@ -4909,6 +4836,10 @@
                     font-size: 0.9rem !important;
                     border-bottom: 1px solid #f1f5f9 !important;
                     vertical-align: middle !important;
+                }
+
+                #orders-list table tbody tr {
+                    transition: background-color 0.2s ease !important;
                 }
                 
                 #orders-list table tbody tr:hover {
@@ -7158,30 +7089,12 @@
                 <div class="page-header">
                     <h1><i class="fas fa-qrcode"></i> Table Orders & Bills</h1>
                 </div>
-                
-                <!-- Sub-navigation -->
-                <div class="sub-nav">
-                    <button class="sub-nav-btn active" onclick="showTableSubSection('view-orders')">
-                        <i class="fas fa-list-check"></i> View Orders
-                    </button>
-                    <button class="sub-nav-btn" onclick="showTableSubSection('active-bills')">
-                        <i class="fas fa-file-invoice-dollar"></i> Active Bills
-                    </button>
-                </div>
-                
+
                 <!-- View Orders Sub-section -->
                 <div id="view-orders" class="sub-section active">
-                    <div class="table-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h3><i class="fas fa-receipt"></i> Table Orders</h3>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <button onclick="loadOrdersData()" class="btn-secondary btn-sm">
-                                    <i class="fas fa-sync-alt"></i> Refresh
-                                </button>
-                                <button onclick="clearCompletedOrders()" class="btn-danger btn-sm">
-                                    <i class="fas fa-trash-alt"></i> Clear Completed
-                                </button>
-                            </div>
+                    <div class="table-card orders-card">
+                        <div class="orders-card-header">
+                            <h3 class="orders-card-title"><i class="fas fa-receipt"></i> Table Orders</h3>
                         </div>
                         <div id="orders-list">
                             <div class="empty-state">
@@ -7192,28 +7105,6 @@
                     </div>
                 </div>
 
-                <!-- Active Bills Sub-section -->
-                <div id="active-bills" class="sub-section">
-                    <div class="table-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h3><i class="fas fa-file-invoice-dollar"></i> Active Bills (One Per Table)</h3>
-                            <button onclick="loadActiveBills()" class="btn-secondary btn-sm">
-                                <i class="fas fa-sync-alt"></i> Refresh
-                            </button>
-                        </div>
-                        <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">
-                        
-                        </p>
-                        <div id="active-bills-list">
-                            <div class="empty-state">
-                                <i class="fas fa-spinner fa-spin"></i>
-                                <p>Loading active bills...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                
             </div>
 
             <!-- Manage Tables Section (Standalone) -->
@@ -7841,7 +7732,7 @@
                                 <i class="fas fa-utensils"></i>
                             </div>
                             <div class="wallet-card-info">
-                                <span class="wallet-card-label">Per Order Charge</span>
+                                <span class="wallet-card-label">Per gust bill Charge</span>
                                 <span class="wallet-card-value" id="order-charge-display">₹0.00</span>
                             </div>
                         </div>
@@ -10509,181 +10400,12 @@
                 loadTablesData();
             } else if (subSectionId === 'view-orders') {
                 loadOrdersData();
-            } else if (subSectionId === 'active-bills') {
-                loadActiveBills();
             }
         }
+        
+        // ========== BILL REQUESTS SECTION ==========
+        
 
-        // Load Active Bills - One per table
-        function loadActiveBills() {
-            fetch('/orders/api/active-bills')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        renderActiveBills(data.bills);
-                    } else {
-                        document.getElementById('active-bills-list').innerHTML = 
-                            '<div style="text-align: center; padding: 2rem; color: #ef4444;">Error loading bills</div>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading active bills:', error);
-                    document.getElementById('active-bills-list').innerHTML = 
-                        '<div style="text-align: center; padding: 2rem; color: #ef4444;">Error loading bills</div>';
-                });
-        }
-        
-        function renderActiveBills(bills) {
-            const container = document.getElementById('active-bills-list');
-            
-            if (bills.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 3rem; color: #718096;">
-                        <i class="fas fa-file-invoice" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                        <h3>No Active Bills</h3>
-                        <p>Bills will appear here when customers place orders via QR codes</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            let billsHTML = `
-                <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; min-width: 900px;">
-                    <thead>
-                        <tr style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white;">
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Bill #</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Table</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Guest</th>
-                            <th style="padding: 1rem; text-align: right; font-weight: 600;">Total Amount</th>
-                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Bill Status</th>
-                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Payment</th>
-                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Method</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Created</th>
-                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
-            bills.forEach((bill, index) => {
-                const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
-                const guestName = bill.guest_name || 'Guest';
-                const billStatus = bill.bill_status || 'OPEN';
-                const paymentStatus = bill.payment_status || 'PENDING';
-                const paymentMethod = bill.payment_method || '-';
-                const isPaid = paymentStatus === 'PAID';
-                const isOpen = billStatus === 'OPEN';
-                
-                // Payment method styling
-                let methodStyle = '';
-                let methodIcon = '';
-                if (paymentMethod === 'UPI') {
-                    methodStyle = 'background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #5b21b6;';
-                    methodIcon = '<i class="fas fa-qrcode" style="margin-right: 0.25rem;"></i>';
-                } else if (paymentMethod === 'CASH' || paymentMethod === 'Cash') {
-                    methodStyle = 'background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46;';
-                    methodIcon = '<i class="fas fa-money-bill-wave" style="margin-right: 0.25rem;"></i>';
-                } else {
-                    methodStyle = 'background: #f3f4f6; color: #6b7280;';
-                    methodIcon = '';
-                }
-                
-                billsHTML += `
-                    <tr style="border-bottom: 1px solid #e2e8f0; background: ${rowBg};" onmouseover="this.style.background='#ecfdf5'" onmouseout="this.style.background='${rowBg}'">
-                        <td style="padding: 1rem;">
-                            <span style="font-weight: 700; color: #059669;">${bill.bill_number}</span>
-                        </td>
-                        <td style="padding: 1rem;">
-                            <span style="background: linear-gradient(135deg, #059669, #047857); color: white; padding: 0.5rem 0.75rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem;">T${bill.table_number}</span>
-                        </td>
-                        <td style="padding: 1rem;">
-                            <div style="font-weight: 500; color: #1f2937;"><i class="fas fa-user" style="margin-right: 0.5rem; color: #6b7280;"></i>${guestName}</div>
-                        </td>
-                        <td style="padding: 1rem; text-align: right;">
-                            <span style="font-weight: 700; font-size: 1.1rem; color: #059669;">₹${parseFloat(bill.total_amount).toFixed(2)}</span>
-                        </td>
-                        <td style="padding: 1rem; text-align: center;">
-                            <span style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; ${isOpen ? 'background: #dbeafe; color: #1d4ed8;' : 'background: #d1fae5; color: #065f46;'}">
-                                <i class="fas ${isOpen ? 'fa-clock' : 'fa-check-circle'}" style="margin-right: 0.25rem;"></i>${billStatus}
-                            </span>
-                        </td>
-                        <td style="padding: 1rem; text-align: center;">
-                            <span style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; ${isPaid ? 'background: #d1fae5; color: #065f46;' : 'background: #fef3c7; color: #92400e;'}">
-                                <i class="fas ${isPaid ? 'fa-check-circle' : 'fa-clock'}" style="margin-right: 0.25rem;"></i>${paymentStatus}
-                            </span>
-                        </td>
-                        <td style="padding: 1rem; text-align: center;">
-                            <span style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.25rem; ${methodStyle}">
-                                ${methodIcon}${paymentMethod === '-' ? '-' : paymentMethod}
-                            </span>
-                        </td>
-                        <td style="padding: 1rem; color: #6b7280; font-size: 0.85rem;">
-                            <div><i class="fas fa-calendar" style="margin-right: 0.25rem;"></i>${formatDate(bill.created_at)}</div>
-                            <div style="margin-top: 0.25rem;"><i class="fas fa-clock" style="margin-right: 0.25rem;"></i>${formatTime(bill.created_at)}</div>
-                        </td>
-                        <td style="padding: 1rem; text-align: center;">
-                            <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: center;">
-                                <button onclick="viewBillDetails(${bill.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                                    <i class="fas fa-eye"></i> View Bill
-                                </button>
-                                ${isOpen && !isPaid ? `
-                                    <button onclick="markBillPaid(${bill.id}, ${bill.table_id})" class="btn-sm" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                                        <i class="fas fa-check"></i> Mark Paid
-                                    </button>
-                                ` : ''}
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            billsHTML += '</tbody></table></div>';
-            container.innerHTML = billsHTML;
-        }
-        
-        function viewBillDetails(billId) {
-            fetch(`/orders/api/bill-details/${billId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.bill) {
-                        showBillModal(data.bill);
-                    } else {
-                        // Try getting from all-bills endpoint
-                        showTableMessage('Bill details not found', 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading bill details:', error);
-                    showTableMessage('Error loading bill details', 'error');
-                });
-        }
-        
-        function markBillPaid(billId, tableId) {
-            if (!confirm('Mark this bill as PAID? This will close the bill and release the table.')) {
-                return;
-            }
-            
-            fetch('/orders/api/mark-bill-paid', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({bill_id: billId, table_id: tableId})
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showTableMessage('Bill marked as PAID! Table is now available.', 'success');
-                    loadActiveBills();
-                    loadTablesData();
-                } else {
-                    showTableMessage('Error: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error marking bill paid:', error);
-                showTableMessage('Error processing payment', 'error');
-            });
-        }
         
         // Load Waiter-Wise Tips
         function loadWaiterTips() {
@@ -10969,19 +10691,19 @@
         
         // Tip Visibility Control Functions
         function loadTipVisibilitySetting() {
+            const toggle = document.getElementById('tip-visibility-toggle');
+            if (!toggle) {
+                return;
+            }
+
             console.log('[TIP_VISIBILITY] Loading setting...');
             fetch('/hotel-manager/api/tip-visibility')
                 .then(response => response.json())
                 .then(data => {
                     console.log('[TIP_VISIBILITY] Response:', data);
                     if (data.success) {
-                        const toggle = document.getElementById('tip-visibility-toggle');
-                        if (toggle) {
-                            toggle.checked = data.show_waiter_tips;
-                            console.log('[TIP_VISIBILITY] Toggle set to:', data.show_waiter_tips);
-                        } else {
-                            console.warn('[TIP_VISIBILITY] Toggle element not found');
-                        }
+                        toggle.checked = data.show_waiter_tips;
+                        console.log('[TIP_VISIBILITY] Toggle set to:', data.show_waiter_tips);
                     } else {
                         console.error('[TIP_VISIBILITY] API returned success=false:', data);
                     }
@@ -10992,6 +10714,11 @@
         }
         
         function toggleTipVisibility(isEnabled) {
+            const toggle = document.getElementById('tip-visibility-toggle');
+            if (!toggle) {
+                return;
+            }
+
             console.log('[TIP_VISIBILITY] Toggling to:', isEnabled);
             fetch('/hotel-manager/api/toggle-tip-visibility', {
                 method: 'POST',
@@ -11007,14 +10734,14 @@
                 } else {
                     showNotification('Failed to update setting', 'error');
                     // Revert toggle
-                    document.getElementById('tip-visibility-toggle').checked = !isEnabled;
+                    toggle.checked = !isEnabled;
                 }
             })
             .catch(error => {
                 console.error('[TIP_VISIBILITY] Error toggling:', error);
                 showNotification('Error updating setting', 'error');
                 // Revert toggle
-                document.getElementById('tip-visibility-toggle').checked = !isEnabled;
+                toggle.checked = !isEnabled;
             });
         }
         
@@ -11130,7 +10857,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        renderOrdersData(data.orders);
+                        renderOrdersData(data.orders || []);
                     } else {
                         document.getElementById('orders-list').innerHTML = 
                             '<div style="text-align: center; padding: 2rem; color: #ef4444;">Error loading orders</div>';
@@ -11157,10 +10884,10 @@
                 return;
             }
             
-            // Desktop Table Layout — Time | Order # | Table & Guest | Total | Method | Bill
+            // Desktop Table Layout — Time | Order # | Table & Guest | Total | Method | Payment Action | Bill
             let ordersHTML = `
                 <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+                <table style="width: 100%; border-collapse: collapse; min-width: 760px;">
                     <thead>
                         <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                             <th style="padding: 0.875rem 1rem; text-align: left; font-weight: 600;">Time</th>
@@ -11168,6 +10895,7 @@
                             <th style="padding: 0.875rem 1rem; text-align: left; font-weight: 600;">Table & Guest</th>
                             <th style="padding: 0.875rem 1rem; text-align: right; font-weight: 600;">Total</th>
                             <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600;">Method</th>
+                            <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600;">Payment Action</th>
                             <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600;">Bill</th>
                         </tr>
                     </thead>
@@ -11181,6 +10909,7 @@
                 const paymentStatus = order.payment_status || 'PENDING';
                 const isPaid = paymentStatus === 'PAID';
                 const paymentMethod = order.payment_method || '-';
+                const paymentUtrId = order.utr_id || order.bill_utr_id || '';
                 const guestName = order.guest_name || 'Guest';
                 const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
                 const itemCount = order.items ? order.items.length : 0;
@@ -11189,6 +10918,9 @@
                 let methodStyle = 'background: #f3f4f6; color: #6b7280;';
                 let methodIcon = '';
                 let methodLabel = '-';
+                const normalizedMethod = String(paymentMethod || '').toUpperCase();
+                const isCashMethod = normalizedMethod === 'CASH';
+                const isOnlineMethod = ['UPI', 'ONLINE', 'RAZORPAY', 'CARD', 'NETBANKING', 'WALLET'].includes(normalizedMethod);
                 if (paymentMethod === 'UPI') {
                     methodStyle = 'background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #5b21b6;';
                     methodIcon = '<i class="fas fa-qrcode" style="margin-right: 0.25rem;"></i>';
@@ -11197,7 +10929,47 @@
                     methodStyle = 'background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46;';
                     methodIcon = '<i class="fas fa-money-bill-wave" style="margin-right: 0.25rem;"></i>';
                     methodLabel = 'Cash';
+                } else if (isOnlineMethod) {
+                    methodStyle = 'background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #5b21b6;';
+                    methodIcon = '<i class="fas fa-credit-card" style="margin-right: 0.25rem;"></i>';
+                    methodLabel = 'Online';
                 }
+
+                const utrLabelHTML = paymentMethod === 'UPI'
+                    ? `<div style="margin-top: 0.3rem; font-size: 0.68rem; color: #6b7280; line-height: 1.2; text-align: center; max-width: 140px;">UTR: ${paymentUtrId || 'Not Available'}</div>`
+                    : '';
+
+                const paymentActionDesktop = (() => {
+                    if (isPaid || isOnlineMethod) {
+                        return `<span style="display:inline-flex;align-items:center;gap:0.25rem;background:#d1fae5;color:#047857;border-radius:999px;padding:0.3rem 0.7rem;font-size:0.76rem;font-weight:700;white-space:nowrap;">
+                            <i class="fas fa-check-circle" style="font-size:0.72rem;"></i> Paid ✅
+                        </span>`;
+                    }
+                    if (!isPaid) {
+                        return `<button onclick="markPaymentDone(${order.id}, ${order.table_id})" class="btn-sm" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 0.42rem 0.78rem; border-radius: 8px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; font-size:0.76rem;">
+                            <i class="fas fa-check-circle"></i> Mark as Cash Paid
+                        </button>`;
+                    }
+                    return `<span style="display:inline-flex;align-items:center;gap:0.25rem;background:#e5e7eb;color:#6b7280;border-radius:999px;padding:0.3rem 0.7rem;font-size:0.74rem;font-weight:600;white-space:nowrap;">
+                        <i class="fas fa-clock" style="font-size:0.7rem;"></i> Pending
+                    </span>`;
+                })();
+
+                const paymentActionMobile = (() => {
+                    if (isPaid || isOnlineMethod) {
+                        return `<span style="display:inline-flex;align-items:center;gap:0.25rem;background:#d1fae5;color:#047857;border-radius:999px;padding:0.28rem 0.65rem;font-size:0.74rem;font-weight:700;white-space:nowrap;">
+                            <i class="fas fa-check-circle" style="font-size:0.7rem;"></i> Paid ✅
+                        </span>`;
+                    }
+                    if (!isPaid) {
+                        return `<button onclick="markPaymentDone(${order.id}, ${order.table_id})" class="btn-sm" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; justify-content: center; padding: 10px 12px; width: 100%;">
+                            <i class="fas fa-check-circle"></i> Mark as Cash Paid
+                        </button>`;
+                    }
+                    return `<span style="display:inline-flex;align-items:center;gap:0.25rem;background:#e5e7eb;color:#6b7280;border-radius:999px;padding:0.28rem 0.65rem;font-size:0.74rem;font-weight:600;white-space:nowrap;">
+                        <i class="fas fa-clock" style="font-size:0.7rem;"></i> Pending
+                    </span>`;
+                })();
                 
                 // Desktop Row
                 ordersHTML += `
@@ -11221,30 +10993,70 @@
                             ${isPaid ? '<div style="display:inline-flex;align-items:center;gap:0.2rem;background:#d1fae5;color:#059669;border-radius:10px;padding:0.15rem 0.45rem;font-size:0.65rem;font-weight:600;margin-top:0.2rem;"><i class="fas fa-lock" style="font-size:0.6rem;"></i> Paid</div>' : ''}
                         </td>
                         <td style="padding: 0.875rem 1rem; text-align: center;">
-                            <span style="padding: 0.3rem 0.7rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.2rem; ${methodStyle}">
-                                ${methodIcon}${methodLabel}
-                            </span>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:0.15rem;">
+                                <span style="padding: 0.3rem 0.7rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.2rem; ${methodStyle}" title="${paymentMethod === 'UPI' ? ('UTR: ' + (paymentUtrId || 'Not Available')) : paymentMethod}">
+                                    ${methodIcon}${methodLabel}
+                                </span>
+                                ${utrLabelHTML}
+                            </div>
+                        </td>
+                        <td style="padding: 0.875rem 1rem; text-align: center;">
+                            ${paymentActionDesktop}
                         </td>
                         <td style="padding: 0.875rem 1rem; text-align: center;">
                             ${(() => {
-                                if (isPaid || order.bill_id) {
-                                    // Bill exists or paid → View Bill
-                                    return `<button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.45rem 0.9rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
+                                if (isPaid) {
+                                    // Fully paid → View Bill locked
+                                    return `<button onclick="viewOrderBill(${order.id}, false)" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.45rem 0.9rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
                                         <i class="fas fa-file-invoice"></i> View Bill
                                     </button>`;
+                                } else if ((order.billRequestStatus === 'PENDING') || (order.bill_requested && !order.bill_exists)) {
+                                    // Guest requested bill - always prioritize request visibility over running bill state.
+                                    const requestId = order.billRequestId || order.bill_request_id || null;
+                                    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;">
+                                        <span style="background:#fed7aa;color:#b45309;border-radius:20px;padding:0.2rem 0.6rem;font-size:0.7rem;font-weight:600;display:inline-flex;align-items:center;gap:0.25rem;">
+                                            <i class="fas fa-hourglass-half" style="font-size:0.65rem;"></i> Requested ⏳
+                                        </span>
+                                        ${requestId ? `<button onclick="approveBillRequestFromOrder(${order.id}, ${requestId})" class="btn-sm" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; font-size:0.78rem;">
+                                            <i class="fas fa-check"></i> Approve Request
+                                        </button>` : ''}
+                                        <button onclick="viewOrderBill(${order.id}, true)" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; font-size:0.78rem;">
+                                            <i class="fas fa-file-invoice"></i> Generate Bill
+                                        </button>
+                                    </div>`;
+                                } else if (order.bill_exists) {
+                                    // One running bill per table/session → always view existing bill
+                                    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0.35rem;">
+                                        <span style="background:#e0f2fe;color:#0369a1;border-radius:20px;padding:0.2rem 0.6rem;font-size:0.68rem;font-weight:600;display:inline-flex;align-items:center;gap:0.25rem;">
+                                            <i class="fas fa-receipt" style="font-size:0.62rem;"></i> Active Bill (Running)
+                                        </span>
+                                        <button onclick="viewOrderBill(${order.id}, false)" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; font-size:0.78rem;">
+                                            <i class="fas fa-file-invoice"></i> View Bill
+                                        </button>
+                                    </div>`;
+                                } else if (order.billRequestStatus === 'APPROVED' && !order.bill_exists) {
+                                    // Bill request approved, ready to generate → show Approved badge + Generate Bill
+                                    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;">
+                                        <span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:0.2rem 0.6rem;font-size:0.7rem;font-weight:600;display:inline-flex;align-items:center;gap:0.25rem;">
+                                            <i class="fas fa-check-circle" style="font-size:0.65rem;"></i> Approved ✅
+                                        </span>
+                                        <button onclick="viewOrderBill(${order.id}, true)" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; font-size:0.78rem;">
+                                            <i class="fas fa-file-invoice"></i> Generate Bill
+                                        </button>
+                                    </div>`;
                                 } else if (order.bill_requested) {
-                                    // Guest requested bill → show badge + Generate Bill
+                                    // Fallback: Guest requested bill but no approval status yet (backwards compatibility)
                                     return `<div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;">
                                         <span style="background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:0.2rem 0.6rem;font-size:0.7rem;font-weight:600;display:inline-flex;align-items:center;gap:0.25rem;">
                                             <i class="fas fa-bell" style="font-size:0.65rem;"></i> Requested
                                         </span>
-                                        <button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; font-size:0.78rem;">
+                                        <button onclick="viewOrderBill(${order.id}, true)" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; font-size:0.78rem;">
                                             <i class="fas fa-file-invoice"></i> Generate Bill
                                         </button>
                                     </div>`;
                                 } else {
-                                    // No request yet → Generate Bill
-                                    return `<button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.45rem 0.9rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
+                                    // No bill requested → Generate Bill
+                                    return `<button onclick="viewOrderBill(${order.id}, false)" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.45rem 0.9rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
                                         <i class="fas fa-file-invoice"></i> Generate Bill
                                     </button>`;
                                 }
@@ -11279,30 +11091,73 @@
                             <div class="mobile-info-item">
                                 <div class="mobile-info-label">Method</div>
                                 <div class="mobile-info-value">
-                                    <span style="padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.2rem; ${methodStyle}">
+                                    <span style="padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.2rem; ${methodStyle}" title="${paymentMethod === 'UPI' ? ('UTR: ' + (paymentUtrId || 'Not Available')) : paymentMethod}">
                                         ${methodIcon}${methodLabel}
                                     </span>
+                                    ${paymentMethod === 'UPI' ? `<div style="margin-top:0.35rem;font-size:0.68rem;color:#6b7280;line-height:1.2;">UTR: ${paymentUtrId || 'Not Available'}</div>` : ''}
+                                </div>
+                            </div>
+                            <div class="mobile-info-item">
+                                <div class="mobile-info-label">Payment Action</div>
+                                <div class="mobile-info-value">
+                                    ${paymentActionMobile}
                                 </div>
                             </div>
                         </div>
                         <div class="mobile-order-actions" style="margin-top: 0.75rem;">
-                            ${isPaid || order.bill_id ? `
-                                <button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
+                            ${isPaid ? `
+                                <button onclick="viewOrderBill(${order.id}, false)" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
                                     <i class="fas fa-file-invoice"></i> View Bill
                                 </button>
+                            ` : ((order.billRequestStatus === 'PENDING') || (order.bill_requested && !order.bill_exists)) ? `
+                                <div style="display:flex;flex-direction:column;gap:0.4rem;">
+                                    <div style="text-align:center;">
+                                        <span style="background:#fed7aa;color:#b45309;border-radius:20px;padding:0.2rem 0.7rem;font-size:0.72rem;font-weight:600;display:inline-flex;align-items:center;gap:0.25rem;">
+                                            <i class="fas fa-hourglass-half" style="font-size:0.65rem;"></i> Requested ⏳
+                                        </span>
+                                    </div>
+                                    ${(order.billRequestId || order.bill_request_id) ? `<button onclick="approveBillRequestFromOrder(${order.id}, ${order.billRequestId || order.bill_request_id})" class="btn-sm" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
+                                        <i class="fas fa-check"></i> Approve Request
+                                    </button>` : ''}
+                                    <button onclick="viewOrderBill(${order.id}, true)" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
+                                        <i class="fas fa-file-invoice"></i> Generate Bill
+                                    </button>
+                                </div>
+                            ` : order.bill_exists ? `
+                                <div style="display:flex;flex-direction:column;gap:0.4rem;">
+                                    <div style="text-align:center;">
+                                        <span style="background:#e0f2fe;color:#0369a1;border-radius:20px;padding:0.2rem 0.7rem;font-size:0.72rem;font-weight:600;display:inline-flex;align-items:center;gap:0.25rem;">
+                                            <i class="fas fa-receipt" style="font-size:0.65rem;"></i> Active Bill
+                                        </span>
+                                    </div>
+                                    <button onclick="viewOrderBill(${order.id}, false)" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 10px;">
+                                        <i class="fas fa-file-invoice"></i> View Bill
+                                    </button>
+                                </div>
+                            ` : order.billRequestStatus === 'APPROVED' && !order.bill_exists ? `
+                                <div style="display:flex;flex-direction:column;gap:0.4rem;">
+                                    <div style="text-align:center;">
+                                        <span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:0.2rem 0.7rem;font-size:0.72rem;font-weight:600;display:inline-flex;align-items:center;gap:0.25rem;">
+                                            <i class="fas fa-check-circle" style="font-size:0.65rem;"></i> Approved ✅
+                                        </span>
+                                    </div>
+                                    <button onclick="viewOrderBill(${order.id}, true)" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
+                                        <i class="fas fa-file-invoice"></i> Generate Bill
+                                    </button>
+                                </div>
                             ` : order.bill_requested ? `
                                 <div style="display:flex;flex-direction:column;gap:0.4rem;">
                                     <div style="text-align:center;">
                                         <span style="background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:0.2rem 0.7rem;font-size:0.72rem;font-weight:600;display:inline-flex;align-items:center;gap:0.25rem;">
-                                            <i class="fas fa-bell" style="font-size:0.65rem;"></i> Bill Requested
+                                            <i class="fas fa-bell" style="font-size:0.65rem;"></i> Requested
                                         </span>
                                     </div>
-                                    <button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
+                                    <button onclick="viewOrderBill(${order.id}, true)" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
                                         <i class="fas fa-file-invoice"></i> Generate Bill
                                     </button>
                                 </div>
                             ` : `
-                                <button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
+                                <button onclick="viewOrderBill(${order.id}, false)" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
                                     <i class="fas fa-file-invoice"></i> Generate Bill
                                 </button>
                             `}
@@ -11365,12 +11220,18 @@
         }
         
         // View Order Bill Modal
-        function viewOrderBill(orderId) {
+        function viewOrderBill(orderId, billRequested) {
+            // If guest requested bill, auto-approve so guest can see "View Bill"
+            if (billRequested) {
+                fetch(`/orders/api/order/${orderId}/approve-bill-request`, {method: 'POST'}).catch(() => {});
+            }
             fetch(`/orders/api/bill/${orderId}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.bill) {
                         showBillModal(data.bill);
+                        // Refresh orders to update bill_requested badge
+                        if (billRequested) loadOrdersData();
                     } else {
                         showTableMessage('Bill not found for this order', 'error');
                     }
@@ -11395,6 +11256,7 @@
             const guestName = bill.guest_name || 'Guest';
             const paymentStatus = bill.payment_status || 'PENDING';
             const paymentMethod = bill.payment_method || '';
+            const utrId = bill.utr_id || '';
             const isPaid = paymentStatus === 'PAID';
             
             // Payment method styling
@@ -11570,6 +11432,12 @@
                             ${methodIcon}
                             Payment Method: ${paymentMethod === 'UPI' ? 'UPI (Online)' : paymentMethod}
                         </div>
+                        ${paymentMethod === 'UPI' ? `
+                        <div style="margin-top: 0.75rem; padding: 1rem; border-radius: 10px; text-align: center; font-weight: 600; background: linear-gradient(135deg, #f8fafc, #eef2ff); color: #312e81; border: 1px solid #c7d2fe;">
+                            <i class="fas fa-receipt" style="margin-right: 0.5rem;"></i>
+                            UTR ID: ${utrId || 'UTR Not Available'}
+                        </div>
+                        ` : ''}
                         ` : ''}
                     </div>
                     <div class="bill-modal-footer">
@@ -11683,7 +11551,7 @@
         }
         
         function markPaymentDone(orderId, tableId) {
-            if (!confirm('Mark this order as PAID (Cash Payment)?\n\nThis will:\n- Update payment status to PAID\n- Complete the bill\n- Free the table\n- Clear the session')) {
+            if (!confirm('Confirm cash payment received?')) {
                 return;
             }
             
@@ -11698,8 +11566,9 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showTableMessage(data.message, 'success');
-                    loadOrders();
+                    showTableMessage('Payment marked as completed', 'success');
+                    loadOrdersData();
+                    refreshWalletUi();
                 } else {
                     showTableMessage('Error: ' + data.message, 'error');
                 }
@@ -11707,6 +11576,30 @@
             .catch(error => {
                 console.error('Error marking payment done:', error);
                 showTableMessage('Error marking payment as done', 'error');
+            });
+        }
+        
+        function approveBillRequestFromOrder(orderId, requestId) {
+            if (!confirm('✅ Approve this bill request?\n\nThe guest will be notified and you can then generate the bill.')) {
+                return;
+            }
+            
+            fetch(`/orders/api/bill-request/${requestId}/approve`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showTableMessage('✅ Bill Request Approved! Now generate the bill.', 'success');
+                    loadOrdersData();
+                } else {
+                    showTableMessage('Error: ' + (data.message || 'Failed to approve'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error approving bill request:', error);
+                showTableMessage('Error approving bill request', 'error');
             });
         }
         
@@ -11839,6 +11732,11 @@
         
         // ========== WALLET FUNCTIONS ==========
         var hotelId = JSON.parse('{{ hotel_id|default("null")|tojson }}');
+
+        function refreshWalletUi() {
+            loadWalletData();
+            loadWalletTransactions();
+        }
         
         function loadWalletData() {
             if (!hotelId) return;
@@ -11847,30 +11745,34 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.wallet) {
+                    const balance = Number(data.wallet.balance || 0);
+                    const verificationCharge = Number(data.wallet.per_verification_charge || 0);
+                    const orderCharge = Number(data.wallet.per_order_charge || 0);
+
                     // Update header wallet balance
                     const headerWalletBalance = document.getElementById('header-wallet-balance');
                     if (headerWalletBalance) {
                         const amountSpan = headerWalletBalance.querySelector('.wallet-amount');
                         if (amountSpan) {
-                            amountSpan.textContent = `₹${data.wallet.balance.toFixed(2)}`;
+                            amountSpan.textContent = `₹${balance.toFixed(2)}`;
                         }
                     }
                     
                     // Update wallet section balance display
                     const walletBalanceDisplay = document.getElementById('wallet-balance-display');
                     if (walletBalanceDisplay) {
-                        walletBalanceDisplay.textContent = '₹' + data.wallet.balance.toFixed(2);
+                        walletBalanceDisplay.textContent = '₹' + balance.toFixed(2);
                     }
                     
                     // Only update charge displays if they exist (module-dependent)
                     const verificationChargeEl = document.getElementById('verification-charge-display');
                     if (verificationChargeEl) {
-                        verificationChargeEl.textContent = '₹' + data.wallet.per_verification_charge.toFixed(2);
+                        verificationChargeEl.textContent = '₹' + verificationCharge.toFixed(2);
                     }
                     
                     const orderChargeEl = document.getElementById('order-charge-display');
                     if (orderChargeEl) {
-                        orderChargeEl.textContent = '₹' + data.wallet.per_order_charge.toFixed(2);
+                        orderChargeEl.textContent = '₹' + orderCharge.toFixed(2);
                     }
                 }
             })
@@ -11891,6 +11793,9 @@
                     data.transactions.forEach((t, index) => {
                         const typeClass = t.transaction_type === 'CREDIT' ? 'text-success' : 'text-danger';
                         const typeIcon = t.transaction_type === 'CREDIT' ? 'fa-arrow-up' : 'fa-arrow-down';
+                        const rawReferenceLabel = (t.reference_type || 'NA').toUpperCase();
+                        const txnLabel = (t.transaction_type || '').toUpperCase();
+                        const referenceLabel = (rawReferenceLabel === 'ORDER' && txnLabel === 'DEBIT') ? 'BILL CHARGE' : rawReferenceLabel;
                         // Show Razorpay payment ID or UTR number
                         let paymentRef = '-';
                         if (t.razorpay_payment_id) {
@@ -11902,7 +11807,7 @@
                             <tr>
                                 <td>${index + 1}</td>
                                 <td>${formatDateTime(t.created_at)}</td>
-                                <td><span class="${typeClass}"><i class="fas ${typeIcon}"></i> ${t.reference_type}</span></td>
+                                <td><span class="${typeClass}"><i class="fas ${typeIcon}"></i> ${referenceLabel}${txnLabel ? ' / ' + txnLabel : ''}</span></td>
                                 <td class="${typeClass}">₹${t.amount.toFixed(2)}</td>
                                 <td>${paymentRef}</td>
                                 <td>₹${t.balance_after.toFixed(2)}</td>
@@ -11929,6 +11834,30 @@
         // Razorpay configuration
         let razorpayKeyId = null;
         let razorpayEnabled = false;
+
+        function ensureRazorpayCheckoutLoaded() {
+            if (window.Razorpay) {
+                return Promise.resolve();
+            }
+
+            const existingScript = document.querySelector('script[data-role="razorpay-checkout"]');
+            if (existingScript) {
+                return new Promise((resolve, reject) => {
+                    existingScript.addEventListener('load', resolve, { once: true });
+                    existingScript.addEventListener('error', reject, { once: true });
+                });
+            }
+
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                script.async = true;
+                script.dataset.role = 'razorpay-checkout';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
         
         function initRazorpayConfig() {
             fetch('/wallet/api/razorpay/config')
@@ -12008,6 +11937,8 @@
         }
         
         function openRazorpayCheckout(orderId, amount, keyId) {
+            ensureRazorpayCheckoutLoaded()
+                .then(() => {
             const options = {
                 key: keyId,
                 amount: amount * 100, // Amount in paise
@@ -12041,6 +11972,12 @@
                 resetPayButton();
             });
             rzp.open();
+                })
+                .catch(error => {
+                    console.error('Failed to load Razorpay checkout:', error);
+                    alert('Could not load payment gateway. Please try again.');
+                    resetPayButton();
+                });
         }
         
         function verifyRazorpayPayment(response, amount) {
@@ -12120,21 +12057,37 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadWalletData();
             loadTipStatistics();
+
+            // Keep wallet figures near real-time as new orders are placed from guest devices.
+            setInterval(function() {
+                refreshWalletUi();
+            }, 10000);
             
             // Load tip visibility setting with a slight delay to ensure DOM is ready
             setTimeout(function() {
                 loadTipVisibilitySetting();
             }, 100);
         });
+
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                refreshWalletUi();
+            }
+        });
         
         // Load tip statistics for dashboard
         function loadTipStatistics() {
+            const todayTipsEl = document.getElementById('today-tips-value');
+            if (!todayTipsEl) {
+                return;
+            }
+
             fetch('/orders/api/tip-statistics/hotel?period=today')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.statistics) {
                         const totalTips = data.statistics.total_tips || 0;
-                        document.getElementById('today-tips-value').textContent = `₹${totalTips.toFixed(2)}`;
+                        todayTipsEl.textContent = `₹${totalTips.toFixed(2)}`;
                     }
                 })
                 .catch(error => {

@@ -14,6 +14,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/table_menu.css') }}">
 </head>
 <body>
@@ -76,24 +78,28 @@
     <!-- Bill Request Button (shown when session active) -->
     <div class="view-bill-btn" id="view-bill-btn" style="display: none;">
         <!-- State: no request yet -->
-        <div id="bill-btn-request" onclick="requestBill()" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+        <div id="bill-btn-request" onclick="requestBill()" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;position:relative;">
             <i class="fas fa-file-invoice"></i>
             <span>Request Bill</span>
+            <span id="badge-request" style="background:#ff9500;color:white;font-size:0.75rem;padding:0.25rem 0.5rem;border-radius:10px;font-weight:600;margin-left:0.25rem;">⏳</span>
         </div>
         <!-- State: pending -->
-        <div id="bill-btn-pending" style="display:none;align-items:center;gap:0.5rem;opacity:0.8;cursor:default;">
-            <i class="fas fa-hourglass-half"></i>
-            <span>Waiting...</span>
+        <div id="bill-btn-pending" style="display:none;align-items:center;gap:0.5rem;opacity:0.9;cursor:default;position:relative;">
+            <i class="fas fa-hourglass-half" style="animation: spin 2s linear infinite;"></i>
+            <span>Bill Requested</span>
+            <span style="background:#ff9500;color:white;font-size:0.75rem;padding:0.25rem 0.5rem;border-radius:10px;font-weight:600;">⏳ Pending</span>
         </div>
         <!-- State: approved - show view bill -->
-        <div id="bill-btn-approved" onclick="viewSessionBill()" style="display:none;align-items:center;gap:0.5rem;cursor:pointer;background:#059669;">
+        <div id="bill-btn-approved" onclick="viewSessionBill()" style="display:none;align-items:center;gap:0.5rem;cursor:pointer;background:#059669;position:relative;">
             <i class="fas fa-receipt"></i>
             <span>View Bill</span>
+            <span style="background:#059669;color:white;font-size:0.75rem;padding:0.25rem 0.5rem;border-radius:10px;font-weight:600;margin-left:0.25rem;">✅ Ready</span>
         </div>
         <!-- State: rejected -->
-        <div id="bill-btn-rejected" onclick="requestBill()" style="display:none;align-items:center;gap:0.5rem;cursor:pointer;background:#ef4444;">
+        <div id="bill-btn-rejected" onclick="requestBill()" style="display:none;align-items:center;gap:0.5rem;cursor:pointer;background:#ef4444;position:relative;">
             <i class="fas fa-redo"></i>
             <span>Request Again</span>
+            <span style="background:#ef4444;color:white;font-size:0.75rem;padding:0.25rem 0.5rem;border-radius:10px;font-weight:600;margin-left:0.25rem;">❌ Rejected</span>
         </div>
     </div>
 
@@ -112,10 +118,7 @@
             <h3>Order Placed!</h3>
             <p>Your order is being prepared</p>
             <div class="order-id" id="modal-order-id">Order #123</div>
-            <button class="btn" onclick="closeModal()">Continue Browsing</button>
-            <button class="btn btn-outline" onclick="closeModal(); viewSessionBill();">
-                <i class="fas fa-receipt"></i> View Bill
-            </button>
+            <button class="btn" onclick="closeModal()">Continue Ordering</button>
         </div>
     </div>
 
@@ -190,6 +193,12 @@
                         <span id="payment-method-value" style="font-weight: 700; color: #0c4a6e; background: white; padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.9rem;"></span>
                     </div>
                 </div>
+                <div id="payment-utr-row" style="display: none; padding: 0.75rem 1rem; background: linear-gradient(135deg, #f8fafc, #eef2ff); border-radius: 12px; margin-bottom: 1rem; border: 1px solid #c7d2fe;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;">
+                        <span style="color: #4338ca; font-weight: 500;"><i class="fas fa-receipt" style="margin-right: 0.5rem;"></i>UTR ID</span>
+                        <span id="payment-utr-value" style="font-weight: 700; color: #312e81; background: white; padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.9rem; word-break: break-word;"></span>
+                    </div>
+                </div>
                 <div class="payment-status" id="payment-status">
                     <i class="fas fa-clock"></i>
                     <span>Payment Pending</span>
@@ -249,6 +258,10 @@
                     <span id="payment-tax-label">Tax (%)</span>
                     <span id="payment-tax">₹0.00</span>
                 </div>
+                <div class="total-row" id="payment-convenience-row" style="display: none;">
+                    <span>Digital Convenience Fee</span>
+                    <span id="payment-convenience-fee">₹0.00</span>
+                </div>
                 <div class="total-row tip-row" id="payment-tip-row" style="display: none;">
                     <span>Tip</span>
                     <span id="payment-tip-amount">₹0.00</span>
@@ -260,16 +273,12 @@
             </div>
             
             <div class="payment-method-label">
-                <i class="fas fa-wallet"></i> Select Payment Method
+                <i class="fas fa-wallet"></i> UPI / Online Payment
             </div>
             <div class="payment-options">
-                <button class="payment-option" onclick="processPayment('CASH')">
-                    <i class="fas fa-money-bill-wave"></i>
-                    <span>Cash</span>
-                </button>
                 <button class="payment-option" onclick="processPayment('UPI')">
                     <i class="fas fa-mobile-alt"></i>
-                    <span>UPI</span>
+                    <span>Pay via UPI</span>
                 </button>
             </div>
         </div>
@@ -277,31 +286,59 @@
 
     <!-- Payment Success Modal -->
     <div class="payment-success-modal" id="payment-success-modal">
-        <div class="payment-success-content">
-            <div class="success-icon">
-                <i class="fas fa-check-circle"></i>
+        <div class="payment-success-content" style="max-width: 430px; width: calc(100% - 2rem); background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%); border-radius: 28px; padding: 1.5rem 1.35rem 1.25rem; box-shadow: 0 28px 80px rgba(15, 23, 42, 0.2); text-align: center;">
+            <div style="width: 92px; height: 92px; margin: 0 auto 1rem; border-radius: 28px; background: linear-gradient(135deg, #d1fae5 0%, #86efac 100%); display:flex; align-items:center; justify-content:center; box-shadow: 0 16px 30px rgba(16, 185, 129, 0.22);">
+                <i class="fas fa-check-circle" style="font-size: 3rem; color: #059669;"></i>
             </div>
-            <h2>Payment Successful!</h2>
-            <p>Thank you for dining with us</p>
-            <p class="success-message">Your table is now available for the next guest.</p>
-            <button class="btn" onclick="closePaymentSuccess()">Done</button>
+            <div id="payment-success-brand" style="margin-bottom: 1rem;">
+                <div id="payment-success-logo" style="display:none; margin-bottom: 0.85rem;"></div>
+                <h2 id="payment-success-title" style="margin: 0; font-size: 1.55rem; line-height: 1.15; color: #064e3b; font-weight: 800; letter-spacing: -0.02em;">Payment Successful</h2>
+                <p style="margin: 0.5rem 0 0; color: #0f766e; font-size: 0.98rem; font-weight: 500;">Thank you for dining with us!</p>
+                <p style="margin: 0.55rem 0 0; color: #047857; font-size: 0.92rem; line-height: 1.5;">Your bill is ready. You can view or download it below.</p>
+            </div>
+            <div style="background: rgba(255,255,255,0.78); border: 1px solid rgba(34,197,94,0.18); border-radius: 18px; padding: 1rem; margin-bottom: 1rem; text-align: left;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem; margin-bottom: 0.55rem; color:#065f46; font-weight:700; font-size: 0.92rem;">
+                    <span>Bill Summary</span>
+                    <span id="payment-success-grand-total" style="color:#059669; font-size:1rem;">₹0.00</span>
+                </div>
+                <div style="display:grid; gap:0.4rem; color:#374151; font-size:0.88rem;">
+                    <div style="display:flex; justify-content:space-between; gap:1rem;"><span>Table</span><span id="payment-success-table">-</span></div>
+                    <div style="display:flex; justify-content:space-between; gap:1rem;"><span>Guest</span><span id="payment-success-guest">-</span></div>
+                    <div style="display:flex; justify-content:space-between; gap:1rem;"><span>Payment</span><span id="payment-success-method">-</span></div>
+                    <div id="payment-success-utr-row" style="display:none; justify-content:space-between; gap:1rem;"><span>UTR</span><span id="payment-success-utr">-</span></div>
+                </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                <button class="btn" id="payment-success-view-bill-btn" onclick="viewLastBillFromSuccess()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color:white; border:none; border-radius:16px; padding:0.95rem 1rem; font-weight:800; font-size:0.98rem; display:inline-flex; align-items:center; justify-content:center; gap:0.55rem; box-shadow:0 12px 20px rgba(5,150,105,0.22);">
+                    <i class="fas fa-receipt"></i> View Bill
+                </button>
+                <button class="btn" id="payment-success-download-bill-btn" onclick="downloadLastBillPdf()" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color:white; border:none; border-radius:16px; padding:0.95rem 1rem; font-weight:800; font-size:0.98rem; display:inline-flex; align-items:center; justify-content:center; gap:0.55rem; box-shadow:0 12px 20px rgba(14,165,233,0.22);">
+                    <i class="fas fa-download"></i> Download Bill (PDF)
+                </button>
+                <button class="btn" onclick="closePaymentSuccess()" style="background: rgba(255,255,255,0.9); color:#065f46; border:1px solid rgba(5,150,105,0.18); border-radius:16px; padding:0.9rem 1rem; font-weight:800; font-size:0.98rem; display:inline-flex; align-items:center; justify-content:center; gap:0.55rem;">
+                    <i class="fas fa-seedling"></i> Visit Again
+                </button>
+            </div>
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed rgba(5,150,105,0.18); color:#047857; font-size:0.88rem; line-height:1.45;">
+                🙏 We hope to serve you again!
+            </div>
         </div>
     </div>
 
     <!-- Table Closed Screen (shown after payment when guest returns) -->
     <div id="table-closed-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f0fdf4; z-index:9999; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem;">
         <div style="max-width:360px;">
-            <div style="width:80px; height:80px; background:#d1fae5; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1.5rem;">
-                <i class="fas fa-check-circle" style="font-size:2.5rem; color:#059669;"></i>
+            <div style="width:84px; height:84px; background:linear-gradient(135deg,#dcfce7 0%,#bbf7d0 100%); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1.5rem; box-shadow:0 12px 24px rgba(34,197,94,0.14);">
+                <i class="fas fa-check-circle" style="font-size:2.6rem; color:#059669;"></i>
             </div>
-            <h2 style="color:#065f46; font-size:1.5rem; margin-bottom:0.75rem;">Payment Completed</h2>
+            <h2 style="color:#064e3b; font-size:1.5rem; margin-bottom:0.75rem; font-weight:800;">Payment Completed</h2>
             <p style="color:#047857; font-size:1rem; margin-bottom:0.5rem;">Thank you for dining with us!</p>
-            <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:1rem; margin-top:1.5rem;">
-                <i class="fas fa-ban" style="color:#ef4444; font-size:1.25rem; margin-bottom:0.5rem; display:block;"></i>
-                <p style="color:#dc2626; font-weight:600; margin:0;">This table session is now closed</p>
-                <p style="color:#6b7280; font-size:0.85rem; margin-top:0.25rem;">No further orders can be placed</p>
+            <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:16px; padding:1rem; margin-top:1.5rem; box-shadow:0 8px 18px rgba(249,115,22,0.08);">
+                <i class="fas fa-circle-info" style="color:#f97316; font-size:1.25rem; margin-bottom:0.5rem; display:block;"></i>
+                <p style="color:#9a3412; font-weight:700; margin:0;">This table session is now closed</p>
+                <p style="color:#9a3412; opacity:0.8; font-size:0.85rem; margin-top:0.25rem;">You can visit again for a new order when seated next time.</p>
             </div>
-            <p style="color:#9ca3af; font-size:0.8rem; margin-top:1.5rem;">Please contact staff if you need assistance</p>
+            <p style="color:#6b7280; font-size:0.8rem; margin-top:1.5rem;">Please contact staff if you need assistance</p>
         </div>
     </div>
 
@@ -332,11 +369,16 @@
                         <span class="upi-detail-label">Amount to Pay</span>
                         <span class="upi-detail-amount" id="upi-qr-amount"></span>
                     </div>
+
+                    <div class="upi-detail-item">
+                        <span class="upi-detail-label">UTR / Transaction ID</span>
+                        <input type="text" id="upi-utr-input" placeholder="Enter UTR after payment (optional)" style="width: 100%; padding: 0.75rem 0.9rem; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; background: white; color: #1f2937;">
+                    </div>
                 </div>
                 
                 <div class="upi-instructions">
                     <i class="fas fa-info-circle"></i>
-                    <span>Open any UPI app and scan the QR code to complete payment</span>
+                    <span>Open any UPI app and scan the QR code to complete payment. Add the UTR number before confirming.</span>
                 </div>
             </div>
             
@@ -516,6 +558,42 @@
         </div>
     </div>
 
+    <style>
+        /* Spinner Animation */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Toast Animation */
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        /* Generic Toast Styles */
+        .generic-toast {
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        /* Bill Button States */
+        #bill-btn-request:hover {
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 8px;
+            padding: 0.5rem;
+        }
+        
+        #bill-btn-approved:hover {
+            opacity: 0.9;
+        }
+    </style>
+
     <script>
         const tableId = {{ table.id }};
         const sessionStorageKey = `table_session_${tableId}`;
@@ -530,6 +608,11 @@
         let sessionId = localStorage.getItem(sessionStorageKey);
         let guestName = localStorage.getItem(guestNameStorageKey);
         let currentBillTotal = 0;
+        let lastBillSnapshot = null;
+        let lastPaymentMeta = null;
+        let paymentStatusPollInterval = null;
+        let lastSuccessModalBillKey = null;
+        let paymentSuccessAutoCloseTimer = null;
         let menuData = [];
         let viewOnlyMode = false; // Track if guest is in view-only mode
         
@@ -575,6 +658,45 @@
             
             setTimeout(() => {
                 toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Generic Toast Notification
+        let genericToastHideTimer = null;
+        function showToast(message, type = 'info') {
+            let toast = document.getElementById('generic-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'generic-toast';
+                toast.className = 'generic-toast';
+                document.body.appendChild(toast);
+            }
+            
+            const bgColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            
+            toast.innerHTML = message;
+            toast.style.backgroundColor = bgColor;
+            toast.style.color = 'white';
+            toast.style.padding = '1rem 1.5rem';
+            toast.style.borderRadius = '8px';
+            toast.style.position = 'fixed';
+            toast.style.bottom = '100px';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.zIndex = '9999';
+            toast.style.animation = 'slideUp 0.3s ease-out';
+            toast.classList.add('show');
+
+            if (genericToastHideTimer) {
+                clearTimeout(genericToastHideTimer);
+            }
+            
+            genericToastHideTimer = setTimeout(() => {
+                toast.classList.remove('show');
+                if (toast.parentNode) {
+                    toast.remove();
+                }
             }, 3000);
         }
         
@@ -730,11 +852,16 @@
             // Enable cart bar
             const cartBar = document.getElementById('cart-bar');
             if (cartBar) cartBar.style.display = '';
+
+            if (sessionId) {
+                startPaymentStatusPolling();
+            }
         }
         
         function enableViewOnlyMode(message) {
             viewOnlyMode = true;
             document.body.classList.add('view-only-mode');
+            stopPaymentStatusPolling();
             
             // Hide cart bar in view-only mode
             const cartBar = document.getElementById('cart-bar');
@@ -812,6 +939,7 @@
             if (!viewOnlyMode) {
                 document.getElementById('view-bill-btn').style.display = 'flex';
                 checkBillRequestStatus();
+                startPaymentStatusPolling();
             }
         }
         
@@ -1168,6 +1296,7 @@
                     if (data.session_id) {
                         sessionId = data.session_id;
                         localStorage.setItem(sessionStorageKey, sessionId);
+                        startPaymentStatusPolling();
                     }
                     if (data.guest_name) {
                         guestName = data.guest_name;
@@ -1195,16 +1324,33 @@
             });
         }
         
+        let orderModalAutoCloseTimer = null;
+
         function showOrderModal(orderId) {
             const modal = document.getElementById('order-modal');
             const orderIdEl = document.getElementById('modal-order-id');
+
+            if (orderModalAutoCloseTimer) {
+                clearTimeout(orderModalAutoCloseTimer);
+                orderModalAutoCloseTimer = null;
+            }
+
             orderIdEl.textContent = `Order #${orderId}`;
             modal.classList.add('show');
+
+            orderModalAutoCloseTimer = setTimeout(() => {
+                closeModal();
+            }, 2800);
         }
         
         function closeModal() {
             const modal = document.getElementById('order-modal');
             modal.classList.remove('show');
+
+            if (orderModalAutoCloseTimer) {
+                clearTimeout(orderModalAutoCloseTimer);
+                orderModalAutoCloseTimer = null;
+            }
         }
         
         // Close modal on outside click
@@ -1251,6 +1397,7 @@
         function checkExistingSession() {
             if (!sessionId) {
                 document.getElementById('view-bill-btn').style.display = 'none';
+                stopPaymentStatusPolling();
                 return;
             }
             
@@ -1263,12 +1410,14 @@
                         if (!viewOnlyMode) {
                             document.getElementById('view-bill-btn').style.display = 'flex';
                             checkBillRequestStatus();
+                            startPaymentStatusPolling();
                         }
                     } else {
                         // No open bill - hide View Bill button and clear stale session
                         document.getElementById('view-bill-btn').style.display = 'none';
                         sessionId = null;
                         localStorage.removeItem(sessionStorageKey);
+                        stopPaymentStatusPolling();
                     }
                 })
                 .catch(error => {
@@ -1277,8 +1426,70 @@
                     if (sessionId && !viewOnlyMode) {
                         document.getElementById('view-bill-btn').style.display = 'flex';
                         checkBillRequestStatus();
+                        startPaymentStatusPolling();
                     }
                 });
+        }
+
+        function getBillSuccessKey(bill) {
+            return [
+                bill.bill_number || '',
+                bill.payment_status || '',
+                bill.payment_method || '',
+                bill.guest_name || '',
+                bill.grand_total != null ? bill.grand_total : (bill.total_amount || 0)
+            ].join('|');
+        }
+
+        function startPaymentStatusPolling() {
+            if (paymentStatusPollInterval || !sessionId || viewOnlyMode) {
+                return;
+            }
+            paymentStatusPollInterval = setInterval(checkForExternalPaymentSuccess, 3000);
+        }
+
+        function stopPaymentStatusPolling() {
+            if (paymentStatusPollInterval) {
+                clearInterval(paymentStatusPollInterval);
+                paymentStatusPollInterval = null;
+            }
+        }
+
+        function checkForExternalPaymentSuccess() {
+            if (!sessionId || viewOnlyMode) {
+                stopPaymentStatusPolling();
+                return;
+            }
+
+            fetch(`/orders/api/session-bill/${tableId}/${sessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success || !data.bill) {
+                        return;
+                    }
+
+                    const bill = data.bill;
+                    const method = String(bill.payment_method || '').toUpperCase();
+                    const status = String(bill.payment_status || '').toUpperCase();
+                    const billKey = getBillSuccessKey(bill);
+
+                    if (status === 'PAID' && method === 'CASH' && billKey !== lastSuccessModalBillKey) {
+                        lastSuccessModalBillKey = billKey;
+                        openPaymentSuccessModal({
+                            method: 'Cash',
+                            amount: bill.grand_total != null ? bill.grand_total : bill.total_amount,
+                            bill: bill,
+                            bill_id: bill.bill_id || null,
+                            autoCloseMs: 10000
+                        });
+
+                        document.getElementById('view-bill-btn').style.display = 'none';
+                        localStorage.removeItem(sessionStorageKey);
+                        sessionId = null;
+                        stopPaymentStatusPolling();
+                    }
+                })
+                .catch(() => {});
         }
 
         // ============== Daily Special Popup Functions ==============
@@ -1622,6 +1833,7 @@
                     if (data.session_id) {
                         sessionId = data.session_id;
                         localStorage.setItem(sessionStorageKey, sessionId);
+                        startPaymentStatusPolling();
                     }
                     if (data.guest_name) {
                         guestName = data.guest_name;
@@ -1668,11 +1880,17 @@
             updateGuestNameDisplay();
             // Load daily special popup after a short delay to not interfere with menu loading
             setTimeout(loadDailySpecial, 500);
+
+            if (sessionId && !viewOnlyMode) {
+                startPaymentStatusPolling();
+            }
         });
         
         // ========== BILL REQUEST SYSTEM ==========
         let billRequestStatus = null; // null, PENDING, APPROVED, REJECTED
         let billRequestPollInterval = null;
+        let billRequestInFlight = false;
+        let billRequestSuccessToastShown = false;
 
         function updateBillBtnState(status) {
             billRequestStatus = status;
@@ -1696,9 +1914,31 @@
 
         function requestBill() {
             if (!sessionId || !tableId) {
-                alert('No active session found');
+                showToast('No active session found', 'error');
                 return;
             }
+
+            if (billRequestInFlight) {
+                return;
+            }
+
+            if (billRequestStatus === 'PENDING') {
+                updateBillBtnState('PENDING');
+                return;
+            }
+            
+            // Show confirmation dialog
+            if (!confirm('Ready to request your bill?\n\nClick OK to notify the manager.')) {
+                return;
+            }
+            
+            // Show loading state
+            const requestBtn = document.getElementById('bill-btn-request');
+            const originalHTML = requestBtn.innerHTML;
+            requestBtn.style.opacity = '0.6';
+            requestBtn.style.pointerEvents = 'none';
+            billRequestInFlight = true;
+            
             fetch('/orders/api/bill-request', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -1710,18 +1950,38 @@
             })
             .then(r => r.json())
             .then(data => {
+                billRequestInFlight = false;
                 if (data.success) {
+                    // Show success toast only for a newly created request
+                    if (data.is_new_request && !billRequestSuccessToastShown) {
+                        billRequestSuccessToastShown = true;
+                        showToast('✅ Bill request sent! Manager will approve shortly.', 'success');
+                        setTimeout(() => {
+                            billRequestSuccessToastShown = false;
+                        }, 3500);
+                    }
                     updateBillBtnState('PENDING');
+                    
                     // Also mark bill_requested on the order for manager dashboard visibility
                     if (currentOrderId) {
                         fetch(`/orders/api/order/${currentOrderId}/request-bill`, {method: 'POST'})
                             .catch(() => {});
                     }
                 } else {
-                    alert(data.message || 'Failed to send request');
+                    showToast(data.message || 'Failed to send request', 'error');
+                    requestBtn.innerHTML = originalHTML;
+                    requestBtn.style.opacity = '1';
+                    requestBtn.style.pointerEvents = 'auto';
                 }
             })
-            .catch(() => alert('Error sending bill request'));
+            .catch(err => {
+                billRequestInFlight = false;
+                console.error('Error:', err);
+                showToast('Network error. Please try again.', 'error');
+                requestBtn.innerHTML = originalHTML;
+                requestBtn.style.opacity = '1';
+                requestBtn.style.pointerEvents = 'auto';
+            });
         }
 
         function checkBillRequestStatus() {
@@ -1776,7 +2036,8 @@
                 });
         }
         
-        function displayBill(bill) {
+        function displayBill(bill, options = {}) {
+            const shouldAutoClosePaidBill = options.autoCloseAfterPaid !== false;
             // Update bill header
             document.getElementById('bill-hotel-name').textContent = bill.hotel_name || 'Restaurant';
             document.getElementById('bill-hotel-address').textContent = bill.hotel_address || '';
@@ -1874,6 +2135,8 @@
             const payNowBtn = document.getElementById('pay-now-btn');
             const paymentMethodRow = document.getElementById('payment-method-row');
             const paymentMethodValue = document.getElementById('payment-method-value');
+            const paymentUtrRow = document.getElementById('payment-utr-row');
+            const paymentUtrValue = document.getElementById('payment-utr-value');
             
             if (bill.payment_status === 'PAID') {
                 paymentStatus.innerHTML = '<i class="fas fa-check-circle"></i><span>Paid</span>';
@@ -1883,23 +2146,35 @@
                 // Show payment method if available
                 if (bill.payment_method) {
                     paymentMethodRow.style.display = 'block';
-                    const methodText = bill.payment_method === 'UPI' ? 'UPI (Online)' : 'Cash';
-                    const methodIcon = bill.payment_method === 'UPI' ? '<i class="fas fa-qrcode" style="margin-right: 0.25rem; color: #5f259f;"></i>' : '<i class="fas fa-money-bill-wave" style="margin-right: 0.25rem; color: #059669;"></i>';
+                    const methodText = bill.payment_method === 'UPI' ? 'UPI (Online)' : bill.payment_method;
+                    const methodIcon = bill.payment_method === 'UPI' ? '<i class="fas fa-qrcode" style="margin-right: 0.25rem; color: #5f259f;"></i>' : '<i class="fas fa-check-circle" style="margin-right: 0.25rem; color: #0ea5e9;"></i>';
                     paymentMethodValue.innerHTML = methodIcon + methodText;
                 } else {
                     paymentMethodRow.style.display = 'none';
                 }
 
+                if (bill.payment_method === 'UPI') {
+                    paymentUtrRow.style.display = 'block';
+                    paymentUtrValue.textContent = bill.utr_id || 'UTR Not Available';
+                } else {
+                    paymentUtrRow.style.display = 'none';
+                    paymentUtrValue.textContent = '';
+                }
+
                 // Auto-show table closed screen after a short delay
-                setTimeout(() => {
-                    closeBillModal();
-                    showTableClosedScreen();
-                }, 2000);
+                if (shouldAutoClosePaidBill) {
+                    setTimeout(() => {
+                        closeBillModal();
+                        showTableClosedScreen();
+                    }, 2000);
+                }
             } else {
                 paymentStatus.innerHTML = '<i class="fas fa-clock"></i><span>Payment Pending</span>';
                 paymentStatus.classList.remove('paid');
                 payNowBtn.style.display = 'flex';
                 paymentMethodRow.style.display = 'none';
+                paymentUtrRow.style.display = 'none';
+                paymentUtrValue.textContent = '';
             }
             
             // Show bill modal
@@ -1908,12 +2183,19 @@
         
         function closeBillModal() {
             document.getElementById('bill-modal').classList.remove('show');
+            if (showClosedScreenAfterBill) {
+                showClosedScreenAfterBill = false;
+                showTableClosedScreen();
+            }
         }
         
         // Payment Functions
         let selectedTipAmount = 0;
         let billSubtotal = 0;
         let billTaxAmount = 0;
+        let billCharges = 0;
+        let billBaseGrandTotal = 0;
+        let showClosedScreenAfterBill = false;
         
         function showPaymentOptions() {
             // Get current bill details
@@ -1923,16 +2205,31 @@
                     if (data.success && data.bill) {
                         const bill = data.bill;
                         billSubtotal = parseFloat(bill.subtotal || 0);
-                        billTaxAmount = parseFloat(bill.tax_amount || 0);
+                        billTaxAmount = parseFloat((bill.tax_amount != null ? bill.tax_amount : ((parseFloat(bill.cgst_amount || 0) + parseFloat(bill.sgst_amount || 0)))) || 0);
+                        billCharges = parseFloat((bill.charges != null ? bill.charges : bill.total_convenience_fee) || 0);
                         const billTaxRate = parseFloat(bill.tax_rate || 5.0);
-                        const billTotal = billSubtotal + billTaxAmount;
+                        const persistedGrand = bill.grand_total != null ? bill.grand_total : bill.total_amount;
+                        billBaseGrandTotal = persistedGrand != null
+                            ? parseFloat(persistedGrand)
+                            : (billSubtotal + billTaxAmount + billCharges);
+
+                        lastBillSnapshot = JSON.parse(JSON.stringify(bill));
+                        lastPaymentMeta = null;
                         
-                        // Update payment modal with bill details (including dynamic GST rate)
-                        document.getElementById('payment-bill-amount').textContent = `₹${billTotal.toFixed(2)}`;
+                        // Update payment modal with persisted bill totals
+                        document.getElementById('payment-bill-amount').textContent = `₹${billBaseGrandTotal.toFixed(2)}`;
                         document.getElementById('payment-subtotal').textContent = `₹${billSubtotal.toFixed(2)}`;
                         document.getElementById('payment-tax').textContent = `₹${billTaxAmount.toFixed(2)}`;
                         document.getElementById('payment-tax-label').textContent = `Tax (${billTaxRate}%)`;
-                        document.getElementById('payment-grand-total').textContent = `₹${billTotal.toFixed(2)}`;
+                        document.getElementById('payment-grand-total').textContent = `₹${billBaseGrandTotal.toFixed(2)}`;
+
+                        const convenienceRow = document.getElementById('payment-convenience-row');
+                        if (billCharges > 0) {
+                            convenienceRow.style.display = 'flex';
+                            document.getElementById('payment-convenience-fee').textContent = `₹${billCharges.toFixed(2)}`;
+                        } else {
+                            convenienceRow.style.display = 'none';
+                        }
                         
                         // Reset tip selection
                         selectedTipAmount = 0;
@@ -1966,7 +2263,7 @@
         }
         
         function updateTotalWithTip() {
-            const grandTotal = billSubtotal + billTaxAmount + selectedTipAmount;
+            const grandTotal = billBaseGrandTotal + selectedTipAmount;
             
             // Update display
             document.getElementById('payment-grand-total').textContent = `₹${grandTotal.toFixed(2)}`;
@@ -1985,51 +2282,113 @@
         function closePaymentModal() {
             document.getElementById('payment-modal').classList.remove('show');
         }
-        
-        function processPayment(method) {
-            // Handle UPI payment with three-case logic
-            if (method === 'UPI') {
-                const grandTotal = parseFloat(document.getElementById('payment-grand-total').textContent.replace('₹', '').replace(',', ''));
-                
-                // Case A: QR Code exists - Show QR modal
-                if (hotelUPIQRImage && hotelUPIQRImage.trim() !== '') {
-                    showUPIQRModal(grandTotal);
-                    closePaymentModal();
-                    return;
-                } 
-                // Case B: Only UPI ID exists - Generate UPI link
-                else if (hotelUPIId && hotelUPIId.trim() !== '') {
-                    const upiLink = generateUPILink(hotelUPIId, hotelName, grandTotal);
-                    
-                    // Open UPI link in new window/app
-                    window.location.href = upiLink;
-                    
-                    // Close payment modal and show confirmation after delay
-                    closePaymentModal();
-                    setTimeout(() => {
-                        if (confirm('Have you completed the UPI payment?\n\nClick OK if payment is done, or Cancel to try again.')) {
-                            completePaymentProcess(method);
-                        } else {
-                            // Reopen payment modal if user cancelled
-                            showPaymentOptions();
-                        }
-                    }, 2000);
-                    return;
-                } 
-                // Case C: No UPI configuration available
-                else {
-                    alert('UPI payment is not available for this hotel. Please use Cash payment.');
-                    return;
+
+        function showPaymentSuccess() {
+            const modal = document.getElementById('payment-success-modal');
+            if (!modal) {
+                showTableClosedScreen();
+                return;
+            }
+
+            const bill = lastBillSnapshot || {};
+            const paymentMeta = lastPaymentMeta || {};
+            const hotelLogo = bill.hotel_logo ? `/static/uploads/hotel_logos/${bill.hotel_logo}` : '';
+            const logoContainer = document.getElementById('payment-success-logo');
+
+            if (logoContainer) {
+                if (hotelLogo) {
+                    logoContainer.innerHTML = `<img src="${hotelLogo}" alt="${bill.hotel_name || hotelName}" style="max-width:84px; max-height:84px; object-fit:contain; display:block; margin:0 auto; border-radius:18px; background:#fff; padding:10px; box-shadow:0 8px 20px rgba(15,23,42,0.08);">`;
+                    logoContainer.style.display = 'block';
+                } else {
+                    logoContainer.innerHTML = '';
+                    logoContainer.style.display = 'none';
                 }
             }
+
+            const grandTotal = paymentMeta.grand_total != null
+                ? paymentMeta.grand_total
+                : (bill.grand_total != null ? bill.grand_total : bill.total_amount);
+            document.getElementById('payment-success-grand-total').textContent = formatPdfCurrency(grandTotal || 0);
+            document.getElementById('payment-success-table').textContent = bill.table_number ? `Table ${bill.table_number}` : `Table ${tableId}`;
+            document.getElementById('payment-success-guest').textContent = bill.guest_name || guestName || 'Guest';
+            const rawMethod = String(paymentMeta.payment_method || bill.payment_method || 'UPI').toUpperCase();
+            const paymentLabel = rawMethod === 'CASH' ? 'Cash' : (rawMethod === 'UPI' ? 'UPI' : rawMethod);
+            document.getElementById('payment-success-method').textContent = paymentLabel;
+
+            const utrRow = document.getElementById('payment-success-utr-row');
+            const utrValue = document.getElementById('payment-success-utr');
+            const utrId = paymentMeta.utr_id || bill.utr_id || '';
+            if (utrRow && utrValue) {
+                if (rawMethod === 'UPI' && utrId) {
+                    utrRow.style.display = 'flex';
+                    utrValue.textContent = utrId;
+                } else {
+                    utrRow.style.display = 'none';
+                    utrValue.textContent = '';
+                }
+            }
+
+            modal.classList.add('show');
+        }
+
+        function openPaymentSuccessModal({ method = 'UPI', amount = 0, bill = null, bill_id = null, autoCloseMs = 0 } = {}) {
+            if (bill) {
+                lastBillSnapshot = JSON.parse(JSON.stringify(bill));
+            }
+
+            const resolvedBill = lastBillSnapshot || {};
+            const resolvedAmount = amount || resolvedBill.grand_total || resolvedBill.total_amount || 0;
+            const normalizedMethod = String(method || resolvedBill.payment_method || 'UPI').toUpperCase();
+
+            lastPaymentMeta = {
+                payment_method: normalizedMethod,
+                utr_id: resolvedBill.utr_id || '',
+                tip_amount: Number(resolvedBill.tip_amount || 0),
+                grand_total: Number(resolvedAmount),
+                bill_id: bill_id || resolvedBill.bill_id || null
+            };
+
+            showPaymentSuccess();
+
+            if (paymentSuccessAutoCloseTimer) {
+                clearTimeout(paymentSuccessAutoCloseTimer);
+                paymentSuccessAutoCloseTimer = null;
+            }
+
+            if (autoCloseMs > 0) {
+                paymentSuccessAutoCloseTimer = setTimeout(() => {
+                    const modal = document.getElementById('payment-success-modal');
+                    if (modal && modal.classList.contains('show')) {
+                        closePaymentSuccess();
+                    }
+                }, autoCloseMs);
+            }
+        }
+        
+        function processPayment(method) {
+            if (method !== 'UPI') {
+                showToast('Only UPI / Online payment is available on guest screen.', 'error');
+                return;
+            }
+
+            // Handle UPI payment with three-case logic
+            const grandTotal = parseFloat(document.getElementById('payment-grand-total').textContent.replace('₹', '').replace(',', ''));
             
-            // For Cash payment, process directly
-            const payBtn = event.target.closest('.payment-option');
-            const originalHTML = payBtn.innerHTML;
-            payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Processing...</span>';
-            payBtn.disabled = true;
-            
-            completePaymentProcess(method, payBtn, originalHTML);
+            // Case A: QR Code exists - Show QR modal
+            if (hotelUPIQRImage && hotelUPIQRImage.trim() !== '') {
+                showUPIQRModal(grandTotal);
+                closePaymentModal();
+                return;
+            }
+            // Case B: Only UPI ID exists - Generate UPI link
+            if (hotelUPIId && hotelUPIId.trim() !== '') {
+                showUPIQRModal(grandTotal);
+                closePaymentModal();
+                return;
+            }
+
+            // Case C: No UPI configuration available
+            alert('UPI payment is not configured for this hotel yet. Please ask manager to complete payment from dashboard.');
         }
         
         function generateUPILink(upiId, payeeName, amount) {
@@ -2058,6 +2417,10 @@
             
             // Display formatted amount
             document.getElementById('upi-qr-amount').textContent = `₹${amount.toFixed(2)}`;
+            const utrInput = document.getElementById('upi-utr-input');
+            if (utrInput) {
+                utrInput.value = '';
+            }
             
             // Generate UPI deep link for Pay Now button
             if (hotelUPIId && hotelUPIId.trim() !== '') {
@@ -2085,8 +2448,8 @@
                 // Open UPI app directly on mobile
                 window.location.href = currentUPILink;
             } else {
-                // On desktop, show a message that UPI apps work on mobile
-                alert('UPI app payment works best on mobile devices.\n\nPlease scan the QR code using your phone\'s UPI app (Google Pay, PhonePe, Paytm, etc.).');
+                // Desktop browsers should not attempt deep links.
+                alert('Desktop browsers cannot open UPI apps directly. Please scan the QR code with your phone UPI app instead.');
             }
         }
         
@@ -2097,15 +2460,17 @@
         function confirmUPIPayment() {
             // Confirm with user that payment is complete
             if (confirm('Have you completed the UPI payment?\n\nClick OK to confirm payment, or Cancel to continue scanning.')) {
+                const utrInput = document.getElementById('upi-utr-input');
+                const utrId = utrInput ? utrInput.value.trim() : '';
                 // Close QR modal
                 closeUPIQRModal();
                 
                 // Process payment through backend
-                completePaymentProcess('UPI');
+                completePaymentProcess('UPI', null, null, utrId);
             }
         }
         
-        function completePaymentProcess(method, payBtn = null, originalHTML = null) {
+        function completePaymentProcess(method, payBtn = null, originalHTML = null, utrId = '') {
             // Show loading state if button provided
             if (payBtn) {
                 payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Processing...</span>';
@@ -2121,7 +2486,8 @@
                     session_id: sessionId,
                     guest_name: guestName,
                     payment_method: method,
-                    tip_amount: selectedTipAmount
+                    tip_amount: selectedTipAmount,
+                    utr_id: utrId
                 })
             })
             .then(response => response.json())
@@ -2133,16 +2499,46 @@
                 }
                 
                 if (data.success) {
+                    const finalTotal = billBaseGrandTotal + selectedTipAmount;
+                    lastPaymentMeta = {
+                        payment_method: method,
+                        utr_id: utrId || '',
+                        tip_amount: selectedTipAmount,
+                        grand_total: finalTotal
+                    };
+
+                    if (lastBillSnapshot) {
+                        lastBillSnapshot = Object.assign({}, lastBillSnapshot, {
+                            payment_status: 'PAID',
+                            payment_method: method,
+                            utr_id: utrId || '',
+                            tip_amount: selectedTipAmount,
+                            charges: billCharges,
+                            total_convenience_fee: billCharges,
+                            subtotal: billSubtotal,
+                            tax_amount: billTaxAmount,
+                            grand_total: finalTotal,
+                            total_amount: finalTotal,
+                            paid_at: new Date().toISOString()
+                        });
+                    }
+
                     // Close all payment-related modals
                     closePaymentModal();
                     closeBillModal();
                     
                     // Show success message
-                    showPaymentSuccess();
+                    openPaymentSuccessModal({
+                        method: method,
+                        amount: finalTotal,
+                        bill: lastBillSnapshot,
+                        bill_id: lastBillSnapshot ? lastBillSnapshot.bill_id : null
+                    });
                     
                     // Clear session data
                     localStorage.removeItem(sessionStorageKey);
                     sessionId = null;
+                    stopPaymentStatusPolling();
                     
                     // Hide view bill button
                     document.getElementById('view-bill-btn').style.display = 'none';
@@ -2161,19 +2557,37 @@
             });
         }
         
-        function showPaymentSuccess() {
-            document.getElementById('payment-success-modal').classList.add('show');
-        }
-        
-        function closePaymentSuccess() {
+        function closePaymentSuccess(skipClosedScreen = false) {
             document.getElementById('payment-success-modal').classList.remove('show');
-            // Clear session and guest name after payment completion
+            if (paymentSuccessAutoCloseTimer) {
+                clearTimeout(paymentSuccessAutoCloseTimer);
+                paymentSuccessAutoCloseTimer = null;
+            }
             sessionId = null;
             guestName = null;
             localStorage.removeItem(sessionStorageKey);
             localStorage.removeItem(guestNameStorageKey);
-            // Show table closed screen instead of reloading
-            showTableClosedScreen();
+            stopPaymentStatusPolling();
+
+            if (!skipClosedScreen) {
+                showTableClosedScreen();
+            } else {
+                viewOnlyMode = true;
+                document.body.classList.add('view-only-mode');
+                const cartBar = document.getElementById('cart-bar');
+                if (cartBar) cartBar.style.display = 'none';
+            }
+        }
+
+        function viewLastBillFromSuccess() {
+            if (!lastBillSnapshot) {
+                showToast('Bill is not available yet.', 'error');
+                return;
+            }
+
+            showClosedScreenAfterBill = true;
+            closePaymentSuccess(true);
+            displayBill(lastBillSnapshot, { autoCloseAfterPaid: false });
         }
 
         function showTableClosedScreen() {
@@ -2190,6 +2604,238 @@
             // Show the closed screen
             const screen = document.getElementById('table-closed-screen');
             if (screen) screen.style.display = 'flex';
+        }
+
+        function ensurePdfLibrariesLoaded() {
+            if (window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.prototype) {
+                return Promise.resolve();
+            }
+
+            return Promise.reject(new Error('PDF library not available'));
+        }
+
+        function formatPdfCurrency(value) {
+            const inrSymbol = '\u20B9';
+            return `${inrSymbol}${parseFloat(value || 0).toFixed(2)}`;
+        }
+
+        function imageToDataUrl(url) {
+            return fetch(url)
+                .then(response => response.blob())
+                .then(blob => new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                }));
+        }
+
+        async function downloadLastBillPdf() {
+            const bill = lastBillSnapshot || null;
+            if (!bill) {
+                showToast('Bill is not available for download yet.', 'error');
+                return;
+            }
+
+            try {
+                await ensurePdfLibrariesLoaded();
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const margin = 40;
+                const contentWidth = pageWidth - margin * 2;
+                const inrSymbol = '\u20B9';
+
+                let cursorY = 44;
+
+                if (bill.hotel_logo) {
+                    try {
+                        const logoUrl = `/static/uploads/hotel_logos/${bill.hotel_logo}`;
+                        const logoData = await imageToDataUrl(logoUrl);
+                        doc.addImage(logoData, 'PNG', pageWidth / 2 - 35, cursorY, 70, 70, undefined, 'FAST');
+                        cursorY += 84;
+                    } catch (error) {
+                        cursorY += 16;
+                    }
+                } else {
+                    cursorY += 8;
+                }
+
+                doc.setTextColor(17, 24, 39);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(19);
+                doc.text(bill.hotel_name || hotelName || 'Restaurant', pageWidth / 2, cursorY, { align: 'center' });
+
+                cursorY += 16;
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(75, 85, 99);
+                doc.text(String(bill.hotel_address || 'Address not available'), pageWidth / 2, cursorY, { align: 'center' });
+
+                cursorY += 24;
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(12);
+                doc.setTextColor(31, 41, 55);
+                doc.text('-------- INVOICE --------', pageWidth / 2, cursorY, { align: 'center' });
+
+                cursorY += 22;
+                doc.setDrawColor(209, 213, 219);
+                doc.line(margin, cursorY, pageWidth - margin, cursorY);
+
+                cursorY += 16;
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                const billMetaRows = [
+                    ['Bill No', bill.bill_number || '-'],
+                    ['Table', bill.table_number ? `Table ${bill.table_number}` : '-'],
+                    ['Guest', bill.guest_name || guestName || 'Guest'],
+                    ['Date', bill.created_at ? formatDateTime(bill.created_at) : '-']
+                ];
+
+                billMetaRows.forEach((row, index) => {
+                    const rowY = cursorY + (index * 16);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`${row[0]}:`, margin, rowY);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(String(row[1]), margin + 70, rowY);
+                });
+
+                const items = Array.isArray(bill.items) ? bill.items : [];
+                const tableRows = items.map(item => {
+                    const quantity = Number(item.quantity || 0);
+                    const price = Number(item.price || 0);
+                    const cgst = Number(item.cgst_amount || 0);
+                    const sgst = Number(item.sgst_amount || 0);
+                    const total = Number(item.total_with_tax || (price * quantity + cgst + sgst));
+
+                    return [
+                        String(item.name || '-'),
+                        String(quantity),
+                        `${inrSymbol}${price.toFixed(2)}`,
+                        `${inrSymbol}${cgst.toFixed(2)}`,
+                        `${inrSymbol}${sgst.toFixed(2)}`,
+                        `${inrSymbol}${total.toFixed(2)}`
+                    ];
+                });
+
+                doc.autoTable({
+                    startY: cursorY + 74,
+                    head: [['Item', 'Qty', 'Price', 'CGST', 'SGST', 'Total']],
+                    body: tableRows.length ? tableRows : [['No items', '-', '-', '-', '-', '-']],
+                    theme: 'grid',
+                    styles: {
+                        font: 'helvetica',
+                        fontSize: 9,
+                        cellPadding: 6,
+                        textColor: [31, 41, 55],
+                        lineColor: [229, 231, 235],
+                        lineWidth: 0.6,
+                        valign: 'middle'
+                    },
+                    headStyles: {
+                        fillColor: [17, 24, 39],
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold',
+                        halign: 'center'
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 180, halign: 'left' },
+                        1: { cellWidth: 50, halign: 'center' },
+                        2: { cellWidth: 70, halign: 'right' },
+                        3: { cellWidth: 70, halign: 'right' },
+                        4: { cellWidth: 70, halign: 'right' },
+                        5: { cellWidth: 70, halign: 'right' }
+                    },
+                    margin: { left: margin, right: margin }
+                });
+
+                let sectionY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : cursorY + 170) + 22;
+                const subtotal = Number(bill.subtotal || 0);
+                const cgstAmount = Number(bill.cgst_amount || 0);
+                const sgstAmount = Number(bill.sgst_amount || 0);
+                const tipAmount = Number(bill.tip_amount || 0);
+                const totalAmount = Number(bill.grand_total || bill.total_amount || 0);
+
+                doc.setDrawColor(203, 213, 225);
+                doc.line(margin, sectionY, pageWidth - margin, sectionY);
+
+                sectionY += 16;
+                const summaryRows = [
+                    ['Subtotal', formatPdfCurrency(subtotal)],
+                    ['CGST', formatPdfCurrency(cgstAmount)],
+                    ['SGST', formatPdfCurrency(sgstAmount)],
+                    ['Tip', formatPdfCurrency(tipAmount)]
+                ];
+
+                summaryRows.forEach((row, index) => {
+                    const rowY = sectionY + (index * 16);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(10);
+                    doc.setTextColor(31, 41, 55);
+                    doc.text(`${row[0]}:`, margin + 4, rowY);
+                    doc.text(String(row[1]), pageWidth - margin - 4, rowY, { align: 'right' });
+                });
+
+                sectionY += summaryRows.length * 16 + 6;
+                doc.line(margin, sectionY, pageWidth - margin, sectionY);
+
+                sectionY += 18;
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(12);
+                doc.text('Visit Again 🙏', pageWidth / 2, sectionY, { align: 'center' });
+                doc.text('Grand Total:', margin + 4, sectionY);
+                doc.text(formatPdfCurrency(totalAmount), pageWidth - margin - 4, sectionY, { align: 'right' });
+
+                sectionY += 26;
+                if (sectionY > pageHeight - 110) {
+                    doc.addPage();
+                    sectionY = 60;
+                }
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.text('Payment Details', margin, sectionY);
+
+                sectionY += 18;
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                const paymentMethod = bill.payment_method ? (bill.payment_method === 'UPI' ? 'UPI' : bill.payment_method) : '-';
+                const utrValue = bill.payment_method === 'UPI' ? (bill.utr_id || 'Not Available') : 'Not Available';
+                doc.text(`Payment Method: ${paymentMethod}`, margin, sectionY);
+
+                sectionY += 16;
+                doc.text(`UTR ID: ${utrValue}`, margin, sectionY);
+
+                sectionY += 22;
+                doc.line(margin, sectionY, pageWidth - margin, sectionY);
+
+                sectionY += 20;
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.setTextColor(31, 41, 55);
+                doc.text('Thank you for dining with us!', pageWidth / 2, sectionY, { align: 'center' });
+
+                sectionY += 16;
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.text(`Visit Again ${inrSymbol === '\u20B9' ? '🙏' : ''}`.trim(), pageWidth / 2, sectionY, { align: 'center' });
+
+                const fileName = `${(bill.bill_number || 'bill').replace(/[^a-z0-9_-]/gi, '_')}.pdf`;
+                doc.save(fileName);
+            } catch (error) {
+                console.error('Error generating bill PDF:', error);
+                showToast('Unable to generate PDF right now.', 'error');
+            }
+        }
+
+        function loadPdfPreviewFallback() {
+            if (!lastBillSnapshot) {
+                showToast('Bill is not available yet.', 'error');
+                return;
+            }
+
+            viewLastBillFromSuccess();
         }
         
         // Close modals on outside click

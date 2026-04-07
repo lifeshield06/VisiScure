@@ -30,6 +30,18 @@ def check_food_module():
         return False
     return session.get('food_enabled', False)
 
+
+def settle_bill_charge_after_paid(hotel_id, bill_id, table_id=None, session_id=None, guest_name=None):
+    """Shared wallet deduction logic for both UPI and CASH once a bill is PAID."""
+    from wallet.models import HotelWallet
+    return HotelWallet.deduct_order_charge_on_payment(
+        hotel_id=hotel_id,
+        bill_id=bill_id,
+        table_id=table_id,
+        session_id=session_id,
+        guest_name=guest_name
+    )
+
 @orders_bp.route('/api/tables', methods=['GET'])
 def get_tables():
     """Get all tables for current hotel"""
@@ -330,37 +342,6 @@ def update_item_status():
                     WHERE id = %s
                 """, (order_id,))
                 connection.commit()
-                
-                # Deduct wallet charge when order is COMPLETED
-                cursor.execute("""
-                    SELECT o.hotel_id, o.charge_deducted, t.hotel_id as table_hotel_id
-                    FROM table_orders o
-                    LEFT JOIN tables t ON o.table_id = t.id
-                    WHERE o.id = %s
-                """, (order_id,))
-                order_data = cursor.fetchone()
-                
-                if order_data:
-                    hotel_id = order_data[0] or order_data[2]  # order.hotel_id or table.hotel_id
-                    charge_deducted = order_data[1]
-                    
-                    if hotel_id and not charge_deducted:
-                        from wallet.models import HotelWallet
-                        
-                        # Check balance first
-                        balance_check = HotelWallet.check_balance_for_order(hotel_id)
-                        if balance_check.get('sufficient', True):
-                            deduct_result = HotelWallet.deduct_for_order(hotel_id, order_id)
-                            if deduct_result.get('success'):
-                                cursor.execute("""
-                                    UPDATE table_orders SET charge_deducted = TRUE WHERE id = %s
-                                """, (order_id,))
-                                connection.commit()
-                                print(f"[ITEM_STATUS] Wallet deducted for order {order_id}: ₹{deduct_result.get('deducted', 0)}")
-                            else:
-                                print(f"[ITEM_STATUS] Wallet deduction failed: {deduct_result.get('message')}")
-                        else:
-                            print(f"[ITEM_STATUS] Insufficient balance for order {order_id}")
         
         cursor.close()
         connection.close()
@@ -462,8 +443,10 @@ def process_payment():
         data = request.get_json()
         table_id = data.get('table_id')
         guest_name = data.get('guest_name')
-        payment_method = data.get('payment_method', 'CASH')
+        # Guest-side payment is UPI/Online only. Cash is manager-controlled via mark-payment-done.
+        payment_method = 'UPI'
         tip_amount = float(data.get('tip_amount', 0.00))  # Get tip amount from request
+        utr_id = (data.get('utr_id') or '').strip() or None
         
         print(f"[PAYMENT] Processing payment for table_id={table_id}, tip_amount={tip_amount}, method={payment_method}")
         
@@ -486,13 +469,29 @@ def process_payment():
         # Get table info for logging
         table = Table.get_table_by_id(table_id)
         table_num = table['table_number'] if table else table_id
-        hotel_id = table.get('hotel_id') if table else None
+        hotel_id = (table.get('hotel_id') if table else None) or open_bill.get('hotel_id')
         bill_total = open_bill.get('total_amount', 0)
         
         # Process payment in atomic transaction with tip
-        payment_success = Bill.process_payment_atomic(table_id, open_bill['id'], payment_method, tip_amount)
+        payment_success = Bill.process_payment_atomic(table_id, open_bill['id'], payment_method, tip_amount, utr_id)
         
         if payment_success:
+            wallet_settlement = settle_bill_charge_after_paid(
+                hotel_id=hotel_id,
+                bill_id=open_bill['id'],
+                table_id=table_id,
+                session_id=open_bill.get('session_id'),
+                guest_name=guest_name
+            )
+
+            if not wallet_settlement.get('success'):
+                return jsonify({
+                    "success": False,
+                    "message": wallet_settlement.get('message', 'Payment done but wallet settlement failed'),
+                    "wallet_error": True,
+                    "insufficient_balance": wallet_settlement.get('insufficient_balance', False)
+                })
+
             # Calculate final total with tip for logging
             final_total = float(bill_total) + tip_amount
             tip_text = f" (incl. ₹{tip_amount:.0f} tip)" if tip_amount > 0 else ""
@@ -501,8 +500,9 @@ def process_payment():
             log_order_activity('payment', f"Payment received - Table {table_num} paid ₹{final_total:.0f}{tip_text}", hotel_id)
             print(f"[PAYMENT SUCCESS] Payment completed for table_id={table_id}, total=₹{final_total:.2f}")
             return jsonify({
-                "success": True, 
-                "message": "Payment successful! Thank you for dining with us."
+                "success": True,
+                "message": wallet_settlement.get('message', 'Payment successful! Thank you for dining with us.'),
+                "wallet_settlement": wallet_settlement
             })
         
         print(f"[PAYMENT ERROR] process_payment_atomic returned False for table_id={table_id}")
@@ -584,7 +584,10 @@ def mark_bill_paid():
             return jsonify({"success": False, "message": "Failed to complete bill"})
         
         print(f"[MARK_BILL_PAID] Success: Bill {bill_id} marked as paid")
-        return jsonify({"success": True, "message": "Bill marked as paid and table released"})
+        return jsonify({
+            "success": True,
+            "message": 'Bill marked as paid and table released'
+        })
     except Exception as e:
         print(f"[MARK_BILL_PAID] Exception: {e}")
         import traceback
@@ -867,7 +870,8 @@ def mark_payment_done():
         
         # Get order details including hotel_id and charge_deducted status
         cursor.execute("""
-            SELECT o.id, o.order_status, o.payment_status, o.table_id, o.hotel_id, o.charge_deducted,
+             SELECT o.id, o.order_status, o.payment_status, o.table_id, o.hotel_id, o.charge_deducted,
+                 o.session_id, o.guest_name,
                    t.hotel_id as table_hotel_id
             FROM table_orders o
             LEFT JOIN tables t ON o.table_id = t.id
@@ -881,12 +885,7 @@ def mark_payment_done():
             connection.close()
             return jsonify({"success": False, "message": "Order not found"})
         
-        # Verify order is COMPLETED and payment is PENDING
-        if order['order_status'] != 'COMPLETED':
-            cursor.close()
-            connection.close()
-            return jsonify({"success": False, "message": "Order must be COMPLETED first"})
-        
+        # Manager cash confirmation is allowed for any unpaid order in current session.
         if order['payment_status'] != 'PENDING':
             cursor.close()
             connection.close()
@@ -900,9 +899,7 @@ def mark_payment_done():
             connection.close()
             return jsonify({"success": False, "message": "Hotel ID not found"})
         
-        # Wallet deduction happens when order is COMPLETED, not when payment is marked
-        # No wallet deduction here - settlement happens on order completion
-        print(f"[MARK_PAYMENT_DONE] Marking payment for order {order_id} (wallet settlement already done on completion)")
+        print(f"[MARK_PAYMENT_DONE] Marking payment for order {order_id}")
         
         # Update order payment status — freeze final_total at current value + digital fee
         # Fetch digital fee to include in frozen total
@@ -921,35 +918,55 @@ def mark_payment_done():
         cursor.execute("""
             UPDATE table_orders
             SET payment_status = 'PAID',
+                payment_method = 'CASH',
                 final_total = ROUND(total_amount + %s, 2)
             WHERE id = %s
         """, (digital_fee_for_freeze, order_id))
         
         print(f"[MARK_PAYMENT_DONE] Updated order {order_id} payment_status to PAID")
         
-        # Find related bill
+                # Find related bill. Prefer direct order linkage, then table/session linkage.
+                # Do not restrict to OPEN only, otherwise wallet settlement may be skipped
+                # for already-completed bills in merged/session flows.
         cursor.execute("""
-            SELECT id FROM bills
-            WHERE order_id = %s AND bill_status = 'OPEN'
-        """, (order_id,))
+                                SELECT id, bill_status, payment_status, grand_total, total_amount
+                                FROM bills
+                                WHERE (
+                                    order_id = %s
+                                    OR (table_id = %s AND session_id = %s)
+                                )
+                                ORDER BY created_at DESC, id DESC
+                                LIMIT 1
+                        """, (order_id, order.get('table_id'), order.get('session_id')))
         
         bill = cursor.fetchone()
         
         if bill:
             bill_id = bill['id']
-            
-            # Update bill with cash payment
+
+            # Update bill with cash payment when it is still open/unpaid.
             import datetime
             paid_at = datetime.datetime.now()
-            
+
+            if str(bill.get('bill_status') or '').upper() == 'OPEN' or str(bill.get('payment_status') or '').upper() != 'PAID':
+                cursor.execute("""
+                    UPDATE bills
+                    SET bill_status = 'COMPLETED',
+                        payment_status = 'PAID',
+                        payment_method = 'CASH',
+                        paid_at = %s
+                    WHERE id = %s
+                """, (paid_at, bill_id))
+
+            # Mark all orders in same table/session as paid to keep dashboard consistent.
             cursor.execute("""
-                UPDATE bills
-                SET bill_status = 'COMPLETED',
-                    payment_status = 'PAID',
+                UPDATE table_orders
+                SET payment_status = 'PAID',
                     payment_method = 'CASH',
-                    paid_at = %s
-                WHERE id = %s
-            """, (paid_at, bill_id))
+                    order_status = 'COMPLETED',
+                    bill_requested = 0
+                WHERE table_id = %s AND session_id = %s
+            """, (order.get('table_id'), order.get('session_id')))
             
             print(f"[MARK_PAYMENT_DONE] Updated bill {bill_id} to COMPLETED/PAID with CASH payment")
             
@@ -959,25 +976,44 @@ def mark_payment_done():
             
             # Complete the bill (free table, clear session)
             Bill.complete_bill(bill_id)
+
+            wallet_settlement = settle_bill_charge_after_paid(
+                hotel_id=hotel_id,
+                bill_id=bill_id,
+                table_id=order.get('table_id'),
+                session_id=order.get('session_id'),
+                guest_name=order.get('guest_name')
+            )
+
+            if not wallet_settlement.get('success'):
+                return jsonify({
+                    "success": False,
+                    "message": wallet_settlement.get('message', 'Payment done but wallet settlement failed'),
+                    "wallet_error": True,
+                    "insufficient_balance": wallet_settlement.get('insufficient_balance', False)
+                })
             
             # Log activity
             log_order_activity('order', f"Marked order {order_id} as paid (CASH)", hotel_id)
             
             return jsonify({
                 "success": True,
-                "message": "Payment marked as done. Bill completed and table freed."
+                "message": wallet_settlement.get('message', 'Payment marked as done. Bill completed and table freed.'),
+                "wallet_settlement": wallet_settlement,
+                "show_success_screen": True,
+                "payment_method": "CASH",
+                "bill_id": bill_id,
+                "amount": float(bill.get('grand_total') if bill.get('grand_total') is not None else (bill.get('total_amount') or 0))
             })
         else:
-            # No bill found, just update order
-            connection.commit()
+            # No bill found: rollback and return a safe error to prevent inconsistent state.
+            connection.rollback()
             cursor.close()
             connection.close()
-            
-            log_order_activity('order', f"Marked order {order_id} as paid (CASH) - no bill", hotel_id)
-            
+            print(f"[MARK_PAYMENT_DONE] Bill not found for order={order_id}, table={order.get('table_id')}, session={order.get('session_id')}")
             return jsonify({
-                "success": True,
-                "message": "Payment marked as done."
+                "success": False,
+                "message": "No bill found for this order/session. Please regenerate bill and try again."
             })
         
     except Exception as e:
@@ -1676,10 +1712,44 @@ def create_bill_request():
         table = Table.get_table_by_id(table_id)
         hotel_id = table.get('hotel_id') if table else None
 
-        request_id = BillRequest.create_request(table_id, session_id, guest_name, hotel_id)
-        if request_id:
-            log_order_activity('bill_request', f"Bill requested by {guest_name} at Table {table.get('table_number', table_id)}", hotel_id)
-            return jsonify({"success": True, "request_id": request_id, "status": "PENDING"})
+        request_result = BillRequest.create_request(table_id, session_id, guest_name, hotel_id)
+        if request_result:
+            # Mark all current session orders as bill requested for manager dashboard visibility.
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    UPDATE table_orders
+                    SET bill_requested = 1
+                    WHERE table_id = %s AND session_id = %s
+                      AND (payment_status IS NULL OR payment_status != 'PAID')
+                    """,
+                    (table_id, session_id)
+                )
+                conn.commit()
+                cursor.close()
+                conn.close()
+            except Exception as update_err:
+                print(f"[BILL_REQUEST WARNING] Failed to set bill_requested flag: {update_err}")
+
+            # Backward compatibility if older return type is int
+            if isinstance(request_result, dict):
+                request_id = request_result.get('id')
+                is_new_request = bool(request_result.get('created'))
+            else:
+                request_id = request_result
+                is_new_request = True
+
+            if is_new_request:
+                log_order_activity('bill_request', f"Bill requested by {guest_name} at Table {table.get('table_number', table_id)}", hotel_id)
+
+            return jsonify({
+                "success": True,
+                "request_id": request_id,
+                "status": "PENDING",
+                "is_new_request": is_new_request
+            })
         return jsonify({"success": False, "message": "Failed to create request"})
     except Exception as e:
         print(f"[BILL_REQUEST ERROR] {e}")
@@ -1748,14 +1818,85 @@ def request_bill_for_order(order_id):
     """Guest marks bill as requested on their order"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT table_id, session_id, guest_name, hotel_id FROM table_orders WHERE id = %s",
+            (order_id,)
+        )
+        order = cursor.fetchone()
+        if not order:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "message": "Order not found"})
+
         cursor.execute(
             "UPDATE table_orders SET bill_requested = 1 WHERE id = %s",
             (order_id,)
+        )
+        # Keep request tracking in a dedicated table for manager sync.
+        BillRequest.create_request(
+            order.get('table_id'),
+            order.get('session_id'),
+            order.get('guest_name'),
+            order.get('hotel_id')
         )
         conn.commit()
         cursor.close()
         conn.close()
         return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/order/<int:order_id>/approve-bill-request', methods=['POST'])
+def approve_bill_request_by_order(order_id):
+    """Auto-approve bill request when manager generates the bill for an order"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        # Get session_id and table_id for this order
+        cursor.execute("SELECT table_id, session_id FROM table_orders WHERE id = %s", (order_id,))
+        order = cursor.fetchone()
+        if order:
+            cursor.execute("""
+                UPDATE bill_requests SET status = 'APPROVED'
+                WHERE table_id = %s AND session_id = %s AND status = 'PENDING'
+            """, (order['table_id'], order['session_id']))
+            conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/order/<int:order_id>/bill-request-status', methods=['GET'])
+def get_bill_request_status_for_order(order_id):
+    """Get bill request status for an order (PENDING, APPROVED, REJECTED, or None)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        # Get session_id and table_id for this order
+        cursor.execute("SELECT table_id, session_id FROM table_orders WHERE id = %s", (order_id,))
+        order = cursor.fetchone()
+        if not order:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "message": "Order not found"})
+        
+        # Get bill request status
+        cursor.execute("""
+            SELECT id, status FROM bill_requests
+            WHERE table_id = %s AND session_id = %s
+            ORDER BY created_at DESC LIMIT 1
+        """, (order['table_id'], order['session_id']))
+        bill_req = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if bill_req:
+            return jsonify({"success": True, "request_id": bill_req['id'], "status": bill_req['status']})
+        else:
+            return jsonify({"success": True, "request_id": None, "status": None})
     except Exception as e:
         return jsonify({"success": False, "message": "Server error"})

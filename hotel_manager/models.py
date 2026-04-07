@@ -823,26 +823,33 @@ class DashboardStats:
             
             # Get today's revenue (from paid AND completed orders)
             cursor.execute("""
-                SELECT COALESCE(SUM(total_amount), 0) as today_revenue 
-                FROM table_orders 
-                WHERE hotel_id = %s AND payment_status = 'PAID' AND order_status = 'COMPLETED' AND DATE(created_at) = CURDATE()
+                                SELECT COALESCE(SUM(COALESCE(grand_total, total_amount)), 0) as today_revenue
+                                FROM bills
+                                WHERE hotel_id = %s
+                                    AND payment_status = 'PAID'
+                                    AND bill_status = 'COMPLETED'
+                                    AND DATE(COALESCE(paid_at, created_at)) = CURDATE()
             """, (hotel_id,))
             today_revenue = float(cursor.fetchone()['today_revenue'])
             
             # Get total revenue (all time from paid AND completed orders)
             cursor.execute("""
-                SELECT COALESCE(SUM(total_amount), 0) as total_revenue 
-                FROM table_orders 
-                WHERE hotel_id = %s AND payment_status = 'PAID' AND order_status = 'COMPLETED'
+                                SELECT COALESCE(SUM(COALESCE(grand_total, total_amount)), 0) as total_revenue
+                                FROM bills
+                                WHERE hotel_id = %s
+                                    AND payment_status = 'PAID'
+                                    AND bill_status = 'COMPLETED'
             """, (hotel_id,))
             total_revenue = float(cursor.fetchone()['total_revenue'])
             
             # Get pending revenue (unpaid orders) - today only
             cursor.execute("""
-                SELECT COALESCE(SUM(total_amount), 0) as pending 
-                FROM table_orders 
-                WHERE hotel_id = %s AND (payment_status IS NULL OR payment_status = 'PENDING')
-                AND DATE(created_at) = CURDATE()
+                                SELECT COALESCE(SUM(COALESCE(grand_total, total_amount)), 0) as pending
+                                FROM bills
+                                WHERE hotel_id = %s
+                                    AND (payment_status IS NULL OR payment_status = 'PENDING')
+                                    AND bill_status = 'OPEN'
+                                    AND DATE(created_at) = CURDATE()
             """, (hotel_id,))
             pending_revenue = float(cursor.fetchone()['pending'])
             
@@ -946,36 +953,45 @@ class RevenueReports:
             
             # Today's Revenue (PAID and COMPLETED orders only)
             cursor.execute("""
-                SELECT COALESCE(SUM(total_amount), 0) as revenue 
-                FROM table_orders 
-                WHERE hotel_id = %s AND DATE(created_at) = CURDATE() AND payment_status = 'PAID' AND order_status = 'COMPLETED'
+                                SELECT COALESCE(SUM(COALESCE(grand_total, total_amount)), 0) as revenue
+                                FROM bills
+                                WHERE hotel_id = %s
+                                    AND DATE(COALESCE(paid_at, created_at)) = CURDATE()
+                                    AND payment_status = 'PAID'
+                                    AND bill_status = 'COMPLETED'
             """, (hotel_id,))
             today_revenue = float(cursor.fetchone()['revenue'])
             
             # Yesterday's Revenue (PAID and COMPLETED orders only)
             cursor.execute("""
-                SELECT COALESCE(SUM(total_amount), 0) as revenue 
-                FROM table_orders 
-                WHERE hotel_id = %s AND DATE(created_at) = CURDATE() - INTERVAL 1 DAY AND payment_status = 'PAID' AND order_status = 'COMPLETED'
+                                SELECT COALESCE(SUM(COALESCE(grand_total, total_amount)), 0) as revenue
+                                FROM bills
+                                WHERE hotel_id = %s
+                                    AND DATE(COALESCE(paid_at, created_at)) = CURDATE() - INTERVAL 1 DAY
+                                    AND payment_status = 'PAID'
+                                    AND bill_status = 'COMPLETED'
             """, (hotel_id,))
             yesterday_revenue = float(cursor.fetchone()['revenue'])
             
             # Last Month Revenue (PAID and COMPLETED orders only)
             cursor.execute("""
-                SELECT COALESCE(SUM(total_amount), 0) as revenue 
-                FROM table_orders 
+                                SELECT COALESCE(SUM(COALESCE(grand_total, total_amount)), 0) as revenue
+                                FROM bills
                 WHERE hotel_id = %s 
-                AND MONTH(created_at) = MONTH(CURDATE() - INTERVAL 1 MONTH)
-                AND YEAR(created_at) = YEAR(CURDATE() - INTERVAL 1 MONTH)
-                AND payment_status = 'PAID' AND order_status = 'COMPLETED'
+                                AND MONTH(COALESCE(paid_at, created_at)) = MONTH(CURDATE() - INTERVAL 1 MONTH)
+                                AND YEAR(COALESCE(paid_at, created_at)) = YEAR(CURDATE() - INTERVAL 1 MONTH)
+                                AND payment_status = 'PAID'
+                                AND bill_status = 'COMPLETED'
             """, (hotel_id,))
             last_month_revenue = float(cursor.fetchone()['revenue'])
             
             # Total Revenue (all time, PAID and COMPLETED orders only)
             cursor.execute("""
-                SELECT COALESCE(SUM(total_amount), 0) as revenue 
-                FROM table_orders 
-                WHERE hotel_id = %s AND payment_status = 'PAID' AND order_status = 'COMPLETED'
+                                SELECT COALESCE(SUM(COALESCE(grand_total, total_amount)), 0) as revenue
+                                FROM bills
+                                WHERE hotel_id = %s
+                                    AND payment_status = 'PAID'
+                                    AND bill_status = 'COMPLETED'
             """, (hotel_id,))
             total_revenue = float(cursor.fetchone()['revenue'])
             
@@ -1001,15 +1017,16 @@ class RevenueReports:
             
             cursor.execute("""
                 SELECT 
-                    DATE(created_at) as date,
+                    DATE(COALESCE(paid_at, created_at)) as date,
                     COUNT(*) as total_orders,
-                    COALESCE(SUM(total_amount), 0) as revenue
-                FROM table_orders 
+                    COALESCE(SUM(COALESCE(grand_total, total_amount)), 0) as revenue
+                FROM bills
                 WHERE hotel_id = %s 
-                AND payment_status = 'PAID' AND order_status = 'COMPLETED'
-                AND DATE(created_at) >= CURDATE() - INTERVAL %s DAY
-                GROUP BY DATE(created_at)
-                ORDER BY DATE(created_at) DESC
+                AND payment_status = 'PAID'
+                AND bill_status = 'COMPLETED'
+                AND DATE(COALESCE(paid_at, created_at)) >= CURDATE() - INTERVAL %s DAY
+                GROUP BY DATE(COALESCE(paid_at, created_at))
+                ORDER BY DATE(COALESCE(paid_at, created_at)) DESC
             """, (hotel_id, days))
             
             daily_data = cursor.fetchall()

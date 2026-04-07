@@ -239,37 +239,6 @@ def update_item_status():
                     WHERE id = %s
                 """, (order_id,))
                 connection.commit()
-                
-                # Deduct wallet charge when order is COMPLETED
-                cursor.execute("""
-                    SELECT o.hotel_id, o.charge_deducted, t.hotel_id as table_hotel_id
-                    FROM table_orders o
-                    LEFT JOIN tables t ON o.table_id = t.id
-                    WHERE o.id = %s
-                """, (order_id,))
-                order_data = cursor.fetchone()
-                
-                if order_data:
-                    hotel_id = order_data[0] or order_data[2]  # order.hotel_id or table.hotel_id
-                    charge_deducted = order_data[1]
-                    
-                    if hotel_id and not charge_deducted:
-                        from wallet.models import HotelWallet
-                        
-                        # Check balance first
-                        balance_check = HotelWallet.check_balance_for_order(hotel_id)
-                        if balance_check.get('sufficient', True):
-                            deduct_result = HotelWallet.deduct_for_order(hotel_id, order_id)
-                            if deduct_result.get('success'):
-                                cursor.execute("""
-                                    UPDATE table_orders SET charge_deducted = TRUE WHERE id = %s
-                                """, (order_id,))
-                                connection.commit()
-                                print(f"[KITCHEN_COMPLETE] Wallet deducted for order {order_id}")
-                            else:
-                                print(f"[KITCHEN_COMPLETE] Wallet deduction failed: {deduct_result.get('message')}")
-                        else:
-                            print(f"[KITCHEN_COMPLETE] Insufficient balance for order {order_id}")
         
         cursor.close()
         connection.close()
