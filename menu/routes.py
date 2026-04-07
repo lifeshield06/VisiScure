@@ -117,8 +117,8 @@ def format_dish(dish_row):
         "image_urls": image_urls,
         "category_id": dish_row.get('category_id'),
         "kitchen_id": dish_row.get('kitchen_id'),
-        "cgst": float(dish_row.get('cgst', 2.50) or 2.50),
-        "sgst": float(dish_row.get('sgst', 2.50) or 2.50)
+        "cgst": float(dish_row['cgst']) if dish_row.get('cgst') is not None else 0.00,
+        "sgst": float(dish_row['sgst']) if dish_row.get('sgst') is not None else 0.00
     }
 
 @menu_bp.route("/menu")
@@ -191,18 +191,18 @@ def add_dish():
         price_str = request.form.get("price", "0").strip()
         quantity_str = request.form.get("quantity", "").strip()
         description = request.form.get("description", "").strip()
-        cgst_str = request.form.get("cgst", "2.5").strip()
-        sgst_str = request.form.get("sgst", "2.5").strip()
+        cgst_str = request.form.get("cgst", "0").strip()
+        sgst_str = request.form.get("sgst", "0").strip()
         
         # Parse tax values
         try:
-            cgst = float(cgst_str) if cgst_str else 2.50
+            cgst = float(cgst_str) if cgst_str.strip() != "" else 0.00
         except ValueError:
-            cgst = 2.50
+            cgst = 0.00
         try:
-            sgst = float(sgst_str) if sgst_str else 2.50
+            sgst = float(sgst_str) if sgst_str.strip() != "" else 0.00
         except ValueError:
-            sgst = 2.50
+            sgst = 0.00
         
         # Validation
         if not name:
@@ -304,18 +304,18 @@ def edit_dish():
         price_str = request.form.get("price", "0").strip()
         quantity_str = request.form.get("quantity", "0").strip()
         description = request.form.get("description", "").strip()
-        cgst_str = request.form.get("cgst", "2.5").strip()
-        sgst_str = request.form.get("sgst", "2.5").strip()
+        cgst_str = request.form.get("cgst", "0").strip()
+        sgst_str = request.form.get("sgst", "0").strip()
         
         # Parse tax values
         try:
-            cgst = float(cgst_str) if cgst_str else 2.50
+            cgst = float(cgst_str) if cgst_str.strip() != "" else 0.00
         except ValueError:
-            cgst = 2.50
+            cgst = 0.00
         try:
-            sgst = float(sgst_str) if sgst_str else 2.50
+            sgst = float(sgst_str) if sgst_str.strip() != "" else 0.00
         except ValueError:
-            sgst = 2.50
+            sgst = 0.00
         
         # Validation
         if not name:

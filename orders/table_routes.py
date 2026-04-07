@@ -2,7 +2,7 @@ import os
 from flask import request, jsonify, render_template, send_file, session
 from . import orders_bp
 from .table_services import TableService, OrderService
-from .table_models import Table, TableOrder, Bill, ActiveTable
+from .table_models import Table, TableOrder, Bill, ActiveTable, BillRequest
 from database.db import get_db_connection
 
 # Initialize tables
@@ -657,41 +657,29 @@ def get_waiter_tip_statistics(waiter_id):
     """Get tip statistics for waiter (Waiter Dashboard)"""
     try:
         period = request.args.get('period', 'today')  # today, week, month, all
-        hotel_id = session.get('waiter_hotel_id')
-        
-        print(f"[TIP_STATS] waiter_id={waiter_id}, hotel_id={hotel_id}")
-        
-        # Check if tips should be shown to waiters from hotel_modules table
-        if hotel_id:
-            connection = get_db_connection()
-            cursor = connection.cursor(dictionary=True)
-            cursor.execute("""
-                SELECT COALESCE(show_waiter_tips, 1) as show_waiter_tips
-                FROM hotel_modules
-                WHERE hotel_id = %s
-            """, (hotel_id,))
-            visibility_result = cursor.fetchone()
-            cursor.close()
-            connection.close()
-            
-            print(f"[TIP_STATS] visibility_result={visibility_result}")
-            
-            # Convert to boolean - handle both boolean and int (0/1) values
-            show_tips_raw = visibility_result['show_waiter_tips'] if visibility_result else 1
-            show_tips = bool(show_tips_raw) if show_tips_raw is not None else True
-            
-            print(f"[TIP_STATS] show_tips_raw={show_tips_raw}, show_tips={show_tips}")
-            
-            if not show_tips:
-                return jsonify({
-                    "success": True,
-                    "tips_visible": False,
-                    "statistics": {
-                        "total_tips": 0,
-                        "tip_count": 0
-                    }
-                })
-        
+
+        # Check per-waiter tips visibility from waiters table
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT COALESCE(show_waiter_tips, 1) as show_waiter_tips
+            FROM waiters
+            WHERE id = %s
+        """, (waiter_id,))
+        visibility_result = cursor.fetchone()
+        cursor.close()
+        connection.close()
+
+        show_tips_raw = visibility_result['show_waiter_tips'] if visibility_result else 1
+        show_tips = bool(show_tips_raw) if show_tips_raw is not None else True
+
+        if not show_tips:
+            return jsonify({
+                "success": True,
+                "tips_visible": False,
+                "statistics": {"total_tips": 0, "tip_count": 0}
+            })
+
         stats = Bill.get_tip_statistics_for_waiter(waiter_id, period)
         return jsonify({"success": True, "tips_visible": True, "statistics": stats})
     except Exception as e:
@@ -916,12 +904,26 @@ def mark_payment_done():
         # No wallet deduction here - settlement happens on order completion
         print(f"[MARK_PAYMENT_DONE] Marking payment for order {order_id} (wallet settlement already done on completion)")
         
-        # Update order payment status
+        # Update order payment status — freeze final_total at current value + digital fee
+        # Fetch digital fee to include in frozen total
+        digital_fee_for_freeze = 0.0
+        try:
+            cursor.execute(
+                "SELECT per_order_charge, COALESCE(digital_fee_enabled, 1) as digital_fee_enabled FROM hotel_wallet WHERE hotel_id = %s",
+                (hotel_id,)
+            )
+            fee_row = cursor.fetchone()
+            if fee_row and bool(fee_row['digital_fee_enabled']):
+                digital_fee_for_freeze = float(fee_row['per_order_charge'] or 0)
+        except Exception:
+            digital_fee_for_freeze = 0.0
+
         cursor.execute("""
             UPDATE table_orders
-            SET payment_status = 'PAID'
+            SET payment_status = 'PAID',
+                final_total = ROUND(total_amount + %s, 2)
             WHERE id = %s
-        """, (order_id,))
+        """, (digital_fee_for_freeze, order_id))
         
         print(f"[MARK_PAYMENT_DONE] Updated order {order_id} payment_status to PAID")
         
@@ -1596,3 +1598,164 @@ def get_hotel_payment_info(hotel_id: int) -> dict:
             "success": False,
             "message": "Server error"
         }
+
+@orders_bp.route('/api/digital-fee-settings', methods=['GET'])
+def get_digital_fee_settings():
+    """Get digital convenience fee toggle state for current hotel"""
+    try:
+        hotel_id = session.get('hotel_id')
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Not authenticated"})
+        
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT per_order_charge, COALESCE(digital_fee_enabled, 1) as digital_fee_enabled FROM hotel_wallet WHERE hotel_id = %s",
+            (hotel_id,)
+        )
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if row:
+            return jsonify({
+                "success": True,
+                "digital_fee_enabled": bool(row['digital_fee_enabled']),
+                "per_order_charge": float(row['per_order_charge'] or 0)
+            })
+        return jsonify({"success": True, "digital_fee_enabled": True, "per_order_charge": 0})
+    except Exception as e:
+        print(f"[DIGITAL_FEE_SETTINGS ERROR] {e}")
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/digital-fee-settings', methods=['POST'])
+def update_digital_fee_settings():
+    """Toggle digital convenience fee on/off for current hotel"""
+    try:
+        hotel_id = session.get('hotel_id')
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Not authenticated"})
+        
+        data = request.get_json()
+        enabled = data.get('digital_fee_enabled', True)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE hotel_wallet SET digital_fee_enabled = %s WHERE hotel_id = %s",
+            (1 if enabled else 0, hotel_id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        status = "enabled" if enabled else "disabled"
+        log_order_activity('settings', f"Digital Convenience Fee {status}", hotel_id)
+        return jsonify({"success": True, "digital_fee_enabled": enabled, "message": f"Digital Convenience Fee {status}"})
+    except Exception as e:
+        print(f"[DIGITAL_FEE_UPDATE ERROR] {e}")
+        return jsonify({"success": False, "message": "Server error"})
+
+
+# ============== Bill Request Routes ==============
+
+@orders_bp.route('/api/bill-request', methods=['POST'])
+def create_bill_request():
+    """Guest requests to see their bill"""
+    try:
+        data = request.get_json()
+        table_id = data.get('table_id')
+        session_id = data.get('session_id')
+        guest_name = data.get('guest_name')
+
+        if not table_id or not session_id:
+            return jsonify({"success": False, "message": "Table ID and session ID required"})
+
+        # Get hotel_id from table
+        table = Table.get_table_by_id(table_id)
+        hotel_id = table.get('hotel_id') if table else None
+
+        request_id = BillRequest.create_request(table_id, session_id, guest_name, hotel_id)
+        if request_id:
+            log_order_activity('bill_request', f"Bill requested by {guest_name} at Table {table.get('table_number', table_id)}", hotel_id)
+            return jsonify({"success": True, "request_id": request_id, "status": "PENDING"})
+        return jsonify({"success": False, "message": "Failed to create request"})
+    except Exception as e:
+        print(f"[BILL_REQUEST ERROR] {e}")
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/bill-request/status', methods=['GET'])
+def get_bill_request_status():
+    """Check bill request status for a guest"""
+    try:
+        table_id = request.args.get('table_id')
+        session_id = request.args.get('session_id')
+
+        if not table_id or not session_id:
+            return jsonify({"success": False, "message": "Table ID and session ID required"})
+
+        status = BillRequest.get_request_status(int(table_id), session_id)
+        return jsonify({"success": True, "status": status})
+    except Exception as e:
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/bill-requests/pending', methods=['GET'])
+def get_pending_bill_requests():
+    """Get all pending bill requests for manager"""
+    try:
+        hotel_id = session.get('hotel_id')
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Not authenticated"})
+        requests_list = BillRequest.get_pending_requests(hotel_id)
+        return jsonify({"success": True, "requests": requests_list})
+    except Exception as e:
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/bill-request/<int:request_id>/approve', methods=['POST'])
+def approve_bill_request(request_id):
+    """Manager approves a bill request"""
+    try:
+        hotel_id = session.get('hotel_id')
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Not authenticated"})
+        BillRequest.update_status(request_id, 'APPROVED')
+        log_order_activity('bill_request', f"Bill request #{request_id} approved", hotel_id)
+        return jsonify({"success": True, "message": "Bill request approved"})
+    except Exception as e:
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/bill-request/<int:request_id>/reject', methods=['POST'])
+def reject_bill_request(request_id):
+    """Manager rejects a bill request"""
+    try:
+        hotel_id = session.get('hotel_id')
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Not authenticated"})
+        BillRequest.update_status(request_id, 'REJECTED')
+        log_order_activity('bill_request', f"Bill request #{request_id} rejected", hotel_id)
+        return jsonify({"success": True, "message": "Bill request rejected"})
+    except Exception as e:
+        return jsonify({"success": False, "message": "Server error"})
+
+
+@orders_bp.route('/api/order/<int:order_id>/request-bill', methods=['POST'])
+def request_bill_for_order(order_id):
+    """Guest marks bill as requested on their order"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE table_orders SET bill_requested = 1 WHERE id = %s",
+            (order_id,)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "message": "Server error"})

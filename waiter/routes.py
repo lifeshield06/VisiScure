@@ -164,12 +164,12 @@ def get_tip_statistics():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Check if tips should be shown to waiters
+        # Check per-waiter tips visibility from waiters table
         cursor.execute("""
-            SELECT COALESCE(show_waiter_tips, TRUE) as show_waiter_tips
-            FROM hotel_modules
-            WHERE hotel_id = %s
-        """, (hotel_id,))
+            SELECT COALESCE(show_waiter_tips, 1) as show_waiter_tips
+            FROM waiters
+            WHERE id = %s
+        """, (waiter_id,))
         visibility_result = cursor.fetchone()
         show_tips = visibility_result['show_waiter_tips'] if visibility_result else True
         

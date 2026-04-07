@@ -366,22 +366,24 @@ class Waiter:
             if hotel_id:
                 cursor.execute("""
                     SELECT w.id AS waiter_id, w.name, w.email, w.phone, w.is_active, w.created_at,
+                           COALESCE(w.show_waiter_tips, 1) as show_waiter_tips,
                            GROUP_CONCAT(t.table_number ORDER BY t.table_number SEPARATOR ', ') as assigned_tables
                     FROM waiters w
                     LEFT JOIN waiter_table_assignments wta ON w.id = wta.waiter_id
                     LEFT JOIN tables t ON wta.table_id = t.id
                     WHERE w.hotel_id = %s
-                    GROUP BY w.id, w.name, w.email, w.phone, w.is_active, w.created_at
+                    GROUP BY w.id, w.name, w.email, w.phone, w.is_active, w.created_at, w.show_waiter_tips
                     ORDER BY w.id ASC
                 """, (hotel_id,))
             else:
                 cursor.execute("""
                     SELECT w.id AS waiter_id, w.name, w.email, w.phone, w.is_active, w.created_at,
+                           COALESCE(w.show_waiter_tips, 1) as show_waiter_tips,
                            GROUP_CONCAT(t.table_number ORDER BY t.table_number SEPARATOR ', ') as assigned_tables
                     FROM waiters w
                     LEFT JOIN waiter_table_assignments wta ON w.id = wta.waiter_id
                     LEFT JOIN tables t ON wta.table_id = t.id
-                    GROUP BY w.id, w.name, w.email, w.phone, w.is_active, w.created_at
+                    GROUP BY w.id, w.name, w.email, w.phone, w.is_active, w.created_at, w.show_waiter_tips
                     ORDER BY w.id ASC
                 """)
             waiters = cursor.fetchall()

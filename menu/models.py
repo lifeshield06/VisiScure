@@ -11,11 +11,11 @@ class MenuCategory:
             
             if hotel_id:
                 cursor.execute(
-                    "SELECT id, name, COALESCE(cgst_percentage, 2.50) as cgst_percentage, COALESCE(sgst_percentage, 2.50) as sgst_percentage FROM menu_categories WHERE hotel_id = %s ORDER BY id",
+                    "SELECT id, name, COALESCE(cgst_percentage, 0.00) as cgst_percentage, COALESCE(sgst_percentage, 0.00) as sgst_percentage FROM menu_categories WHERE hotel_id = %s ORDER BY id",
                     (hotel_id,)
                 )
             else:
-                cursor.execute("SELECT id, name, COALESCE(cgst_percentage, 2.50) as cgst_percentage, COALESCE(sgst_percentage, 2.50) as sgst_percentage FROM menu_categories ORDER BY id")
+                cursor.execute("SELECT id, name, COALESCE(cgst_percentage, 0.00) as cgst_percentage, COALESCE(sgst_percentage, 0.00) as sgst_percentage FROM menu_categories ORDER BY id")
             
             categories = cursor.fetchall()
             cursor.close()
@@ -138,7 +138,7 @@ class MenuCategory:
             cursor = connection.cursor(dictionary=True)
             
             cursor.execute(
-                "SELECT COALESCE(cgst_percentage, 2.50) as cgst_percentage, COALESCE(sgst_percentage, 2.50) as sgst_percentage FROM menu_categories WHERE id = %s",
+                "SELECT COALESCE(cgst_percentage, 0.00) as cgst_percentage, COALESCE(sgst_percentage, 0.00) as sgst_percentage FROM menu_categories WHERE id = %s",
                 (category_id,)
             )
             
@@ -151,10 +151,10 @@ class MenuCategory:
                     'cgst_percentage': float(result['cgst_percentage']),
                     'sgst_percentage': float(result['sgst_percentage'])
                 }
-            return {'cgst_percentage': 2.50, 'sgst_percentage': 2.50}  # Default
+            return {'cgst_percentage': 0.00, 'sgst_percentage': 0.00}  # Default
         except Exception as e:
             print(f"Error getting category tax: {e}")
-            return {'cgst_percentage': 2.50, 'sgst_percentage': 2.50}  # Default
+            return {'cgst_percentage': 0.00, 'sgst_percentage': 0.00}  # Default
 
 
 class MenuDish:
@@ -167,7 +167,7 @@ class MenuDish:
             
             if hotel_id:
                 cursor.execute(
-                    """SELECT id, name, price, quantity, description, images 
+                    """SELECT id, name, price, quantity, description, images, kitchen_id, cgst, sgst
                        FROM menu_dishes 
                        WHERE category_id = %s AND hotel_id = %s
                        ORDER BY id""",
@@ -175,7 +175,7 @@ class MenuDish:
                 )
             else:
                 cursor.execute(
-                    """SELECT id, name, price, quantity, description, images 
+                    """SELECT id, name, price, quantity, description, images, kitchen_id, cgst, sgst
                        FROM menu_dishes 
                        WHERE category_id = %s
                        ORDER BY id""",
@@ -224,7 +224,7 @@ class MenuDish:
             cursor = connection.cursor(dictionary=True)
             
             cursor.execute(
-                """SELECT d.id, d.name, d.price, d.quantity, d.description, d.images, d.category_id, c.name as category_name
+                """SELECT d.id, d.name, d.price, d.quantity, d.description, d.images, d.category_id, c.name as category_name, d.kitchen_id, d.cgst, d.sgst
                    FROM menu_dishes d
                    JOIN menu_categories c ON d.category_id = c.id
                    WHERE d.hotel_id = %s
@@ -266,7 +266,7 @@ class MenuDish:
             return []
     
     @staticmethod
-    def add_dish(hotel_id, category_id, name, price, quantity, description, images=None, kitchen_id=None, cgst=2.50, sgst=2.50):
+    def add_dish(hotel_id, category_id, name, price, quantity, description, images=None, kitchen_id=None, cgst=0.00, sgst=0.00):
         """Add a new dish"""
         try:
             connection = get_db_connection()
@@ -291,7 +291,7 @@ class MenuDish:
             return {"success": False, "message": str(e)}
     
     @staticmethod
-    def update_dish(dish_id, name, price, quantity, description, images=None, hotel_id=None, kitchen_id=None, cgst=2.50, sgst=2.50):
+    def update_dish(dish_id, name, price, quantity, description, images=None, hotel_id=None, kitchen_id=None, cgst=0.00, sgst=0.00):
         """Update a dish"""
         try:
             connection = get_db_connection()

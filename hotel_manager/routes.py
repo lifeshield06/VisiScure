@@ -520,6 +520,7 @@ def get_waiters_api():
                 'email': w['email'],
                 'phone': w['phone'],
                 'is_active': bool(w['is_active']) if w['is_active'] is not None else True,
+                'show_waiter_tips': bool(w['show_waiter_tips']) if w.get('show_waiter_tips') is not None else True,
                 'created_at': str(w['created_at']) if w['created_at'] else None,
                 'assigned_tables': w['assigned_tables'] or ''
             })
@@ -1478,3 +1479,112 @@ def toggle_tip_visibility():
     except Exception as e:
         print(f"[TOGGLE_TIP_VISIBILITY ERROR] {e}")
         return jsonify({'success': False, 'message': 'Failed to update setting'})
+
+
+@hotel_manager_bp.route('/api/toggle-waiter-tips/<int:waiter_id>', methods=['POST'])
+def toggle_waiter_tips(waiter_id):
+    """Toggle per-waiter tip visibility"""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+
+    try:
+        data = request.get_json()
+        show_tips = bool(data.get('show_waiter_tips', True))
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE waiters SET show_waiter_tips = %s WHERE id = %s AND hotel_id = %s",
+            (show_tips, waiter_id, hotel_id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        status = "enabled" if show_tips else "disabled"
+        log_manager_activity('settings', f'Tips {status} for waiter ID {waiter_id}', hotel_id)
+        return jsonify({'success': True, 'show_waiter_tips': show_tips, 'message': f'Tips {status}'})
+
+    except Exception as e:
+        print(f"[TOGGLE_WAITER_TIPS ERROR] {e}")
+        return jsonify({'success': False, 'message': 'Failed to update setting'})
+
+
+@hotel_manager_bp.route('/api/waiter-tip-details/<int:waiter_id>')
+def get_waiter_tip_details(waiter_id):
+    """Get full tip history and summary for a specific waiter"""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Verify waiter belongs to this hotel
+        cursor.execute("SELECT id, name FROM waiters WHERE id = %s AND hotel_id = %s", (waiter_id, hotel_id))
+        waiter = cursor.fetchone()
+        if not waiter:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'message': 'Waiter not found'}), 404
+
+        period = request.args.get('period', 'all')
+
+        period_filter = ""
+        if period == 'today':
+            period_filter = "AND DATE(wt.created_at) = CURDATE()"
+        elif period == 'week':
+            period_filter = "AND YEARWEEK(wt.created_at, 1) = YEARWEEK(CURDATE(), 1)"
+        elif period == 'month':
+            period_filter = "AND YEAR(wt.created_at) = YEAR(CURDATE()) AND MONTH(wt.created_at) = MONTH(CURDATE())"
+
+        # Tip history with table number
+        cursor.execute(f"""
+            SELECT wt.id, wt.tip_amount, wt.created_at,
+                   b.table_number, b.guest_name, b.bill_number
+            FROM waiter_tips wt
+            LEFT JOIN bills b ON wt.bill_id = b.id
+            WHERE wt.waiter_id = %s {period_filter}
+            ORDER BY wt.created_at DESC
+        """, (waiter_id,))
+        tips = cursor.fetchall()
+
+        # Summary totals
+        cursor.execute("""
+            SELECT
+                COALESCE(SUM(tip_amount), 0) as total_tips,
+                COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN tip_amount ELSE 0 END), 0) as today_tips,
+                COALESCE(SUM(CASE WHEN YEARWEEK(created_at,1) = YEARWEEK(CURDATE(),1) THEN tip_amount ELSE 0 END), 0) as week_tips,
+                COALESCE(SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) THEN tip_amount ELSE 0 END), 0) as month_tips,
+                COUNT(*) as tip_count
+            FROM waiter_tips WHERE waiter_id = %s
+        """, (waiter_id,))
+        summary = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        # Serialize datetimes
+        for t in tips:
+            if t.get('created_at'):
+                t['created_at'] = t['created_at'].strftime('%Y-%m-%d %H:%M')
+            t['tip_amount'] = float(t['tip_amount'])
+
+        return jsonify({
+            'success': True,
+            'waiter': {'id': waiter_id, 'name': waiter['name']},
+            'summary': {
+                'total_tips': float(summary['total_tips']),
+                'today_tips': float(summary['today_tips']),
+                'week_tips': float(summary['week_tips']),
+                'month_tips': float(summary['month_tips']),
+                'tip_count': int(summary['tip_count'])
+            },
+            'tips': tips
+        })
+
+    except Exception as e:
+        print(f"[WAITER_TIP_DETAILS ERROR] {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500

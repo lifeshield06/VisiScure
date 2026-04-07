@@ -421,6 +421,26 @@ body {
     border-color: var(--success);
 }
 
+.table-chip.calling {
+    background: #fff3cd;
+    border-color: #f59e0b;
+    animation: calling-pulse 0.8s ease-in-out infinite alternate;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
+}
+
+.table-chip.calling .table-number {
+    color: #b45309;
+}
+
+.table-chip.calling .table-status {
+    color: #b45309;
+}
+
+@keyframes calling-pulse {
+    from { box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3); }
+    to   { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.0); }
+}
+
 .table-number {
     font-size: 1.25rem;
     font-weight: 700;
@@ -1614,6 +1634,7 @@ body {
     gap: 12px;
     z-index: 10000;
     transition: right 0.3s ease-out;
+    border-left: 4px solid #f59e0b;
 }
 
 .waiter-call-popup.show {
@@ -1623,7 +1644,7 @@ body {
 .popup-icon {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, #f59e0b, #d97706);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1631,6 +1652,13 @@ body {
     color: white;
     font-size: 20px;
     flex-shrink: 0;
+    animation: bell-shake 0.5s ease-in-out 3;
+}
+
+@keyframes bell-shake {
+    0%, 100% { transform: rotate(0deg); }
+    20%       { transform: rotate(-15deg); }
+    60%       { transform: rotate(15deg); }
 }
 
 .popup-content h4 {

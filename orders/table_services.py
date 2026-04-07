@@ -195,7 +195,18 @@ class OrderService:
             
             # Existing bill has a guest name - check if it matches
             if existing_guest.lower().strip() == guest_name.lower():
-                # Same guest returning - allow full access
+                # Same guest returning - check if their bill is already PAID
+                if existing_bill.get('payment_status') == 'PAID' or existing_bill.get('bill_status') == 'COMPLETED':
+                    return {
+                        "success": True,
+                        "can_order": False,
+                        "view_only_mode": False,
+                        "payment_completed": True,
+                        "message": "Payment completed. This table session is now closed.",
+                        "is_returning_guest": False,
+                        "existing_bill": None
+                    }
+                # Same guest, bill still open - allow full access
                 return {
                     "success": True,
                     "can_order": True,
@@ -250,9 +261,15 @@ class OrderService:
             if existing_bill:
                 existing_guest = existing_bill.get('guest_name', '')
                 
-                # Allow only if same guest (case-insensitive)
+                # Block if this guest's bill is already PAID
                 if existing_guest and existing_guest.lower() == guest_name.lower():
-                    # Same guest - use their existing session and preserve their original name case
+                    if existing_bill.get('payment_status') == 'PAID' or existing_bill.get('bill_status') == 'COMPLETED':
+                        return {
+                            "success": False,
+                            "message": "Payment already completed. This table session is closed. No new orders can be placed.",
+                            "payment_completed": True
+                        }
+                    # Same guest, bill open - use their existing session
                     session_id = existing_bill.get('session_id')
                     guest_name = existing_guest  # Preserve original case
                 else:

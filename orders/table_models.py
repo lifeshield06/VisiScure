@@ -156,6 +156,9 @@ class Table:
             ensure_column("bills", "sgst_amount", "sgst_amount DECIMAL(10,2) DEFAULT 0.00")
             ensure_column("bills", "tax_breakdown", "tax_breakdown JSON")
             
+            # Ensure per-waiter tips visibility column
+            ensure_column("waiters", "show_waiter_tips", "show_waiter_tips TINYINT(1) DEFAULT 1")
+            
             # Ensure payment_status column exists in table_orders
             ensure_column("table_orders", "payment_status", "payment_status ENUM('PENDING', 'PAID') DEFAULT 'PENDING')")
             
@@ -168,6 +171,35 @@ class Table:
             # Ensure columns exist in active_tables
             ensure_column("active_tables", "hotel_id", "hotel_id INT")
             ensure_column("active_tables", "session_id", "session_id VARCHAR(100)")
+            
+            # Ensure digital_fee_enabled column exists in hotel_wallet
+            ensure_column("hotel_wallet", "digital_fee_enabled", "digital_fee_enabled TINYINT(1) DEFAULT 1")
+            
+            # Ensure frozen bill columns exist in bills table
+            ensure_column("bills", "final_subtotal", "final_subtotal DECIMAL(10,2) DEFAULT NULL")
+            ensure_column("bills", "final_tax", "final_tax DECIMAL(10,2) DEFAULT NULL")
+            ensure_column("bills", "final_digital_fee", "final_digital_fee DECIMAL(10,2) DEFAULT NULL")
+            ensure_column("bills", "final_total", "final_total DECIMAL(10,2) DEFAULT NULL")
+            
+            # Ensure frozen total column in table_orders
+            ensure_column("table_orders", "final_total", "final_total DECIMAL(10,2) DEFAULT NULL")
+            
+            # Ensure bill_requested column in table_orders
+            ensure_column("table_orders", "bill_requested", "bill_requested TINYINT(1) DEFAULT 0")
+
+            # Create bill_requests table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS bill_requests (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    table_id INT NOT NULL,
+                    session_id VARCHAR(100),
+                    guest_name VARCHAR(255),
+                    hotel_id INT,
+                    status ENUM('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                )
+            """)
             
             connection.commit()
             cursor.close()
@@ -432,32 +464,83 @@ class TableOrder:
             cursor = connection.cursor(dictionary=True)
             
             if hotel_id:
-                # Match orders by hotel_id OR by table's hotel_id (fallback for older orders)
-                # Also join with bills to get payment_method
                 cursor.execute("""
-                    SELECT o.*, t.table_number, t.status as table_status, b.payment_method
+                    SELECT o.*, t.table_number, t.status as table_status,
+                           (SELECT b.payment_method FROM bills b
+                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
+                            ORDER BY b.created_at DESC LIMIT 1) as payment_method,
+                           (SELECT COALESCE(b.final_total, b.total_amount) FROM bills b
+                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
+                            AND b.payment_status = 'PAID'
+                            ORDER BY b.created_at DESC LIMIT 1) as bill_frozen_total
                     FROM table_orders o
                     JOIN tables t ON o.table_id = t.id
-                    LEFT JOIN bills b ON o.table_id = b.table_id AND o.session_id = b.session_id
                     WHERE o.hotel_id = %s OR (o.hotel_id IS NULL AND t.hotel_id = %s)
                     ORDER BY o.created_at DESC
                 """, (hotel_id, hotel_id))
             else:
                 cursor.execute("""
-                    SELECT o.*, t.table_number, t.status as table_status, b.payment_method
+                    SELECT o.*, t.table_number, t.status as table_status,
+                           (SELECT b.payment_method FROM bills b
+                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
+                            ORDER BY b.created_at DESC LIMIT 1) as payment_method,
+                           (SELECT COALESCE(b.final_total, b.total_amount) FROM bills b
+                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
+                            AND b.payment_status = 'PAID'
+                            ORDER BY b.created_at DESC LIMIT 1) as bill_frozen_total
                     FROM table_orders o
                     JOIN tables t ON o.table_id = t.id
-                    LEFT JOIN bills b ON o.table_id = b.table_id AND o.session_id = b.session_id
                     ORDER BY o.created_at DESC
                 """)
             
             orders = cursor.fetchall()
             
-            # Parse JSON items
+            # Fetch per_order_charge and digital_fee_enabled once for this hotel
+            per_order_charge = 0.0
+            digital_fee_enabled = True
+            eff_hotel_id = hotel_id
+            if eff_hotel_id:
+                try:
+                    cursor.execute("SELECT per_order_charge, COALESCE(digital_fee_enabled, 1) as digital_fee_enabled FROM hotel_wallet WHERE hotel_id = %s", (eff_hotel_id,))
+                    wallet_row = cursor.fetchone()
+                    if wallet_row:
+                        per_order_charge = float(wallet_row['per_order_charge'] or 0)
+                        digital_fee_enabled = bool(wallet_row['digital_fee_enabled'])
+                except Exception:
+                    per_order_charge = 0.0
+
             import json
             for order in orders:
-                if order['items']:
-                    order['items'] = json.loads(order['items'])
+                raw_items = order.get('items')
+                if raw_items:
+                    try:
+                        order['items'] = json.loads(raw_items) if isinstance(raw_items, str) else raw_items
+                    except Exception:
+                        order['items'] = []
+                else:
+                    order['items'] = []
+                # For PAID orders use frozen total (order.final_total → bill.final_total → bill.total_amount)
+                # For pending orders calculate dynamically
+                subtotal = float(order.get('total_amount', 0))
+                order['subtotal_amount'] = subtotal
+                if order.get('payment_status') == 'PAID':
+                    frozen = (
+                        order.get('final_total') or
+                        order.get('bill_frozen_total')
+                    )
+                    if frozen is not None:
+                        order['total_amount'] = float(frozen)
+                        order['per_order_charge'] = round(float(frozen) - subtotal, 2)
+                    else:
+                        # Last resort: use stored total_amount as-is (no dynamic fee added)
+                        order['total_amount'] = subtotal
+                        order['per_order_charge'] = 0.0
+                    order['digital_fee_enabled'] = digital_fee_enabled
+                else:
+                    effective_charge = per_order_charge if digital_fee_enabled else 0.0
+                    order['per_order_charge'] = effective_charge
+                    order['digital_fee_enabled'] = digital_fee_enabled
+                    order['total_amount'] = round(subtotal + effective_charge, 2)
             
             cursor.close()
             connection.close()
@@ -524,6 +607,23 @@ class Bill:
     TAX_RATE = 5.0  # 5% tax rate (DEPRECATED - use hotel's gst_percentage instead)
     
     @staticmethod
+    def apply_frozen_values(bill):
+        """If bill is PAID and has frozen final_* values, use them instead of recalculating.
+        Returns the bill dict with correct totals."""
+        if not bill:
+            return bill
+        is_paid = bill.get('payment_status') == 'PAID'
+        has_frozen = bill.get('final_total') is not None
+        if is_paid and has_frozen:
+            bill['subtotal'] = float(bill.get('final_subtotal') or bill.get('subtotal', 0))
+            bill['tax_amount'] = float(bill.get('final_tax') or bill.get('tax_amount', 0))
+            bill['total_convenience_fee'] = float(bill.get('final_digital_fee') or 0)
+            bill['per_order_charge'] = bill['total_convenience_fee']
+            bill['total_amount'] = float(bill['final_total'])
+            bill['_frozen'] = True
+        return bill
+
+    @staticmethod
     def enrich_items_with_tax(items, cursor):
         """Add CGST/SGST percentages and amounts to each item.
         Uses per-dish tax rates (cgst, sgst columns in menu_dishes).
@@ -539,14 +639,14 @@ class Bill:
             
             # Get category name and DISH-SPECIFIC tax percentages
             category_name = "Other"
-            cgst_pct = 2.50
-            sgst_pct = 2.50
+            cgst_pct = 0.0
+            sgst_pct = 0.0
             
             if dish_id:
                 cursor.execute("""
                     SELECT mc.name as category_name, 
-                           COALESCE(d.cgst, 2.50) as cgst_percentage, 
-                           COALESCE(d.sgst, 2.50) as sgst_percentage 
+                           COALESCE(d.cgst, 0) as cgst_percentage, 
+                           COALESCE(d.sgst, 0) as sgst_percentage 
                     FROM menu_dishes d
                     LEFT JOIN menu_categories mc ON d.category_id = mc.id
                     WHERE d.id = %s
@@ -554,8 +654,8 @@ class Bill:
                 cat_info = cursor.fetchone()
                 if cat_info:
                     category_name = cat_info.get('category_name') or "Other"
-                    cgst_pct = float(cat_info.get('cgst_percentage') or 2.50)
-                    sgst_pct = float(cat_info.get('sgst_percentage') or 2.50)
+                    cgst_pct = float(cat_info.get('cgst_percentage') if cat_info.get('cgst_percentage') is not None else 0.0)
+                    sgst_pct = float(cat_info.get('sgst_percentage') if cat_info.get('sgst_percentage') is not None else 0.0)
             
             # Calculate item tax
             item_cgst = round(item_total * (cgst_pct / 100), 2)
@@ -592,14 +692,14 @@ class Bill:
             
             # Get category name and DISH-SPECIFIC tax percentages
             category_name = "Other"
-            cgst_pct = 2.50
-            sgst_pct = 2.50
+            cgst_pct = 0.0
+            sgst_pct = 0.0
             
             if dish_id:
                 cursor.execute("""
                     SELECT mc.name as category_name, 
-                           COALESCE(d.cgst, 2.50) as cgst_percentage, 
-                           COALESCE(d.sgst, 2.50) as sgst_percentage 
+                           COALESCE(d.cgst, 0) as cgst_percentage, 
+                           COALESCE(d.sgst, 0) as sgst_percentage 
                     FROM menu_dishes d
                     LEFT JOIN menu_categories mc ON d.category_id = mc.id
                     WHERE d.id = %s
@@ -607,8 +707,8 @@ class Bill:
                 cat_info = cursor.fetchone()
                 if cat_info:
                     category_name = cat_info.get('category_name') or "Other"
-                    cgst_pct = float(cat_info.get('cgst_percentage') or 2.50)
-                    sgst_pct = float(cat_info.get('sgst_percentage') or 2.50)
+                    cgst_pct = float(cat_info.get('cgst_percentage') if cat_info.get('cgst_percentage') is not None else 0.0)
+                    sgst_pct = float(cat_info.get('sgst_percentage') if cat_info.get('sgst_percentage') is not None else 0.0)
             
             # Calculate item tax
             item_cgst = round(item_total * (cgst_pct / 100), 2)
@@ -930,16 +1030,55 @@ class Bill:
             
             bill = cursor.fetchone()
             
-            if bill and bill.get('items'):
+            if bill:
                 import json
-                items = json.loads(bill['items'])
-                # Enrich items with tax info if missing
-                if items:  # Always enrich with current tax rates
-                    items = Bill.enrich_items_with_tax(items, cursor)
-                    bill['items'] = items
+                # Always parse items into a list
+                raw_items = bill.get('items')
+                if raw_items:
+                    try:
+                        items = json.loads(raw_items) if isinstance(raw_items, str) else raw_items
+                    except Exception:
+                        items = []
                 else:
-                    bill['items'] = items
+                    items = []
+                if items:
+                    items = Bill.enrich_items_with_tax(items, cursor)
+                bill['items'] = items
+
+                # Add per_order_charge from hotel_wallet (respecting digital_fee_enabled toggle)
+                hotel_id = bill.get('hotel_id')
+                per_order_charge = 0.0
+                digital_fee_enabled = True
+                if hotel_id:
+                    try:
+                        conn2 = get_db_connection()
+                        cur2 = conn2.cursor(dictionary=True)
+                        cur2.execute("SELECT per_order_charge, COALESCE(digital_fee_enabled, 1) as digital_fee_enabled FROM hotel_wallet WHERE hotel_id = %s", (hotel_id,))
+                        wallet_row = cur2.fetchone()
+                        if wallet_row:
+                            per_order_charge = float(wallet_row['per_order_charge'] or 0)
+                            digital_fee_enabled = bool(wallet_row['digital_fee_enabled'])
+                        cur2.close()
+                        conn2.close()
+                    except Exception:
+                        per_order_charge = 0.0
+
+                if not digital_fee_enabled:
+                    per_order_charge = 0.0
+
+                session_id = bill.get('session_id')
+                table_id = bill.get('table_id')
+
+                total_convenience_fee = round(per_order_charge, 2)
+                bill['per_order_charge'] = per_order_charge
+                bill['total_convenience_fee'] = total_convenience_fee
+                bill['digital_fee_enabled'] = digital_fee_enabled
+                subtotal = float(bill.get('subtotal', 0))
+                tax_amount = float(bill.get('tax_amount', 0))
+                bill['total_amount'] = round(subtotal + tax_amount + total_convenience_fee, 2)
             
+            # Use frozen values if bill is already PAID
+            bill = Bill.apply_frozen_values(bill)
             cursor.close()
             connection.close()
             return bill
@@ -1070,6 +1209,32 @@ class Bill:
             # Enrich items with per-item tax info before returning
             enriched_items = Bill.enrich_items_with_tax(all_items, cursor)
             
+            # Fetch per_order_charge from hotel_wallet (respecting digital_fee_enabled toggle)
+            hotel_id = first_order.get('hotel_id') or orders[0].get('hotel_id')
+            per_order_charge = 0.0
+            if hotel_id:
+                try:
+                    cursor2 = connection.cursor(dictionary=True) if connection.is_connected() else get_db_connection().cursor(dictionary=True)
+                except Exception:
+                    cursor2 = None
+                try:
+                    conn2 = get_db_connection()
+                    cur2 = conn2.cursor(dictionary=True)
+                    cur2.execute("SELECT per_order_charge, COALESCE(digital_fee_enabled, 1) as digital_fee_enabled FROM hotel_wallet WHERE hotel_id = %s", (hotel_id,))
+                    wallet_row = cur2.fetchone()
+                    if wallet_row:
+                        per_order_charge = float(wallet_row['per_order_charge'] or 0)
+                        if not bool(wallet_row['digital_fee_enabled']):
+                            per_order_charge = 0.0
+                    cur2.close()
+                    conn2.close()
+                except Exception:
+                    per_order_charge = 0.0
+
+            # Flat fee per bill (not multiplied by order count)
+            total_convenience_fee = round(per_order_charge, 2)
+            total_amount = round(subtotal + tax_amount + total_convenience_fee, 2)
+
             cursor.close()
             connection.close()
             
@@ -1086,6 +1251,8 @@ class Bill:
                 'cgst_amount': cgst_amount,
                 'sgst_amount': sgst_amount,
                 'tax_breakdown': tax_breakdown,
+                'per_order_charge': per_order_charge,
+                'total_convenience_fee': total_convenience_fee,
                 'total_amount': total_amount,
                 'payment_status': payment_status,
                 'payment_method': payment_method,
@@ -1282,7 +1449,32 @@ class Bill:
                     print(f"[PAYMENT ATOMIC WARNING] Error during tip distribution: {e}")
                     print(f"[PAYMENT ATOMIC WARNING] Payment will continue, but tips not distributed")
             
-            # Mark bill as PAID and COMPLETED with tip
+            # Mark bill as PAID and COMPLETED with tip — also freeze final values
+            # Fetch digital fee at payment time to snapshot it
+            hotel_id_for_fee = bill.get('hotel_id')
+            digital_fee_at_payment = 0.0
+            if hotel_id_for_fee:
+                try:
+                    conn_fee = get_db_connection()
+                    cur_fee = conn_fee.cursor(dictionary=True)
+                    cur_fee.execute(
+                        "SELECT per_order_charge, COALESCE(digital_fee_enabled, 1) as digital_fee_enabled FROM hotel_wallet WHERE hotel_id = %s",
+                        (hotel_id_for_fee,)
+                    )
+                    fee_row = cur_fee.fetchone()
+                    if fee_row and bool(fee_row['digital_fee_enabled']):
+                        digital_fee_at_payment = float(fee_row['per_order_charge'] or 0)
+                    cur_fee.close()
+                    conn_fee.close()
+                except Exception:
+                    digital_fee_at_payment = 0.0
+
+            final_subtotal = round(subtotal, 2)
+            final_tax = round(tax_amount, 2)
+            final_digital_fee = round(digital_fee_at_payment, 2)
+            final_total = round(final_subtotal + final_tax + final_digital_fee + tip, 2)
+            new_total = final_total
+
             cursor.execute("""
                 UPDATE bills 
                 SET payment_status = 'PAID', 
@@ -1290,29 +1482,39 @@ class Bill:
                     paid_at = %s, 
                     bill_status = 'COMPLETED',
                     tip_amount = %s,
-                    total_amount = %s
+                    total_amount = %s,
+                    final_subtotal = %s,
+                    final_tax = %s,
+                    final_digital_fee = %s,
+                    final_total = %s
                 WHERE id = %s
-            """, (payment_method, paid_at, tip, new_total, bill_id))
+            """, (payment_method, paid_at, tip, new_total,
+                  final_subtotal, final_tax, final_digital_fee, final_total,
+                  bill_id))
             
             print(f"[PAYMENT ATOMIC] Bill updated, rows affected: {cursor.rowcount}")
             
-            # Update associated orders to PAID
+            # Update associated orders to PAID — also freeze final_total on each order
             bill_session_id = bill.get('session_id')
             bill_guest_name = bill.get('guest_name')
+            # final_total per order = order subtotal + digital fee (tip stays on bill only)
+            order_frozen_total_sql = "ROUND(total_amount + %s, 2)"
             
             if bill_session_id:
-                cursor.execute("""
+                cursor.execute(f"""
                     UPDATE table_orders 
-                    SET payment_status = 'PAID'
+                    SET payment_status = 'PAID',
+                        final_total = {order_frozen_total_sql}
                     WHERE table_id = %s AND session_id = %s
-                """, (table_id, bill_session_id))
+                """, (final_digital_fee, table_id, bill_session_id))
                 print(f"[PAYMENT ATOMIC] Orders updated by session_id, rows affected: {cursor.rowcount}")
             elif bill_guest_name:
-                cursor.execute("""
+                cursor.execute(f"""
                     UPDATE table_orders 
-                    SET payment_status = 'PAID'
+                    SET payment_status = 'PAID',
+                        final_total = {order_frozen_total_sql}
                     WHERE table_id = %s AND guest_name = %s
-                """, (table_id, bill_guest_name))
+                """, (final_digital_fee, table_id, bill_guest_name))
                 print(f"[PAYMENT ATOMIC] Orders updated by guest_name, rows affected: {cursor.rowcount}")
             
             # Check if any other OPEN bills exist for this table
@@ -1438,8 +1640,12 @@ class Bill:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
-            # Get bill info first
-            cursor.execute("SELECT table_id, guest_name FROM bills WHERE id = %s", (bill_id,))
+            # Get bill info first (including values to freeze)
+            cursor.execute("""
+                SELECT b.table_id, b.guest_name, b.subtotal, b.tax_amount, b.hotel_id,
+                       b.final_subtotal, b.final_total
+                FROM bills b WHERE b.id = %s
+            """, (bill_id,))
             bill = cursor.fetchone()
             
             if not bill:
@@ -1450,7 +1656,31 @@ class Bill:
             
             table_id = bill['table_id']
             
-            # Mark bill as COMPLETED and PAID with timestamp
+            # Fetch digital fee to freeze
+            digital_fee_to_freeze = 0.0
+            hotel_id_for_fee = bill.get('hotel_id')
+            if hotel_id_for_fee:
+                try:
+                    conn_fee = get_db_connection()
+                    cur_fee = conn_fee.cursor(dictionary=True)
+                    cur_fee.execute(
+                        "SELECT per_order_charge, COALESCE(digital_fee_enabled, 1) as digital_fee_enabled FROM hotel_wallet WHERE hotel_id = %s",
+                        (hotel_id_for_fee,)
+                    )
+                    fee_row = cur_fee.fetchone()
+                    if fee_row and bool(fee_row['digital_fee_enabled']):
+                        digital_fee_to_freeze = float(fee_row['per_order_charge'] or 0)
+                    cur_fee.close()
+                    conn_fee.close()
+                except Exception:
+                    digital_fee_to_freeze = 0.0
+
+            final_subtotal = round(float(bill.get('subtotal', 0)), 2)
+            final_tax = round(float(bill.get('tax_amount', 0)), 2)
+            final_digital_fee = round(digital_fee_to_freeze, 2)
+            final_total = round(final_subtotal + final_tax + final_digital_fee, 2)
+
+            # Mark bill as COMPLETED and PAID with timestamp + frozen values
             import datetime
             paid_at = datetime.datetime.now()
             
@@ -1458,11 +1688,16 @@ class Bill:
                 UPDATE bills 
                 SET bill_status = 'COMPLETED', 
                     payment_status = 'PAID',
-                    paid_at = %s
+                    paid_at = %s,
+                    final_subtotal = %s,
+                    final_tax = %s,
+                    final_digital_fee = %s,
+                    final_total = %s,
+                    total_amount = %s
                 WHERE id = %s
-            """, (paid_at, bill_id))
+            """, (paid_at, final_subtotal, final_tax, final_digital_fee, final_total, final_total, bill_id))
             
-            print(f"[COMPLETE_BILL] Updated bill {bill_id} to COMPLETED/PAID")
+            print(f"[COMPLETE_BILL] Updated bill {bill_id} to COMPLETED/PAID, frozen total=₹{final_total}")
             
             # Check if there are any remaining OPEN bills for this table
             cursor.execute(
@@ -1527,11 +1762,39 @@ class Bill:
             if bill and bill.get('items'):
                 import json
                 items = json.loads(bill['items'])
-                # Enrich items with tax info if missing
-                if items:  # Always enrich with current tax rates
+                if items:
                     items = Bill.enrich_items_with_tax(items, cursor)
                 bill['items'] = items
+
+                # Add per_order_charge from hotel_wallet (respecting digital_fee_enabled toggle)
+                hotel_id = bill.get('hotel_id')
+                per_order_charge = 0.0
+                if hotel_id:
+                    try:
+                        conn2 = get_db_connection()
+                        cur2 = conn2.cursor(dictionary=True)
+                        cur2.execute("SELECT per_order_charge, COALESCE(digital_fee_enabled, 1) as digital_fee_enabled FROM hotel_wallet WHERE hotel_id = %s", (hotel_id,))
+                        wallet_row = cur2.fetchone()
+                        if wallet_row:
+                            per_order_charge = float(wallet_row['per_order_charge'] or 0)
+                            if not bool(wallet_row['digital_fee_enabled']):
+                                per_order_charge = 0.0
+                        cur2.close()
+                        conn2.close()
+                    except Exception:
+                        per_order_charge = 0.0
+
+                # Flat fee per bill (not multiplied by order count)
+                total_convenience_fee = round(per_order_charge, 2)
+                bill['per_order_charge'] = per_order_charge
+                bill['total_convenience_fee'] = total_convenience_fee
+                # Recalculate total_amount to include fee
+                subtotal = float(bill.get('subtotal', 0))
+                tax_amount = float(bill.get('tax_amount', 0))
+                bill['total_amount'] = round(subtotal + tax_amount + total_convenience_fee, 2)
             
+            # Use frozen values if bill is already PAID
+            bill = Bill.apply_frozen_values(bill)
             cursor.close()
             connection.close()
             return bill
@@ -1558,13 +1821,41 @@ class Bill:
             if bill and bill.get('items'):
                 import json
                 items = json.loads(bill['items'])
-                # Enrich items with tax info if missing
-                if items:  # Always enrich with current tax rates
+                if items:
                     items = Bill.enrich_items_with_tax(items, cursor)
                     bill['items'] = items
                 else:
                     bill['items'] = items
+
+                # Add per_order_charge from hotel_wallet (respecting digital_fee_enabled toggle)
+                hotel_id = bill.get('hotel_id')
+                per_order_charge = 0.0
+                if hotel_id:
+                    try:
+                        conn2 = get_db_connection()
+                        cur2 = conn2.cursor(dictionary=True)
+                        cur2.execute("SELECT per_order_charge, COALESCE(digital_fee_enabled, 1) as digital_fee_enabled FROM hotel_wallet WHERE hotel_id = %s", (hotel_id,))
+                        wallet_row = cur2.fetchone()
+                        if wallet_row:
+                            per_order_charge = float(wallet_row['per_order_charge'] or 0)
+                            if not bool(wallet_row['digital_fee_enabled']):
+                                per_order_charge = 0.0
+                        cur2.close()
+                        conn2.close()
+                    except Exception:
+                        per_order_charge = 0.0
+
+                # Flat fee per bill (not multiplied by order count)
+                total_convenience_fee = round(per_order_charge, 2)
+                bill['per_order_charge'] = per_order_charge
+                bill['total_convenience_fee'] = total_convenience_fee
+                # Recalculate total_amount to include fee
+                subtotal = float(bill.get('subtotal', 0))
+                tax_amount = float(bill.get('tax_amount', 0))
+                bill['total_amount'] = round(subtotal + tax_amount + total_convenience_fee, 2)
             
+            # Use frozen values if bill is already PAID
+            bill = Bill.apply_frozen_values(bill)
             cursor.close()
             connection.close()
             return bill
@@ -2090,3 +2381,117 @@ class ActiveTable:
         except Exception as e:
             print(f"Error syncing active tables with bills: {e}")
             return False
+
+
+class BillRequest:
+    @staticmethod
+    def create_table():
+        """Create bill_requests table if not exists"""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS bill_requests (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    table_id INT NOT NULL,
+                    session_id VARCHAR(100),
+                    guest_name VARCHAR(255),
+                    hotel_id INT,
+                    status ENUM('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                )
+            """)
+            connection.commit()
+            cursor.close()
+            connection.close()
+            return True
+        except Exception as e:
+            print(f"Error creating bill_requests table: {e}")
+            return False
+
+    @staticmethod
+    def create_request(table_id, session_id, guest_name, hotel_id):
+        """Insert a new PENDING bill request. Returns existing id if one already exists."""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            # Check for existing PENDING request
+            cursor.execute(
+                "SELECT id FROM bill_requests WHERE table_id = %s AND session_id = %s AND status = 'PENDING'",
+                (table_id, session_id)
+            )
+            existing = cursor.fetchone()
+            if existing:
+                cursor.close()
+                connection.close()
+                return existing['id']
+            cursor.execute(
+                "INSERT INTO bill_requests (table_id, session_id, guest_name, hotel_id, status) VALUES (%s, %s, %s, %s, 'PENDING')",
+                (table_id, session_id, guest_name, hotel_id)
+            )
+            request_id = cursor.lastrowid
+            connection.commit()
+            cursor.close()
+            connection.close()
+            return request_id
+        except Exception as e:
+            print(f"Error creating bill request: {e}")
+            return None
+
+    @staticmethod
+    def get_pending_requests(hotel_id):
+        """Return all PENDING requests for a hotel, joined with tables for table_number."""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute("""
+                SELECT br.*, t.table_number
+                FROM bill_requests br
+                LEFT JOIN tables t ON br.table_id = t.id
+                WHERE br.hotel_id = %s AND br.status = 'PENDING'
+                ORDER BY br.created_at ASC
+            """, (hotel_id,))
+            rows = cursor.fetchall()
+            cursor.close()
+            connection.close()
+            return rows
+        except Exception as e:
+            print(f"Error getting pending bill requests: {e}")
+            return []
+
+    @staticmethod
+    def update_status(request_id, status):
+        """Update request status to APPROVED or REJECTED."""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor()
+            cursor.execute(
+                "UPDATE bill_requests SET status = %s WHERE id = %s",
+                (status, request_id)
+            )
+            connection.commit()
+            cursor.close()
+            connection.close()
+            return True
+        except Exception as e:
+            print(f"Error updating bill request status: {e}")
+            return False
+
+    @staticmethod
+    def get_request_status(table_id, session_id):
+        """Return the latest request status for a table+session, or None if no request."""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute(
+                "SELECT status FROM bill_requests WHERE table_id = %s AND session_id = %s ORDER BY created_at DESC LIMIT 1",
+                (table_id, session_id)
+            )
+            row = cursor.fetchone()
+            cursor.close()
+            connection.close()
+            return row['status'] if row else None
+        except Exception as e:
+            print(f"Error getting bill request status: {e}")
+            return None

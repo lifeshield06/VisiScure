@@ -73,10 +73,28 @@
         </div>
     </div>
 
-    <!-- View Bill Button (Floating) -->
-    <div class="view-bill-btn" id="view-bill-btn" style="display: none;" onclick="viewSessionBill()">
-        <i class="fas fa-receipt"></i>
-        <span>View Bill</span>
+    <!-- Bill Request Button (shown when session active) -->
+    <div class="view-bill-btn" id="view-bill-btn" style="display: none;">
+        <!-- State: no request yet -->
+        <div id="bill-btn-request" onclick="requestBill()" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+            <i class="fas fa-file-invoice"></i>
+            <span>Request Bill</span>
+        </div>
+        <!-- State: pending -->
+        <div id="bill-btn-pending" style="display:none;align-items:center;gap:0.5rem;opacity:0.8;cursor:default;">
+            <i class="fas fa-hourglass-half"></i>
+            <span>Waiting...</span>
+        </div>
+        <!-- State: approved - show view bill -->
+        <div id="bill-btn-approved" onclick="viewSessionBill()" style="display:none;align-items:center;gap:0.5rem;cursor:pointer;background:#059669;">
+            <i class="fas fa-receipt"></i>
+            <span>View Bill</span>
+        </div>
+        <!-- State: rejected -->
+        <div id="bill-btn-rejected" onclick="requestBill()" style="display:none;align-items:center;gap:0.5rem;cursor:pointer;background:#ef4444;">
+            <i class="fas fa-redo"></i>
+            <span>Request Again</span>
+        </div>
     </div>
 
     <!-- Call Waiter Button (Floating) -->
@@ -155,6 +173,10 @@
                 <div class="bill-total-row">
                     <span>Total Tax</span>
                     <span id="bill-tax">₹0.00</span>
+                </div>
+                <div class="bill-total-row" id="bill-convenience-row" style="display:none; border-top: 1px dashed #e5e7eb; padding-top: 0.5rem; margin-top: 0.25rem;">
+                    <span style="color: #6366f1;"><i class="fas fa-bolt" style="margin-right:0.3rem;font-size:0.8rem;"></i>Digital Convenience Fee</span>
+                    <span id="bill-convenience-fee" style="color: #6366f1;">₹0.00</span>
                 </div>
                 <div class="bill-total-row grand-total" style="border-top: 1px solid #d1d5db; padding-top: 0.5rem; margin-top: 0.25rem;">
                     <span>Grand Total</span>
@@ -263,6 +285,23 @@
             <p>Thank you for dining with us</p>
             <p class="success-message">Your table is now available for the next guest.</p>
             <button class="btn" onclick="closePaymentSuccess()">Done</button>
+        </div>
+    </div>
+
+    <!-- Table Closed Screen (shown after payment when guest returns) -->
+    <div id="table-closed-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f0fdf4; z-index:9999; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem;">
+        <div style="max-width:360px;">
+            <div style="width:80px; height:80px; background:#d1fae5; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1.5rem;">
+                <i class="fas fa-check-circle" style="font-size:2.5rem; color:#059669;"></i>
+            </div>
+            <h2 style="color:#065f46; font-size:1.5rem; margin-bottom:0.75rem;">Payment Completed</h2>
+            <p style="color:#047857; font-size:1rem; margin-bottom:0.5rem;">Thank you for dining with us!</p>
+            <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:1rem; margin-top:1.5rem;">
+                <i class="fas fa-ban" style="color:#ef4444; font-size:1.25rem; margin-bottom:0.5rem; display:block;"></i>
+                <p style="color:#dc2626; font-weight:600; margin:0;">This table session is now closed</p>
+                <p style="color:#6b7280; font-size:0.85rem; margin-top:0.25rem;">No further orders can be placed</p>
+            </div>
+            <p style="color:#9ca3af; font-size:0.8rem; margin-top:1.5rem;">Please contact staff if you need assistance</p>
         </div>
     </div>
 
@@ -655,6 +694,10 @@
                     
                     // Enable view-only mode UI
                     enableViewOnlyMode(data.message);
+                } else if (data.payment_completed) {
+                    // PAYMENT ALREADY DONE - table session is closed
+                    hideGuestNameModal();
+                    showTableClosedScreen();
                 } else {
                     // Access fully denied
                     showTableBusyError(data.message);
@@ -768,6 +811,7 @@
             // Show view bill button since session exists (only if not in view-only mode)
             if (!viewOnlyMode) {
                 document.getElementById('view-bill-btn').style.display = 'flex';
+                checkBillRequestStatus();
             }
         }
         
@@ -1218,6 +1262,7 @@
                         // Only show View Bill button if bill is OPEN and not in view-only mode
                         if (!viewOnlyMode) {
                             document.getElementById('view-bill-btn').style.display = 'flex';
+                            checkBillRequestStatus();
                         }
                     } else {
                         // No open bill - hide View Bill button and clear stale session
@@ -1231,6 +1276,7 @@
                     // On error, still try to show based on localStorage (only if not in view-only mode)
                     if (sessionId && !viewOnlyMode) {
                         document.getElementById('view-bill-btn').style.display = 'flex';
+                        checkBillRequestStatus();
                     }
                 });
         }
@@ -1598,6 +1644,7 @@
                     // Show bill button (only if not in view-only mode)
                     if (!viewOnlyMode) {
                         document.getElementById('view-bill-btn').style.display = 'flex';
+                        checkBillRequestStatus();
                     }
                 } else {
                     alert('Error placing order: ' + data.message);
@@ -1623,6 +1670,84 @@
             setTimeout(loadDailySpecial, 500);
         });
         
+        // ========== BILL REQUEST SYSTEM ==========
+        let billRequestStatus = null; // null, PENDING, APPROVED, REJECTED
+        let billRequestPollInterval = null;
+
+        function updateBillBtnState(status) {
+            billRequestStatus = status;
+            document.getElementById('bill-btn-request').style.display = 'none';
+            document.getElementById('bill-btn-pending').style.display = 'none';
+            document.getElementById('bill-btn-approved').style.display = 'none';
+            document.getElementById('bill-btn-rejected').style.display = 'none';
+            if (!status) {
+                document.getElementById('bill-btn-request').style.display = 'flex';
+            } else if (status === 'PENDING') {
+                document.getElementById('bill-btn-pending').style.display = 'flex';
+                startBillRequestPolling();
+            } else if (status === 'APPROVED') {
+                document.getElementById('bill-btn-approved').style.display = 'flex';
+                stopBillRequestPolling();
+            } else if (status === 'REJECTED') {
+                document.getElementById('bill-btn-rejected').style.display = 'flex';
+                stopBillRequestPolling();
+            }
+        }
+
+        function requestBill() {
+            if (!sessionId || !tableId) {
+                alert('No active session found');
+                return;
+            }
+            fetch('/orders/api/bill-request', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    table_id: tableId,
+                    session_id: sessionId,
+                    guest_name: guestName || 'Guest'
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    updateBillBtnState('PENDING');
+                    // Also mark bill_requested on the order for manager dashboard visibility
+                    if (currentOrderId) {
+                        fetch(`/orders/api/order/${currentOrderId}/request-bill`, {method: 'POST'})
+                            .catch(() => {});
+                    }
+                } else {
+                    alert(data.message || 'Failed to send request');
+                }
+            })
+            .catch(() => alert('Error sending bill request'));
+        }
+
+        function checkBillRequestStatus() {
+            if (!sessionId || !tableId) return;
+            fetch(`/orders/api/bill-request/status?table_id=${tableId}&session_id=${sessionId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        updateBillBtnState(data.status);
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function startBillRequestPolling() {
+            if (billRequestPollInterval) return;
+            billRequestPollInterval = setInterval(checkBillRequestStatus, 5000);
+        }
+
+        function stopBillRequestPolling() {
+            if (billRequestPollInterval) {
+                clearInterval(billRequestPollInterval);
+                billRequestPollInterval = null;
+            }
+        }
+
         // View Session Bill
         function viewSessionBill() {
             if (!sessionId) {
@@ -1678,14 +1803,19 @@
             // Render items with per-item CGST/SGST columns
             const itemsContainer = document.getElementById('bill-items');
             let itemsHTML = `
-                <div class="bill-items-header">
-                    <span>Item</span>
-                    <span>Qty</span>
-                    <span>Price</span>
-                    <span>CGST</span>
-                    <span>SGST</span>
-                    <span>Total</span>
-                </div>
+                <table class="bill-items-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                        <th class="col-cgst">CGST</th>
+                            <th class="col-sgst">SGST</th>
+                            <th class="col-tax" style="display:none;">Tax</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
             `;
             
             bill.items.forEach(item => {
@@ -1695,18 +1825,21 @@
                 const itemTotal = item.total_with_tax || (item.price * item.quantity + itemCgst + itemSgst);
                 const cgstPct = item.cgst_percentage || 0;
                 const sgstPct = item.sgst_percentage || 0;
+                const taxTotal = parseFloat(itemCgst) + parseFloat(itemSgst);
                 
                 itemsHTML += `
-                    <div class="bill-item-row">
-                        <span class="item-name">${item.name}</span>
-                        <span class="item-qty">${item.quantity}</span>
-                        <span class="item-price">₹${parseFloat(item.price).toFixed(2)}</span>
-                        <span class="item-cgst">${cgstPct}% (₹${parseFloat(itemCgst).toFixed(2)})</span>
-                        <span class="item-sgst">${sgstPct}% (₹${parseFloat(itemSgst).toFixed(2)})</span>
-                        <span class="item-total">₹${parseFloat(itemTotal).toFixed(2)}</span>
-                    </div>
+                    <tr>
+                        <td class="item-name">${item.name}</td>
+                        <td class="item-qty">${item.quantity}</td>
+                        <td class="item-price">₹${parseFloat(item.price).toFixed(2)}</td>
+                        <td class="item-cgst col-cgst">${cgstPct}%<br>(₹${parseFloat(itemCgst).toFixed(2)})</td>
+                        <td class="item-sgst col-sgst">${sgstPct}%<br>(₹${parseFloat(itemSgst).toFixed(2)})</td>
+                        <td class="item-tax col-tax">₹${taxTotal.toFixed(2)}</td>
+                        <td class="item-total">₹${parseFloat(itemTotal).toFixed(2)}</td>
+                    </tr>
                 `;
             });
+            itemsHTML += `</tbody></table>`;
             itemsContainer.innerHTML = itemsHTML;
             
             // Update totals with CGST/SGST
@@ -1721,6 +1854,17 @@
             document.getElementById('bill-cgst').textContent = `₹${cgstAmount.toFixed(2)}`;
             document.getElementById('bill-sgst').textContent = `₹${sgstAmount.toFixed(2)}`;
             document.getElementById('bill-tax').textContent = `₹${taxAmount.toFixed(2)}`;
+
+            // Digital Convenience Fee
+            const convenienceFee = parseFloat(bill.total_convenience_fee || 0);
+            const convRow = document.getElementById('bill-convenience-row');
+            if (convenienceFee > 0) {
+                document.getElementById('bill-convenience-fee').textContent = `₹${convenienceFee.toFixed(2)}`;
+                convRow.style.display = 'flex';
+            } else {
+                convRow.style.display = 'none';
+            }
+
             document.getElementById('bill-grand-total').textContent = `₹${parseFloat(bill.total_amount).toFixed(2)}`;
             
             currentBillTotal = bill.total_amount;
@@ -1745,6 +1889,12 @@
                 } else {
                     paymentMethodRow.style.display = 'none';
                 }
+
+                // Auto-show table closed screen after a short delay
+                setTimeout(() => {
+                    closeBillModal();
+                    showTableClosedScreen();
+                }, 2000);
             } else {
                 paymentStatus.innerHTML = '<i class="fas fa-clock"></i><span>Payment Pending</span>';
                 paymentStatus.classList.remove('paid');
@@ -2022,8 +2172,24 @@
             guestName = null;
             localStorage.removeItem(sessionStorageKey);
             localStorage.removeItem(guestNameStorageKey);
-            // Optionally reload page to reset state
-            location.reload();
+            // Show table closed screen instead of reloading
+            showTableClosedScreen();
+        }
+
+        function showTableClosedScreen() {
+            // Clear all session data
+            sessionId = null;
+            guestName = null;
+            localStorage.removeItem(sessionStorageKey);
+            localStorage.removeItem(guestNameStorageKey);
+            // Disable all ordering UI
+            viewOnlyMode = true;
+            document.body.classList.add('view-only-mode');
+            const cartBar = document.getElementById('cart-bar');
+            if (cartBar) cartBar.style.display = 'none';
+            // Show the closed screen
+            const screen = document.getElementById('table-closed-screen');
+            if (screen) screen.style.display = 'flex';
         }
         
         // Close modals on outside click
@@ -2052,6 +2218,9 @@
                 showNotification(`Please wait ${waitTime} seconds before calling again`, 'warning');
                 return;
             }
+
+            // Prevent double-fire — set cooldown immediately
+            lastCallTime = Date.now();
             
             // Disable button and show loading
             const originalHTML = btn.innerHTML;
@@ -2071,7 +2240,6 @@
                 })
             })
             .then(response => {
-                // Check if response is JSON
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
                     throw new Error('Server returned non-JSON response. Please restart the Flask server.');
@@ -2081,30 +2249,29 @@
             .then(data => {
                 console.log('[CALL_WAITER] Response:', data);
                 if (data.success) {
-                    console.log('[CALL_WAITER] Success! Request ID:', data.request_id, 'Waiter ID:', data.waiter_id);
+                    const requestId = data.request_ids ? data.request_ids[0] : data.request_id;
+                    const waiterId = data.notified_waiters ? data.notified_waiters[0] : data.waiter_id;
+                    console.log('[CALL_WAITER] Success! Request ID:', requestId, 'Waiter ID:', waiterId);
                     
-                    // Update last call time
-                    lastCallTime = Date.now();
-                    
-                    // Show success state temporarily
                     btn.innerHTML = '<i class="fas fa-check"></i><span>Waiter Notified</span>';
                     btn.classList.add('success');
                     showNotification('Waiter has been notified! They will be with you shortly.', 'success');
                     
-                    // Reset button after 3 seconds
+                    // Re-enable after 3 seconds (cooldown still enforced by lastCallTime)
                     setTimeout(() => {
                         btn.innerHTML = originalHTML;
                         btn.classList.remove('success');
                         btn.disabled = false;
                     }, 3000);
                 } else if (data.cooldown) {
-                    // Cooldown message from server
                     console.warn('[CALL_WAITER] Cooldown:', data.message);
                     btn.innerHTML = originalHTML;
                     btn.disabled = false;
                     showNotification(data.message, 'warning');
                 } else {
                     console.error('[CALL_WAITER] Failed:', data.message);
+                    // Reset cooldown on failure so user can retry
+                    lastCallTime = 0;
                     btn.innerHTML = originalHTML;
                     btn.disabled = false;
                     showNotification(data.message || 'Failed to call waiter', 'error');
@@ -2112,6 +2279,7 @@
             })
             .catch(error => {
                 console.error('[CALL_WAITER] Error:', error);
+                lastCallTime = 0;
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
                 showNotification(error.message || 'Error calling waiter. Please restart the server.', 'error');

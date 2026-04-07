@@ -15,10 +15,10 @@
         </div>
 
         <div class="menu-tabs" id="menu-tabs">
-            <button class="tab active" data-category="1" onclick="showMenuCategory(1, this)">Starters</button>
-            <button class="tab" data-category="2" onclick="showMenuCategory(2, this)">Main Course</button>
-            <button class="tab" data-category="4" onclick="showMenuCategory(4, this)">aa bereges</button>
-            <button class="tab add-tab" onclick="showAddCategoryModal()">+ Add Category</button>
+            <button class="tab active" type="button" data-category="1" onclick="showMenuCategory(1, this)">Starters</button>
+            <button class="tab" type="button" data-category="2" onclick="showMenuCategory(2, this)">Main Course</button>
+            <button class="tab" type="button" data-category="4" onclick="showMenuCategory(4, this)">aa bereges</button>
+            <button class="tab add-tab" type="button" onclick="showAddCategoryModal()">+ Add Category</button>
         </div>
 
         <div class="menu-content">
@@ -92,11 +92,11 @@
                 <div style="display: flex; gap: 1rem;">
                     <div class="form-group" style="flex: 1;">
                         <label for="dish-cgst">CGST %</label>
-                        <input type="number" id="dish-cgst" name="cgst" step="0.1" min="0" max="100" value="2.5">
+                        <input type="number" id="dish-cgst" name="cgst" step="0.1" min="0" max="100" value="">
                     </div>
                     <div class="form-group" style="flex: 1;">
                         <label for="dish-sgst">SGST %</label>
-                        <input type="number" id="dish-sgst" name="sgst" step="0.1" min="0" max="100" value="2.5">
+                        <input type="number" id="dish-sgst" name="sgst" step="0.1" min="0" max="100" value="">
                     </div>
                 </div>
                 
@@ -185,7 +185,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadCategories();
             loadKitchens();
-            loadDishes(1);
         });
 
         function showAlert(message, type = 'success') {
@@ -244,29 +243,40 @@
         function updateCategoryTabs() {
             const tabsContainer = document.getElementById('menu-tabs');
             const addButton = tabsContainer.querySelector('.add-tab');
-            
+
             const existingTabs = tabsContainer.querySelectorAll('.tab:not(.add-tab)');
             existingTabs.forEach(tab => tab.remove());
-            
+
+            let firstTab = null;
             Object.entries(categories).forEach(([id, name]) => {
                 const tab = document.createElement('button');
                 tab.className = 'tab';
+                tab.setAttribute('type', 'button');
                 tab.setAttribute('data-category', id);
                 tab.textContent = name;
                 tab.onclick = function() { showMenuCategory(parseInt(id), this); };
-                
                 if (parseInt(id) === currentCategoryId) {
                     tab.classList.add('active');
                 }
-                
                 tabsContainer.insertBefore(tab, addButton);
+                if (!firstTab) firstTab = tab;
             });
+
+            // Auto-select Starters (id=1) or first category on load
+            const startersTab = tabsContainer.querySelector('.tab[data-category="1"]:not(.add-tab)');
+            const defaultTab  = startersTab || firstTab;
+            if (defaultTab) {
+                // Remove active from all, set on default
+                tabsContainer.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                defaultTab.classList.add('active');
+                showMenuCategory(parseInt(defaultTab.getAttribute('data-category')), defaultTab);
+            }
         }
 
         function showMenuCategory(categoryId, tabElement) {
             currentCategoryId = categoryId;
             
-            document.querySelectorAll('.menu-tabs .tab').forEach(tab => {
+            document.querySelectorAll('#menu-tabs .tab').forEach(tab => {
                 tab.classList.remove('active');
             });
             tabElement.classList.add('active');
@@ -361,8 +371,8 @@
             document.getElementById('dish-id').value = '';
             document.getElementById('category-id').value = currentCategoryId;
             document.getElementById('dish-kitchen').value = '';
-            document.getElementById('dish-cgst').value = '2.5';
-            document.getElementById('dish-sgst').value = '2.5';
+            document.getElementById('dish-cgst').value = '';
+            document.getElementById('dish-sgst').value = '';
             updateImageSelectionInfo([]);
             document.getElementById('dish-modal').style.display = 'flex';
         }
@@ -442,8 +452,8 @@
                         document.getElementById('dish-quantity').value = dish.quantity;
                         document.getElementById('dish-description').value = dish.description || '';
                         document.getElementById('dish-kitchen').value = dish.kitchen_id || '';
-                        document.getElementById('dish-cgst').value = dish.cgst || 2.5;
-                        document.getElementById('dish-sgst').value = dish.sgst || 2.5;
+                        document.getElementById('dish-cgst').value = dish.cgst != null ? dish.cgst : 0;
+                        document.getElementById('dish-sgst').value = dish.sgst != null ? dish.sgst : 0;
                         document.getElementById('dish-images').removeAttribute('required');
                         updateImageSelectionInfo([]);
                         document.getElementById('dish-modal').style.display = 'flex';
@@ -683,7 +693,7 @@
                         currentCategoryId = data.category.id;
                         const newTab = document.querySelector(`[data-category="${data.category.id}"]`);
                         if (newTab) {
-                            document.querySelectorAll('.menu-tabs .tab').forEach(tab => {
+                            document.querySelectorAll('#menu-tabs .tab').forEach(tab => {
                                 tab.classList.remove('active');
                             });
                             newTab.classList.add('active');

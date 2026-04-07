@@ -6638,10 +6638,6 @@
                 <i class="fas fa-user-tie"></i>
                 <span>Waiters</span>
             </a>
-            <a href="#" class="menu-item" onclick="showSection('waiter-tips')">
-                <i class="fas fa-hand-holding-heart"></i>
-                <span>Waiter Tips</span>
-            </a>
             {% if food_enabled %}
             <div class="menu-divider"></div>
             <div class="menu-label">Food & Orders</div>
@@ -6846,28 +6842,6 @@
                 </a>
 
                 {% if food_enabled %}
-                <!-- Tips Card -->
-                <a href="#" onclick="showSection('waiter-tips'); return false;" class="dashboard-card dashboard-card-tips" id="tips-stat-card">
-                    <div class="dashboard-card-bg">
-                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="180" cy="100" r="100" fill="rgba(255,255,255,0.1)"/>
-                            <circle cx="50" cy="180" r="60" fill="rgba(255,255,255,0.05)"/>
-                        </svg>
-                    </div>
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-icon">
-                            <i class="fas fa-hand-holding-heart"></i>
-                        </div>
-                        <div class="dashboard-card-info">
-                            <span class="dashboard-card-label">Today's Tips</span>
-                            <span class="dashboard-card-value" id="today-tips-value">₹0.00</span>
-                        </div>
-                    </div>
-                    <div class="dashboard-card-footer">
-                        <i class="fas fa-gift"></i>
-                        <span>Waiter Tips</span>
-                    </div>
-                </a>
                 {% endif %}
 
                 {% if kyc_enabled %}
@@ -7095,60 +7069,7 @@
             </div>
         </div>
 
-        <!-- Waiter Tips Section -->
-        <div id="waiter-tips" class="content-section">
-            <div class="page-header">
-                <h1><i class="fas fa-hand-holding-heart"></i> Waiter Tips</h1>
-            </div>
-            
-            <!-- Tip Visibility Toggle Card -->
-            <div class="table-card" style="margin-bottom: 1.5rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h3 style="margin: 0; font-size: 1rem; color: #1f2937;">
-                            <i class="fas fa-eye" style="color: #6366f1; margin-right: 0.5rem;"></i>
-                            Show Tips to Waiters
-                        </h3>
-                        <p style="color: #6b7280; font-size: 0.85rem; margin: 0.25rem 0 0 0;">
-                           
-                        </p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="tip-visibility-toggle" onchange="toggleTipVisibility(this.checked)" {% if show_waiter_tips %}checked{% endif %}>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-            </div>
-            
-            <div class="table-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3><i class="fas fa-coins"></i> Waiter-Wise Tip Summary</h3>
-                    <div style="display: flex; gap: 0.75rem; align-items: center;">
-                        <select id="tip-period-filter" onchange="loadWaiterTips()" style="padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; cursor: pointer;">
-                            <option value="all">All Time</option>
-                            <option value="today">Today</option>
-                            <option value="week">This Week</option>
-                            <option value="month">This Month</option>
-                        </select>
-                        <button onclick="loadWaiterTips()" class="btn-secondary btn-sm">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
-                        <button onclick="debugTipSystem()" class="btn-secondary btn-sm" style="background: #f59e0b; color: white;">
-                            <i class="fas fa-bug"></i> Debug
-                        </button>
-                    </div>
-                </div>
-                <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">
-                    
-                </p>
-                <div id="waiter-tips-list">
-                    <div class="empty-state">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <p>Loading waiter tips...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Waiter Tips Section removed - tips control is now per-waiter in the Waiters table -->
 
             {% if food_enabled %}
             <!-- Kitchen Management Section -->
@@ -7416,11 +7337,11 @@
                             <div style="display: flex; gap: 1rem;">
                                 <div class="form-group" style="flex: 1;">
                                     <label for="dish-cgst">CGST %</label>
-                                    <input type="number" id="dish-cgst" name="cgst" step="0.1" min="0" max="100" value="2.5" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                                    <input type="number" id="dish-cgst" name="cgst" step="0.1" min="0" max="100" value="0" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
                                 </div>
                                 <div class="form-group" style="flex: 1;">
                                     <label for="dish-sgst">SGST %</label>
-                                    <input type="number" id="dish-sgst" name="sgst" step="0.1" min="0" max="100" value="2.5" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                                    <input type="number" id="dish-sgst" name="sgst" step="0.1" min="0" max="100" value="0" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
                                 </div>
                             </div>
                             
@@ -8057,20 +7978,37 @@
                         </div>
                     </div>
                     
-                    <!-- Dish-level Tax Info Card -->
+                    <!-- Digital Convenience Fee Toggle Card -->
                     <div class="settings-card">
                         <div class="settings-card-header">
-                            <i class="fas fa-receipt"></i>
-                            <h3>Tax Configuration</h3>
+                            <i class="fas fa-bolt"></i>
+                            <h3>Digital Convenience Fee</h3>
                         </div>
                         <div class="settings-card-body">
-                            <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">
-                                <i class="fas fa-info-circle"></i> Taxes (CGST % and SGST %) are now configured per dish. 
-                                Edit any dish in Menu Management to set its tax rates.
+                            <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1.25rem;">
+                                Control whether the Digital Convenience Fee is added to customer bills.
+                                When disabled, the fee will not appear or be charged.
                             </p>
-                            <p style="color: #059669; font-size: 0.85rem;">
-                                <i class="fas fa-check-circle"></i> Default tax rate: 2.5% CGST + 2.5% SGST = 5% GST
-                            </p>
+                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+                                <div>
+                                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Enable Digital Convenience Fee</div>
+                                    <div id="digital-fee-charge-label" style="font-size: 0.8rem; color: #6b7280;">Loading...</div>
+                                </div>
+                                <label style="position: relative; display: inline-block; width: 52px; height: 28px; cursor: pointer;">
+                                    <input type="checkbox" id="digital-fee-toggle" onchange="toggleDigitalFee(this.checked)"
+                                           style="opacity: 0; width: 0; height: 0; position: absolute;">
+                                    <span id="digital-fee-slider" style="
+                                        position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+                                        background: #cbd5e1; border-radius: 28px; transition: 0.3s;
+                                    "></span>
+                                    <span id="digital-fee-knob" style="
+                                        position: absolute; content: ''; height: 20px; width: 20px;
+                                        left: 4px; bottom: 4px; background: white; border-radius: 50%;
+                                        transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                                    "></span>
+                                </label>
+                            </div>
+                            <div id="digital-fee-status-msg" style="margin-top: 0.75rem; font-size: 0.85rem; display: none;"></div>
                         </div>
                     </div>
                 </div>
@@ -8279,6 +8217,7 @@
             } else if (sectionId === 'waiter-tips') {
                 loadWaiterTips();
             } else if (sectionId === 'settings') {
+                loadDigitalFeeSettings();
                 // Tax settings are now per-dish, configured in Menu Management
             } else if (sectionId === 'kitchen-management') {
                 loadKitchens();
@@ -8353,6 +8292,69 @@
             document.getElementById('sidebarOverlay').classList.toggle('show');
         }
         
+        // ========== DIGITAL CONVENIENCE FEE SETTINGS ==========
+        function loadDigitalFeeSettings() {
+            fetch('/orders/api/digital-fee-settings')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) return;
+                    const toggle = document.getElementById('digital-fee-toggle');
+                    const slider = document.getElementById('digital-fee-slider');
+                    const knob = document.getElementById('digital-fee-knob');
+                    const label = document.getElementById('digital-fee-charge-label');
+                    if (!toggle) return;
+                    toggle.checked = data.digital_fee_enabled;
+                    updateToggleStyle(data.digital_fee_enabled, slider, knob);
+                    const charge = parseFloat(data.per_order_charge || 0);
+                    label.textContent = charge > 0 ? `₹${charge.toFixed(2)} per order` : 'No charge configured';
+                })
+                .catch(err => console.error('Error loading digital fee settings:', err));
+        }
+
+        function updateToggleStyle(enabled, slider, knob) {
+            if (!slider || !knob) return;
+            slider.style.background = enabled ? '#6366f1' : '#cbd5e1';
+            knob.style.transform = enabled ? 'translateX(24px)' : 'translateX(0)';
+        }
+
+        function toggleDigitalFee(enabled) {
+            const slider = document.getElementById('digital-fee-slider');
+            const knob = document.getElementById('digital-fee-knob');
+            const msg = document.getElementById('digital-fee-status-msg');
+            updateToggleStyle(enabled, slider, knob);
+
+            fetch('/orders/api/digital-fee-settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({digital_fee_enabled: enabled})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (msg) {
+                    msg.style.display = 'block';
+                    msg.style.color = data.success ? '#059669' : '#ef4444';
+                    msg.innerHTML = data.success
+                        ? `<i class="fas fa-check-circle"></i> ${data.message}`
+                        : `<i class="fas fa-exclamation-circle"></i> ${data.message}`;
+                    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+                }
+                if (!data.success) {
+                    // Revert toggle on failure
+                    const toggle = document.getElementById('digital-fee-toggle');
+                    if (toggle) toggle.checked = !enabled;
+                    updateToggleStyle(!enabled, slider, knob);
+                }
+            })
+            .catch(() => {
+                if (msg) {
+                    msg.style.display = 'block';
+                    msg.style.color = '#ef4444';
+                    msg.textContent = 'Error saving setting';
+                    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+                }
+            });
+        }
+
         // Change Password Functions
         function togglePasswordVisibility(inputId) {
             const input = document.getElementById(inputId);
@@ -8820,7 +8822,7 @@
                                                 <code class="waiter-id-badge">${waiter.waiter_id}</code>
                                                 <span class="status-badge ${statusClass}">${statusText}</span>
                                             </div>
-                                            <h4 class="waiter-name">${waiter.name}</h4>
+                                            <h4 class="waiter-name waiter-name-link" onclick="openWaiterTipsModal(${waiter.waiter_id}, '${waiter.name.replace(/'/g, "\\'")}')" title="View tip details">${waiter.name}</h4>
                                         </div>
                                         <div class="waiter-card-body">
                                             <div class="waiter-detail">
@@ -8834,6 +8836,13 @@
                                             <div class="waiter-detail">
                                                 <i class="fas fa-chair"></i>
                                                 <span>${assignedTables}</span>
+                                            </div>
+                                            <div class="waiter-detail" style="justify-content: space-between;">
+                                                <span><i class="fas fa-hand-holding-heart"></i> Show Tips</span>
+                                                <label class="toggle-switch" style="margin:0;">
+                                                    <input type="checkbox" ${waiter.show_waiter_tips !== false ? 'checked' : ''} onchange="toggleWaiterTips(${waiter.waiter_id}, this.checked)">
+                                                    <span class="toggle-slider"></span>
+                                                </label>
                                             </div>
                                         </div>
                                         <div class="waiter-card-actions">
@@ -8854,18 +8863,25 @@
                             document.getElementById('waiters-list-container').innerHTML = html;
                         } else {
                             // Desktop Table Layout
-                            let html = '<div class="table-responsive"><table class="waiters-table"><thead><tr><th>WAITER ID</th><th>NAME</th><th>EMAIL</th><th>PHONE</th><th>ASSIGNED TABLES</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody>';
+                            let html = '<div class="table-responsive"><table class="waiters-table"><thead><tr><th>WAITER ID</th><th>NAME</th><th>EMAIL</th><th>PHONE</th><th>ASSIGNED TABLES</th><th>STATUS</th><th>TIPS</th><th>ACTIONS</th></tr></thead><tbody>';
                             data.waiters.forEach(waiter => {
                                 const statusClass = waiter.is_active ? 'active' : 'inactive';
                                 const statusText = waiter.is_active ? 'ACTIVE' : 'INACTIVE';
                                 const assignedTables = waiter.assigned_tables || '<span class="no-tables">No tables</span>';
+                                const tipsChecked = waiter.show_waiter_tips !== false ? 'checked' : '';
                                 html += `<tr>
                                     <td><code class="waiter-id-badge">${waiter.waiter_id}</code></td>
-                                    <td><strong>${waiter.name}</strong></td>
+                                    <td><strong class="waiter-name-link" onclick="openWaiterTipsModal(${waiter.waiter_id}, '${waiter.name.replace(/'/g, "\\'")}')" title="View tip details">${waiter.name}</strong></td>
                                     <td>${waiter.email}</td>
                                     <td>${waiter.phone}</td>
                                     <td class="tables-cell">${assignedTables}</td>
                                     <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                                    <td style="text-align:center;">
+                                        <label class="toggle-switch" style="margin:0 auto;">
+                                            <input type="checkbox" ${tipsChecked} onchange="toggleWaiterTips(${waiter.waiter_id}, this.checked)" title="Show/hide tips for this waiter">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </td>
                                     <td class="action-buttons">
                                         <button class="btn-sm btn-info" onclick="openEditWaiterModal(${waiter.waiter_id})" title="Edit Waiter">
                                             <i class="fas fa-edit"></i>
@@ -9067,6 +9083,18 @@
                 if (data.success) {
                     loadWaitersList();
                 }
+            });
+        }
+
+        function toggleWaiterTips(waiterId, showTips) {
+            fetch(`/hotel-manager/api/toggle-waiter-tips/${waiterId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({show_waiter_tips: showTips})
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMessage(data.message || (showTips ? 'Tips enabled' : 'Tips disabled'), data.success ? 'success' : 'error');
             });
         }
         
@@ -9860,8 +9888,8 @@
             document.getElementById('dish-id').value = '';
             document.getElementById('category-id').value = currentCategoryId;
             document.getElementById('dish-kitchen').value = '';
-            document.getElementById('dish-cgst').value = '2.5';
-            document.getElementById('dish-sgst').value = '2.5';
+            document.getElementById('dish-cgst').value = '0';
+            document.getElementById('dish-sgst').value = '0';
             
             // Reset existing images info and enable file input
             const existingInfoDiv = document.getElementById('existing-images-info');
@@ -9955,8 +9983,8 @@
                         document.getElementById('dish-quantity').value = dish.quantity;
                         document.getElementById('dish-description').value = dish.description || '';
                         document.getElementById('dish-kitchen').value = dish.kitchen_id || '';
-                        document.getElementById('dish-cgst').value = dish.cgst || 2.5;
-                        document.getElementById('dish-sgst').value = dish.sgst || 2.5;
+                        document.getElementById('dish-cgst').value = dish.cgst != null ? dish.cgst : 0;
+                        document.getElementById('dish-sgst').value = dish.sgst != null ? dish.sgst : 0;
                         document.getElementById('dish-images').removeAttribute('required');
                         
                         // Filter valid images (exclude empty strings, null, undefined) and DEDUPLICATE
@@ -10485,7 +10513,7 @@
                 loadActiveBills();
             }
         }
-        
+
         // Load Active Bills - One per table
         function loadActiveBills() {
             fetch('/orders/api/active-bills')
@@ -11129,21 +11157,18 @@
                 return;
             }
             
-            // Desktop Table Layout
+            // Desktop Table Layout — Time | Order # | Table & Guest | Total | Method | Bill
             let ordersHTML = `
                 <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; min-width: 900px;">
+                <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
                     <thead>
                         <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Order #</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Table & Guest</th>
-                            <th style="padding: 1rem; text-align: right; font-weight: 600;">Total</th>
-                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Order Status</th>
-                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Payment Status</th>
-                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Method</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Time</th>
-                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Actions</th>
-                            <th style="padding: 1rem; text-align: center; font-weight: 600;">Bill</th>
+                            <th style="padding: 0.875rem 1rem; text-align: left; font-weight: 600;">Time</th>
+                            <th style="padding: 0.875rem 1rem; text-align: left; font-weight: 600;">Order #</th>
+                            <th style="padding: 0.875rem 1rem; text-align: left; font-weight: 600;">Table & Guest</th>
+                            <th style="padding: 0.875rem 1rem; text-align: right; font-weight: 600;">Total</th>
+                            <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600;">Method</th>
+                            <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600;">Bill</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -11153,89 +11178,77 @@
             let mobileCardsHTML = '<div class="mobile-order-cards">';
             
             orders.forEach((order, index) => {
-                const orderTime = formatDateTime(order.created_at);
-                const orderStatusClass = order.order_status === 'COMPLETED' ? 'paid' : (order.order_status === 'PREPARING' ? 'busy' : 'pending');
                 const paymentStatus = order.payment_status || 'PENDING';
+                const isPaid = paymentStatus === 'PAID';
                 const paymentMethod = order.payment_method || '-';
-                const paymentClass = paymentStatus === 'PAID' ? 'paid' : 'pending';
                 const guestName = order.guest_name || 'Guest';
                 const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
                 const itemCount = order.items ? order.items.length : 0;
                 
-                // Payment method styling
-                let methodStyle = '';
+                // Method badge
+                let methodStyle = 'background: #f3f4f6; color: #6b7280;';
                 let methodIcon = '';
+                let methodLabel = '-';
                 if (paymentMethod === 'UPI') {
                     methodStyle = 'background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #5b21b6;';
                     methodIcon = '<i class="fas fa-qrcode" style="margin-right: 0.25rem;"></i>';
+                    methodLabel = 'UPI';
                 } else if (paymentMethod === 'CASH' || paymentMethod === 'Cash') {
                     methodStyle = 'background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46;';
                     methodIcon = '<i class="fas fa-money-bill-wave" style="margin-right: 0.25rem;"></i>';
-                } else {
-                    methodStyle = 'background: #f3f4f6; color: #6b7280;';
-                    methodIcon = '';
+                    methodLabel = 'Cash';
                 }
                 
-                // Desktop Table Row
+                // Desktop Row
                 ordersHTML += `
                     <tr style="border-bottom: 1px solid #e2e8f0; background: ${rowBg};" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='${rowBg}'">
-                        <td style="padding: 1rem;">
+                        <td style="padding: 0.875rem 1rem; color: #6b7280; font-size: 0.82rem; white-space: nowrap;">
+                            <div>${formatDate(order.created_at)}</div>
+                            <div style="margin-top: 0.2rem;">${formatTime(order.created_at)}</div>
+                        </td>
+                        <td style="padding: 0.875rem 1rem;">
                             <span style="font-weight: 700; color: #4f46e5;">#${order.id}</span>
-                            <div style="font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem;">${itemCount} item(s)</div>
+                            <div style="font-size: 0.72rem; color: #9ca3af; margin-top: 0.2rem;">${itemCount} item(s)</div>
                         </td>
-                        <td style="padding: 1rem;">
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <span style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 0.5rem 0.75rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem;">T${order.table_number}</span>
-                                <div>
-                                    <div style="font-weight: 500; color: #1f2937;">${guestName}</div>
-                                </div>
+                        <td style="padding: 0.875rem 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <span style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 0.35rem 0.6rem; border-radius: 7px; font-weight: 600; font-size: 0.8rem; white-space: nowrap;">T${order.table_number}</span>
+                                <span style="font-weight: 500; color: #1f2937;">${guestName}</span>
                             </div>
                         </td>
-                        <td style="padding: 1rem; text-align: right;">
-                            <span style="font-weight: 700; font-size: 1.1rem; color: #059669;">₹${parseFloat(order.total_amount).toFixed(2)}</span>
+                        <td style="padding: 0.875rem 1rem; text-align: right;">
+                            <span style="font-weight: 700; font-size: 1rem; color: ${isPaid ? '#059669' : '#1f2937'};">₹${parseFloat(order.total_amount).toFixed(2)}</span>
+                            ${isPaid ? '<div style="display:inline-flex;align-items:center;gap:0.2rem;background:#d1fae5;color:#059669;border-radius:10px;padding:0.15rem 0.45rem;font-size:0.65rem;font-weight:600;margin-top:0.2rem;"><i class="fas fa-lock" style="font-size:0.6rem;"></i> Paid</div>' : ''}
                         </td>
-                        <td style="padding: 1rem; text-align: center;">
-                            <span class="status-badge status-${orderStatusClass}" style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem;">${order.order_status}</span>
-                        </td>
-                        <td style="padding: 1rem; text-align: center;">
-                            <span class="status-badge status-${paymentClass}" style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; ${paymentStatus === 'PAID' ? 'background: #d1fae5; color: #065f46;' : 'background: #fef3c7; color: #92400e;'}">
-                                <i class="fas ${paymentStatus === 'PAID' ? 'fa-check-circle' : 'fa-clock'}" style="margin-right: 0.25rem;"></i>${paymentStatus}
+                        <td style="padding: 0.875rem 1rem; text-align: center;">
+                            <span style="padding: 0.3rem 0.7rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.2rem; ${methodStyle}">
+                                ${methodIcon}${methodLabel}
                             </span>
                         </td>
-                        <td style="padding: 1rem; text-align: center;">
-                            <span style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.25rem; ${methodStyle}">
-                                ${methodIcon}${paymentMethod === '-' ? '-' : paymentMethod}
-                            </span>
-                        </td>
-                        <td style="padding: 1rem; color: #6b7280; font-size: 0.85rem;">
-                            <div><i class="fas fa-calendar" style="margin-right: 0.25rem;"></i>${formatDate(order.created_at)}</div>
-                            <div style="margin-top: 0.25rem;"><i class="fas fa-clock" style="margin-right: 0.25rem;"></i>${formatTime(order.created_at)}</div>
-                        </td>
-                        <td style="padding: 1rem; text-align: center;">
-                            <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: center;">
-                                ${order.order_status !== 'COMPLETED' ? `
-                                    <button onclick="updateOrderStatus(${order.id}, 'PREPARING')" class="btn-secondary btn-sm" style="width: 100%; padding: 0.4rem 0.6rem; font-size: 0.75rem;" ${order.order_status === 'PREPARING' ? 'disabled style="opacity: 0.5; width: 100%; padding: 0.4rem 0.6rem; font-size: 0.75rem;"' : ''}>
-                                        <i class="fas fa-fire"></i> Preparing
-                                    </button>
-                                    <button onclick="updateOrderStatus(${order.id}, 'COMPLETED')" class="btn-primary btn-sm" style="width: 100%; padding: 0.4rem 0.6rem; font-size: 0.75rem;">
-                                        <i class="fas fa-check"></i> Complete
-                                    </button>
-                                ` : `
-                                    ${paymentStatus === 'PENDING' ? `
-                                        <button onclick="markPaymentDone(${order.id}, ${order.table_id})" class="btn-sm" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; font-size: 0.75rem;">
-                                            <i class="fas fa-check-circle"></i> Mark Payment Done
+                        <td style="padding: 0.875rem 1rem; text-align: center;">
+                            ${(() => {
+                                if (isPaid || order.bill_id) {
+                                    // Bill exists or paid → View Bill
+                                    return `<button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.45rem 0.9rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
+                                        <i class="fas fa-file-invoice"></i> View Bill
+                                    </button>`;
+                                } else if (order.bill_requested) {
+                                    // Guest requested bill → show badge + Generate Bill
+                                    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;">
+                                        <span style="background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:0.2rem 0.6rem;font-size:0.7rem;font-weight:600;display:inline-flex;align-items:center;gap:0.25rem;">
+                                            <i class="fas fa-bell" style="font-size:0.65rem;"></i> Requested
+                                        </span>
+                                        <button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; font-size:0.78rem;">
+                                            <i class="fas fa-file-invoice"></i> Generate Bill
                                         </button>
-                                    ` : `
-                                        <span style="color: #10b981; font-weight: 600; font-size: 0.85rem;"><i class="fas fa-check-circle"></i> Paid</span>
-                                    `}
-                                `}
-                            </div>
-                        </td>
-                        <td style="padding: 1rem; text-align: center;">
-                            <button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem;" title="${paymentStatus === 'PAID' ? 'View Bill' : 'Generate Bill'}">
-                                <i class="fas fa-file-invoice"></i>
-                                ${paymentStatus === 'PAID' ? 'View Bill' : 'Generate Bill'}
-                            </button>
+                                    </div>`;
+                                } else {
+                                    // No request yet → Generate Bill
+                                    return `<button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 0.45rem 0.9rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
+                                        <i class="fas fa-file-invoice"></i> Generate Bill
+                                    </button>`;
+                                }
+                            })()}
                         </td>
                     </tr>
                 `;
@@ -11244,10 +11257,15 @@
                 mobileCardsHTML += `
                     <div class="mobile-order-card">
                         <div class="mobile-order-header">
-                            <div class="mobile-order-number">#${order.id}</div>
-                            <div class="mobile-order-total">₹${parseFloat(order.total_amount).toFixed(2)}</div>
+                            <div>
+                                <div class="mobile-order-number">#${order.id}</div>
+                                <div style="font-size:0.72rem;color:#9ca3af;margin-top:0.15rem;">${formatDate(order.created_at)} ${formatTime(order.created_at)}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div class="mobile-order-total" style="color:${isPaid ? '#059669' : '#1f2937'};">₹${parseFloat(order.total_amount).toFixed(2)}</div>
+                                ${isPaid ? '<div style="display:inline-flex;align-items:center;gap:0.2rem;background:#d1fae5;color:#059669;border-radius:10px;padding:0.15rem 0.45rem;font-size:0.65rem;font-weight:600;"><i class="fas fa-lock" style="font-size:0.6rem;"></i> Paid</div>' : ''}
+                            </div>
                         </div>
-                        
                         <div class="mobile-order-info">
                             <div class="mobile-info-item">
                                 <div class="mobile-info-label">Table & Guest</div>
@@ -11259,61 +11277,35 @@
                                 </div>
                             </div>
                             <div class="mobile-info-item">
-                                <div class="mobile-info-label">Items</div>
-                                <div class="mobile-info-value">${itemCount} item(s)</div>
+                                <div class="mobile-info-label">Method</div>
+                                <div class="mobile-info-value">
+                                    <span style="padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.2rem; ${methodStyle}">
+                                        ${methodIcon}${methodLabel}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="mobile-status-badges">
-                            <div class="mobile-status-row">
-                                <span class="mobile-info-label">Order Status</span>
-                                <span class="status-badge status-${orderStatusClass}" style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem;">${order.order_status}</span>
-                            </div>
-                            <div class="mobile-status-row">
-                                <span class="mobile-info-label">Payment Status</span>
-                                <span class="status-badge status-${paymentClass}" style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem; ${paymentStatus === 'PAID' ? 'background: #d1fae5; color: #065f46;' : 'background: #fef3c7; color: #92400e;'}">
-                                    <i class="fas ${paymentStatus === 'PAID' ? 'fa-check-circle' : 'fa-clock'}" style="margin-right: 0.25rem;"></i>${paymentStatus}
-                                </span>
-                            </div>
-                            <div class="mobile-status-row">
-                                <span class="mobile-info-label">Payment Method</span>
-                                <span class="mobile-payment-method" style="${methodStyle}">
-                                    ${methodIcon}${paymentMethod === '-' ? '-' : paymentMethod}
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <div class="mobile-order-time">
-                            <i class="fas fa-calendar" style="margin-right: 0.5rem;"></i>${formatDate(order.created_at)}
-                            <span style="margin: 0 0.5rem;">•</span>
-                            <i class="fas fa-clock" style="margin-right: 0.5rem;"></i>${formatTime(order.created_at)}
-                        </div>
-                        
-                        <div class="mobile-order-actions">
-                            ${order.order_status !== 'COMPLETED' ? `
-                                <div class="mobile-action-row">
-                                    <button onclick="updateOrderStatus(${order.id}, 'PREPARING')" class="btn-secondary btn-sm" ${order.order_status === 'PREPARING' ? 'disabled style="opacity: 0.5;"' : ''}>
-                                        <i class="fas fa-fire"></i> Preparing
-                                    </button>
-                                    <button onclick="updateOrderStatus(${order.id}, 'COMPLETED')" class="btn-primary btn-sm">
-                                        <i class="fas fa-check"></i> Complete
+                        <div class="mobile-order-actions" style="margin-top: 0.75rem;">
+                            ${isPaid || order.bill_id ? `
+                                <button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
+                                    <i class="fas fa-file-invoice"></i> View Bill
+                                </button>
+                            ` : order.bill_requested ? `
+                                <div style="display:flex;flex-direction:column;gap:0.4rem;">
+                                    <div style="text-align:center;">
+                                        <span style="background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:0.2rem 0.7rem;font-size:0.72rem;font-weight:600;display:inline-flex;align-items:center;gap:0.25rem;">
+                                            <i class="fas fa-bell" style="font-size:0.65rem;"></i> Bill Requested
+                                        </span>
+                                    </div>
+                                    <button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
+                                        <i class="fas fa-file-invoice"></i> Generate Bill
                                     </button>
                                 </div>
                             ` : `
-                                ${paymentStatus === 'PENDING' ? `
-                                    <button onclick="markPaymentDone(${order.id}, ${order.table_id})" class="btn-sm" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
-                                        <i class="fas fa-check-circle"></i> Mark Payment Done
-                                    </button>
-                                ` : `
-                                    <div style="text-align: center; color: #10b981; font-weight: 600; padding: 12px;">
-                                        <i class="fas fa-check-circle"></i> Payment Completed
-                                    </div>
-                                `}
+                                <button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
+                                    <i class="fas fa-file-invoice"></i> Generate Bill
+                                </button>
                             `}
-                            <button onclick="viewOrderBill(${order.id})" class="btn-sm" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; width: 100%; justify-content: center; padding: 12px;">
-                                <i class="fas fa-file-invoice"></i>
-                                ${paymentStatus === 'PAID' ? 'View Bill' : 'Generate Bill'}
-                            </button>
                         </div>
                     </div>
                 `;
@@ -11322,36 +11314,26 @@
             ordersHTML += '</tbody></table></div>';
             mobileCardsHTML += '</div>';
             
-            // Combine both layouts
             container.innerHTML = ordersHTML + mobileCardsHTML;
             
-            // Add window resize listener to handle layout switching
-            window.addEventListener('resize', function() {
-                const isMobile = window.innerWidth <= 768;
-                const table = container.querySelector('table');
-                const mobileCards = container.querySelector('.mobile-order-cards');
-                
-                if (isMobile) {
-                    if (table && table.parentElement) table.parentElement.style.display = 'none';
-                    if (mobileCards) mobileCards.style.display = 'block';
-                } else {
-                    if (table && table.parentElement) table.parentElement.style.display = 'block';
-                    if (mobileCards) mobileCards.style.display = 'none';
-                }
-            });
-            
-            // Initial layout setup
-            const isMobile = window.innerWidth <= 768;
-            const table = container.querySelector('table');
-            const mobileCards = container.querySelector('.mobile-order-cards');
-            
-            if (isMobile) {
-                if (table && table.parentElement) table.parentElement.style.display = 'none';
-                if (mobileCards) mobileCards.style.display = 'block';
-            } else {
-                if (table && table.parentElement) table.parentElement.style.display = 'block';
-                if (mobileCards) mobileCards.style.display = 'none';
+            // Responsive layout switching
+            if (window._ordersResizeHandler) {
+                window.removeEventListener('resize', window._ordersResizeHandler);
             }
+            window._ordersResizeHandler = function() {
+                const isMobile = window.innerWidth <= 768;
+                const tbl = document.querySelector('#orders-list table');
+                const cards = document.querySelector('#orders-list .mobile-order-cards');
+                if (isMobile) {
+                    if (tbl && tbl.parentElement) tbl.parentElement.style.display = 'none';
+                    if (cards) cards.style.display = 'block';
+                } else {
+                    if (tbl && tbl.parentElement) tbl.parentElement.style.display = 'block';
+                    if (cards) cards.style.display = 'none';
+                }
+            };
+            window.addEventListener('resize', window._ordersResizeHandler);
+            window._ordersResizeHandler();
         }
         
         function clearCompletedOrders() {
@@ -11439,10 +11421,10 @@
                 <tr>
                     <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0;">${item.name}</td>
                     <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center;">${item.quantity}</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: right;">₹${parseFloat(item.price).toFixed(2)}</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: right; color: #059669; font-size: 0.85rem;">${cgstPct}% (₹${parseFloat(itemCgst).toFixed(2)})</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: right; color: #059669; font-size: 0.85rem;">${sgstPct}% (₹${parseFloat(itemSgst).toFixed(2)})</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500;">₹${parseFloat(itemTotal).toFixed(2)}</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: right; white-space: nowrap;">₹${parseFloat(item.price).toFixed(2)}</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: right; color: #059669; font-size: 0.85rem; white-space: nowrap;">${cgstPct}%<br>(₹${parseFloat(itemCgst).toFixed(2)})</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: right; color: #059669; font-size: 0.85rem; white-space: nowrap;">${sgstPct}%<br>(₹${parseFloat(itemSgst).toFixed(2)})</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 500; white-space: nowrap;">₹${parseFloat(itemTotal).toFixed(2)}</td>
                 </tr>
             `}).join('');
             
@@ -11566,6 +11548,12 @@
                             <div class="bill-total-row" style="display: flex; justify-content: space-between; padding: 0.5rem 0; color: #059669;">
                                 <span><i class="fas fa-hand-holding-heart" style="margin-right: 0.25rem;"></i>Tip:</span>
                                 <span>₹${parseFloat(bill.tip_amount).toFixed(2)}</span>
+                            </div>
+                            ` : ''}
+                            ${bill.total_convenience_fee && parseFloat(bill.total_convenience_fee) > 0 ? `
+                            <div class="bill-total-row" style="display: flex; justify-content: space-between; padding: 0.4rem 0; color: #6366f1; border-top: 1px dashed #e2e8f0; margin-top: 0.25rem; padding-top: 0.5rem;">
+                                <span><i class="fas fa-bolt" style="margin-right:0.3rem;font-size:0.8rem;"></i>Digital Convenience Fee:</span>
+                                <span>₹${parseFloat(bill.total_convenience_fee).toFixed(2)}</span>
                             </div>
                             ` : ''}
                             <div class="bill-total-row grand-total" style="display: flex; justify-content: space-between; padding: 0.75rem 0; margin-top: 0.5rem; border-top: 2px solid #e2e8f0; font-size: 1.25rem; font-weight: 700;">
@@ -13239,6 +13227,197 @@
             });
         }
 
+    </script>
+
+    <!-- Waiter Tips Detail Modal -->
+    <div class="modal-overlay" id="waiter-tips-modal" style="display:none;">
+        <div class="modal-content" style="max-width:680px; max-height:85vh; overflow-y:auto;">
+            <div class="modal-header">
+                <h3><i class="fas fa-hand-holding-heart" style="color:#f59e0b;margin-right:0.5rem;"></i> <span id="tips-modal-waiter-name">Waiter</span> — Tip Details</h3>
+                <button class="modal-close" onclick="closeWaiterTipsModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding:1.25rem;">
+                <!-- Period filter -->
+                <div style="display:flex;gap:0.5rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+                    <button class="btn-sm tips-period-btn active" data-period="all" onclick="loadWaiterTipDetails('all')">All Time</button>
+                    <button class="btn-sm tips-period-btn" data-period="today" onclick="loadWaiterTipDetails('today')">Today</button>
+                    <button class="btn-sm tips-period-btn" data-period="week" onclick="loadWaiterTipDetails('week')">This Week</button>
+                    <button class="btn-sm tips-period-btn" data-period="month" onclick="loadWaiterTipDetails('month')">This Month</button>
+                </div>
+                <!-- Summary cards -->
+                <div id="tips-summary-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.75rem;margin-bottom:1.25rem;"></div>
+                <!-- History table -->
+                <div id="tips-history-container">
+                    <div style="text-align:center;padding:2rem;color:#9ca3af;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .waiter-name-link {
+            cursor: pointer;
+            color: #4f46e5;
+            text-decoration: underline dotted;
+        }
+        .waiter-name-link:hover { color: #3730a3; }
+        .tips-period-btn {
+            padding: 0.35rem 0.85rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.82rem;
+            color: #374151;
+            transition: all 0.2s;
+        }
+        .tips-period-btn.active {
+            background: #4f46e5;
+            color: white;
+            border-color: #4f46e5;
+        }
+        .tip-summary-card {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        .tip-summary-card .tip-val {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .tip-summary-card .tip-lbl {
+            font-size: 0.72rem;
+            color: #6b7280;
+            margin-top: 0.2rem;
+        }
+        .tips-history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .tips-history-table thead th {
+            background: #f1f5f9;
+            padding: 0.6rem 0.75rem;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+        .tips-history-table tbody td {
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #374151;
+        }
+        .tips-history-table tbody tr:last-child td { border-bottom: none; }
+        .tips-history-table tbody tr:hover td { background: #f8fafc; }
+        .tip-amount-cell { font-weight: 600; color: #059669; }
+    </style>
+
+    <script>
+        let currentTipsWaiterId = null;
+
+        function openWaiterTipsModal(waiterId, waiterName) {
+            currentTipsWaiterId = waiterId;
+            document.getElementById('tips-modal-waiter-name').textContent = waiterName;
+            document.getElementById('waiter-tips-modal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            // Reset period buttons
+            document.querySelectorAll('.tips-period-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.tips-period-btn[data-period="all"]').classList.add('active');
+            loadWaiterTipDetails('all');
+        }
+
+        function closeWaiterTipsModal() {
+            document.getElementById('waiter-tips-modal').style.display = 'none';
+            document.body.style.overflow = '';
+            currentTipsWaiterId = null;
+        }
+
+        function loadWaiterTipDetails(period) {
+            if (!currentTipsWaiterId) return;
+            // Update active button
+            document.querySelectorAll('.tips-period-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.period === period);
+            });
+            document.getElementById('tips-history-container').innerHTML =
+                '<div style="text-align:center;padding:2rem;color:#9ca3af;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+            fetch(`/hotel-manager/api/waiter-tip-details/${currentTipsWaiterId}?period=${period}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) {
+                        document.getElementById('tips-history-container').innerHTML =
+                            `<p style="color:#ef4444;text-align:center;">${data.message || 'Failed to load'}</p>`;
+                        return;
+                    }
+                    const s = data.summary;
+                    document.getElementById('tips-summary-cards').innerHTML = `
+                        <div class="tip-summary-card">
+                            <div class="tip-val">₹${Math.round(s.total_tips)}</div>
+                            <div class="tip-lbl">Total Tips</div>
+                        </div>
+                        <div class="tip-summary-card">
+                            <div class="tip-val">₹${Math.round(s.today_tips)}</div>
+                            <div class="tip-lbl">Today</div>
+                        </div>
+                        <div class="tip-summary-card">
+                            <div class="tip-val">₹${Math.round(s.week_tips)}</div>
+                            <div class="tip-lbl">This Week</div>
+                        </div>
+                        <div class="tip-summary-card">
+                            <div class="tip-val">₹${Math.round(s.month_tips)}</div>
+                            <div class="tip-lbl">This Month</div>
+                        </div>
+                        <div class="tip-summary-card">
+                            <div class="tip-val">${s.tip_count}</div>
+                            <div class="tip-lbl">Total Orders</div>
+                        </div>
+                    `;
+                    if (!data.tips || data.tips.length === 0) {
+                        document.getElementById('tips-history-container').innerHTML =
+                            '<div style="text-align:center;padding:2rem;color:#9ca3af;"><i class="fas fa-coins"></i><p style="margin-top:0.5rem;">No tips found for this period</p></div>';
+                        return;
+                    }
+                    let rows = data.tips.map(t => `
+                        <tr>
+                            <td>${t.created_at || '-'}</td>
+                            <td>${t.table_number || '-'}</td>
+                            <td>${t.bill_number || '-'}</td>
+                            <td>${t.guest_name || '-'}</td>
+                            <td class="tip-amount-cell">₹${parseFloat(t.tip_amount).toFixed(2)}</td>
+                        </tr>
+                    `).join('');
+                    document.getElementById('tips-history-container').innerHTML = `
+                        <div style="overflow-x:auto;">
+                            <table class="tips-history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Table</th>
+                                        <th>Bill No.</th>
+                                        <th>Guest</th>
+                                        <th>Tip Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>
+                    `;
+                })
+                .catch(() => {
+                    document.getElementById('tips-history-container').innerHTML =
+                        '<p style="color:#ef4444;text-align:center;">Error loading tip details</p>';
+                });
+        }
+
+        // Close modal on backdrop click
+        document.getElementById('waiter-tips-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeWaiterTipsModal();
+        });
     </script>
 </body>
 </html>
