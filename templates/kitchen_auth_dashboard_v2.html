@@ -312,6 +312,20 @@
             min-width: 0;
             overflow: hidden;
         }
+
+        .order-card.new-incoming {
+            animation: kotPulse 1.8s ease-in-out 2;
+            border-left-width: 5px;
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.28), 0 10px 24px rgba(15, 23, 42, 0.12);
+        }
+
+        @keyframes kotPulse {
+            0% { transform: translateY(0); }
+            25% { transform: translateY(-2px); }
+            50% { transform: translateY(0); }
+            75% { transform: translateY(-1px); }
+            100% { transform: translateY(0); }
+        }
         
         .order-card.active { border-color: var(--warning); background: #fffbeb; }
         .order-card.preparing { border-color: var(--info); background: #eff6ff; }
@@ -996,17 +1010,71 @@
     </div>
     
     <script>
+        const knownOrderItemIds = new Set();
+        let firstLoadComplete = false;
+
+        function playIncomingOrderBeep(times = 2) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) {
+                    return;
+                }
+                const ctx = new AudioCtx();
+                const now = ctx.currentTime;
+                for (let i = 0; i < times; i++) {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = i % 2 === 0 ? 950 : 1180;
+                    gain.gain.setValueAtTime(0.001, now + i * 0.24);
+                    gain.gain.exponentialRampToValueAtTime(0.12, now + i * 0.24 + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.24 + 0.18);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + i * 0.24);
+                    osc.stop(now + i * 0.24 + 0.19);
+                }
+            } catch (error) {
+                console.warn('KOT beep unavailable:', error);
+            }
+        }
+
+        function collectCurrentOrderItemIds(ordersByCategory) {
+            const current = new Set();
+            const incoming = new Set();
+
+            Object.values(ordersByCategory || {}).forEach(orders => {
+                (orders || []).forEach(order => {
+                    const itemId = Number(order.item_id || 0);
+                    if (!itemId) return;
+                    current.add(itemId);
+                    if (firstLoadComplete && !knownOrderItemIds.has(itemId)) {
+                        incoming.add(itemId);
+                    }
+                });
+            });
+
+            knownOrderItemIds.clear();
+            current.forEach(id => knownOrderItemIds.add(id));
+            firstLoadComplete = true;
+            return incoming;
+        }
+
         function loadOrders() {
             fetch('/kitchen/api/orders')
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        displayOrders(data.orders_by_category, data.stats);
+                        const incomingItemIds = collectCurrentOrderItemIds(data.orders_by_category);
+                        displayOrders(data.orders_by_category, data.stats, incomingItemIds);
+                        if (incomingItemIds.size > 0) {
+                            playIncomingOrderBeep(2);
+                        }
                     }
                 });
         }
         
-        function displayOrders(ordersByCategory, stats) {
+        function displayOrders(ordersByCategory, stats, incomingItemIds = new Set()) {
             document.getElementById('stat-active').textContent = stats.active || 0;
             document.getElementById('stat-preparing').textContent = stats.preparing || 0;
             document.getElementById('stat-ready').textContent = stats.ready || 0;
@@ -1037,6 +1105,8 @@
                 
                 orders.forEach(order => {
                     const statusClass = order.order_status.toLowerCase();
+                    const itemId = Number(order.item_id || 0);
+                    const isIncoming = incomingItemIds.has(itemId);
                     const statusIcon = {
                         'ACTIVE': 'clock',
                         'PREPARING': 'fire',
@@ -1044,7 +1114,7 @@
                     }[order.order_status] || 'circle';
                     
                     html += `
-                        <div class="order-card ${statusClass}">
+                        <div class="order-card ${statusClass} ${isIncoming ? 'new-incoming' : ''}">
                             <div class="order-header">
                                 <div>
                                     <div class="dish-name">${order.item_name}</div>
@@ -1127,7 +1197,7 @@
         }
         
         loadOrders();
-        setInterval(loadOrders, 15000);
+        setInterval(loadOrders, 5000);
     </script>
 </body>
 </html>

@@ -3,6 +3,7 @@ import qrcode
 import uuid
 from flask import url_for
 from .table_models import Table, TableOrder, Bill, BillRequest
+from .kot_service import KOTService
 
 class TableService:
     @staticmethod
@@ -232,7 +233,7 @@ class OrderService:
             return {"success": False, "message": "Server error", "can_order": False, "view_only_mode": False}
     
     @staticmethod
-    def create_order(table_id, items, session_id=None, guest_name=None):
+    def create_order(table_id, items, session_id=None, guest_name=None, kot_note=None):
         """Create new ACTIVE order and set table BUSY - with guest name-based bill grouping"""
         try:
             from orders.table_models import ActiveTable
@@ -337,6 +338,17 @@ class OrderService:
             if bill_info:
                 bill_id = bill_info.get('bill_id')
                 ActiveTable.create_or_get_active_entry(table_id, bill_id, guest_name, session_id, hotel_id)
+
+            # Auto-print KOT for newly inserted order_items only.
+            try:
+                kot_result = KOTService.print_for_new_items(order_id, note=kot_note)
+                if not kot_result.get('success'):
+                    print(f"[KOT] Processing failed for order {order_id}: {kot_result.get('message')}")
+                else:
+                    print(f"[KOT] Order {order_id}: printed={kot_result.get('printed')} failed={kot_result.get('failed')}")
+            except Exception as kot_error:
+                # Never block order placement due to printer/runtime issues.
+                print(f"[KOT] Error while auto-printing order {order_id}: {kot_error}")
             
             return {
                 "success": True,

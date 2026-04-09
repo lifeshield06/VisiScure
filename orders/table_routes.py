@@ -274,6 +274,7 @@ def create_order():
         items = data.get('items', [])
         session_id = data.get('session_id')
         guest_name = data.get('guest_name')
+        kot_note = (data.get('kot_note') or data.get('note') or '').strip() or None
         
         if not table_id or not items:
             return jsonify({"success": False, "message": "Table ID and items required"})
@@ -291,7 +292,7 @@ def create_order():
         if not valid_items:
             return jsonify({"success": False, "message": "Please add at least one valid item before placing order"})
         
-        result = OrderService.create_order(table_id, valid_items, session_id, guest_name)
+        result = OrderService.create_order(table_id, valid_items, session_id, guest_name, kot_note)
         
         # Log activity on success
         if result.get('success'):
