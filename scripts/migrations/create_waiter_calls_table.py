@@ -26,7 +26,7 @@ def migrate():
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 hotel_id INT NOT NULL,
                 table_id INT NOT NULL,
-                waiter_id INT NOT NULL,
+                waiter_id INT NULL,
                 session_id VARCHAR(255),
                 guest_name VARCHAR(100),
                 status ENUM('PENDING', 'ACKNOWLEDGED', 'COMPLETED') DEFAULT 'PENDING',

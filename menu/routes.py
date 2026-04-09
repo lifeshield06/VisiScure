@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 from . import menu_bp
 from .models import MenuCategory, MenuDish
 from database.db import get_db_connection
+from wallet.models import HotelWallet
 
 # Upload configuration
 UPLOAD_FOLDER = 'static/uploads/menu_images'
@@ -50,6 +51,14 @@ def save_uploaded_file(file, dish_id):
             print(f"Error saving file: {e}")
             return None
     return None
+
+
+def _public_order_wallet_available(hotel_id):
+    """Real-time wallet balance gate for public QR/menu flows."""
+    if not hotel_id:
+        return True
+    result = HotelWallet.check_balance_for_order(hotel_id)
+    return bool(result.get('sufficient', True))
 
 def build_image_urls(images):
     """Return only image URLs that actually exist on disk."""
@@ -656,6 +665,12 @@ def get_public_menu(table_id):
         hotel_id = table.get('hotel_id')
         if not hotel_id:
             return jsonify({"success": False, "message": "Hotel not configured for this table"}), 400
+
+        if not _public_order_wallet_available(hotel_id):
+            return jsonify({
+                "success": False,
+                "message": "Service temporarily unavailable. Please contact hotel staff."
+            }), 503
         
         full_menu = []
         categories = MenuCategory.get_categories_by_hotel(hotel_id)
@@ -688,6 +703,12 @@ def get_public_daily_special(table_id):
         hotel_id = table.get('hotel_id')
         if not hotel_id:
             return jsonify({"success": False, "message": "Hotel not configured for this table"}), 400
+
+        if not _public_order_wallet_available(hotel_id):
+            return jsonify({
+                "success": False,
+                "message": "Service temporarily unavailable. Please contact hotel staff."
+            }), 503
         
         # Get all today's specials for this hotel
         specials = DailySpecialMenu.get_today_specials(hotel_id)

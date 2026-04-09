@@ -199,14 +199,13 @@ class HotelWallet:
             return []
     
     @staticmethod
-    def add_balance(hotel_id, amount, utr_number, created_by_type, created_by_id):
-        """Add balance to hotel wallet with UTR number"""
+    def add_balance(hotel_id, amount, utr_number=None, created_by_type='SYSTEM', created_by_id=None):
+        """Add balance to hotel wallet. UTR number is optional."""
         try:
             if amount <= 0:
                 return {'success': False, 'message': 'Amount must be positive'}
-            
-            if not utr_number or not utr_number.strip():
-                return {'success': False, 'message': 'UTR Number is required'}
+
+            normalized_utr = (utr_number or '').strip() or None
             
             # Auto-create wallet if not exists
             wallet_check = HotelWallet.get_or_create_wallet(hotel_id)
@@ -237,7 +236,7 @@ class HotelWallet:
                 INSERT INTO wallet_transactions 
                 (hotel_id, transaction_type, amount, balance_after, utr_number, reference_type, created_by_type, created_by_id)
                 VALUES (%s, 'CREDIT', %s, %s, %s, 'RECHARGE', %s, %s)
-            """, (hotel_id, amount, new_balance, utr_number.strip(), created_by_type, created_by_id))
+            """, (hotel_id, amount, new_balance, normalized_utr, created_by_type, created_by_id))
             
             connection.commit()
             cursor.close()

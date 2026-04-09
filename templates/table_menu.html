@@ -355,8 +355,7 @@
                 <div class="card-body text-center">
                     <h5 style="color:#065f46;font-weight:800;">Thank you for dining with us!</h5>
                     <p style="margin:0;color:#047857;font-size:0.95rem;">We look forward to serving you again 😊</p>
-                    <p style="margin:0.5rem 0 0.75rem;color:#166534;font-weight:700;"><i class="fas fa-gift"></i> Get 10% off on your next visit</p>
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-3">
                         <button type="button" class="btn" onclick="visitAgainFromSuccess()" style="background:linear-gradient(135deg,#16a34a,#15803d);color:white;border:none;border-radius:12px;padding:0.65rem 1rem;font-weight:700;">
                             <i class="fas fa-seedling"></i> Visit Again
                         </button>
@@ -366,10 +365,6 @@
                         <button type="button" class="btn" onclick="downloadLastBillPdf()" style="background:linear-gradient(135deg,#059669,#047857);color:white;border:none;border-radius:12px;padding:0.65rem 1rem;font-weight:700;">
                             <i class="fas fa-download"></i> Download Bill
                         </button>
-                    </div>
-                    <div class="mt-3 d-flex flex-column align-items-center">
-                        <img id="payment-success-reorder-qr" src="" alt="Quick reorder QR" style="width:108px;height:108px;border-radius:10px;border:1px solid #86efac;padding:0.35rem;background:#fff;">
-                        <small style="margin-top:0.45rem;color:#166534;">Scan for quick re-order</small>
                     </div>
                 </div>
             </div>
@@ -679,6 +674,8 @@
         let paymentSuccessAutoCloseTimer = null;
         let menuData = [];
         let viewOnlyMode = false; // Track if guest is in view-only mode
+        let walletGateBlocked = false;
+        let walletGateToastShown = false;
 
         if (isManagerAddOrderMode) {
             if (managerSessionId) {
@@ -780,6 +777,31 @@
                     toast.remove();
                 }
             }, 3000);
+        }
+
+        function checkWalletGateAndApplyUi() {
+            if (!hotelId) return Promise.resolve(true);
+
+            return fetch(`/wallet/api/check-order-balance/${hotelId}`, { cache: 'no-store' })
+                .then(response => response.json())
+                .then(data => {
+                    const sufficient = !!(data && data.sufficient);
+                    walletGateBlocked = !sufficient;
+
+                    if (!sufficient) {
+                        viewOnlyMode = true;
+                        enableViewOnlyMode('Service temporarily unavailable. Please contact hotel staff.');
+                        if (!walletGateToastShown) {
+                            walletGateToastShown = true;
+                            showToast('Service temporarily unavailable. Please contact hotel staff.', 'error');
+                        }
+                        return false;
+                    }
+
+                    walletGateToastShown = false;
+                    return true;
+                })
+                .catch(() => true);
         }
         
         function showGuestNameModal() {
@@ -1223,7 +1245,7 @@
         
         function addToCart(dishId, itemName, price) {
             // Check if in view-only mode
-            if (viewOnlyMode) {
+            if (viewOnlyMode || walletGateBlocked) {
                 showViewOnlyAlert();
                 return;
             }
@@ -1893,7 +1915,7 @@
 
         function confirmAndPlaceOrder() {
             // Check if in view-only mode
-            if (viewOnlyMode) {
+            if (viewOnlyMode || walletGateBlocked) {
                 showViewOnlyAlert();
                 return;
             }
@@ -1977,6 +1999,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadMenu();
             checkExistingSession();
+            checkWalletGateAndApplyUi();
+            setInterval(checkWalletGateAndApplyUi, 30000);
             // Check if guest name is needed
             checkGuestName();
             // Update guest name display if exists
@@ -2324,6 +2348,11 @@
         let showClosedScreenAfterBill = false;
         
         function showPaymentOptions() {
+            if (walletGateBlocked) {
+                alert('Payment unavailable due to system balance issue.');
+                return;
+            }
+
             // Get current bill details
             fetch(`/orders/api/table-bill/${tableId}`)
                 .then(response => response.json())
@@ -2415,18 +2444,31 @@
         }
 
         function visitAgainFromSuccess() {
-            window.location.href = visitAgainUrl || `/orders/menu/${hotelId || tableId}`;
+            showToast('Thank you! We look forward to serving you again 😊', 'success');
         }
 
         async function shareWithFriendsFromSuccess() {
             const shareUrl = getRestaurantShareUrl();
-            const shareText = `Try this restaurant on VisiScure Order: ${shareUrl}`;
+            const bill = lastBillSnapshot || {};
+            const hotelDisplayName = bill.hotel_name || hotelName || 'Restaurant';
+            const location = bill.hotel_address || '';
+            const contact = bill.hotel_phone || bill.hotel_contact || '';
+
+            const shareLines = [
+                `${hotelDisplayName}`,
+                location ? `Location: ${location}` : '',
+                contact ? `Contact: ${contact}` : '',
+                'Visit this hotel for a great dining experience!',
+                shareUrl
+            ].filter(Boolean);
+
+            const shareText = shareLines.join('\n');
 
             try {
                 if (navigator.share) {
                     await navigator.share({
-                        title: hotelName || 'Restaurant Menu',
-                        text: 'Join me for a great dining experience!',
+                        title: `${hotelDisplayName} - Hotel Info`,
+                        text: shareLines.slice(0, -1).join('\n'),
                         url: shareUrl
                     });
                     return;
@@ -2439,8 +2481,8 @@
             window.open(waLink, '_blank');
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(shareUrl)
-                    .then(() => showToast('Restaurant link copied to clipboard', 'success'))
+                navigator.clipboard.writeText(shareText)
+                    .then(() => showToast('Hotel details copied to clipboard', 'success'))
                     .catch(() => {});
             }
         }
@@ -2522,12 +2564,6 @@
             document.getElementById('payment-success-grand-total').textContent = formatPdfCurrency(grandTotal);
 
             renderSuccessBillItems(bill.items || []);
-
-            const quickReorderUrl = getRestaurantShareUrl();
-            const qrImg = document.getElementById('payment-success-reorder-qr');
-            if (qrImg) {
-                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(quickReorderUrl)}`;
-            }
 
             modal.classList.add('show');
         }

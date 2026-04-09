@@ -1,6 +1,7 @@
 from flask import request, jsonify, session, render_template, send_file
 from . import hotel_manager_bp
 from .models import HotelManager, Waiter, DashboardStats, DailySpecialMenu
+from wallet.models import HotelWallet
 from database.db import get_db_connection
 import qrcode
 import io
@@ -148,6 +149,12 @@ def dashboard():
     manager_id = session.get('manager_id') or request.args.get('id')
     manager_name = session.get('manager_name') or request.args.get('name')
     hotel_id = session.get('hotel_id')
+
+    # Persist query fallback auth into session for downstream API calls.
+    if manager_id and not session.get('manager_id'):
+        session['manager_id'] = manager_id
+    if manager_name and not session.get('manager_name'):
+        session['manager_name'] = manager_name
     
     if not manager_id or not manager_name:
         return "Invalid access. Please login first.", 403
@@ -224,6 +231,9 @@ def dashboard():
     
     # Get dashboard statistics
     stats = DashboardStats.get_all_stats(hotel_id)
+
+    # Fetch fresh wallet charges so dashboard always reflects latest admin settings
+    wallet = HotelWallet.get_or_create_wallet(hotel_id)
     
     # Get total menu items count for this hotel
     total_menu_items = 0
@@ -254,7 +264,8 @@ def dashboard():
                          food_enabled=food_enabled,
                          waiters_count=waiters_count,
                          stats=stats,
-                         total_menu_items=total_menu_items)
+                         total_menu_items=total_menu_items,
+                         wallet=wallet)
 
 @hotel_manager_bp.route('/live-orders')
 def live_orders_dashboard():

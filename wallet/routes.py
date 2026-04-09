@@ -72,27 +72,27 @@ def get_balance(hotel_id):
     # Use get_or_create_wallet to auto-create if not exists
     wallet = HotelWallet.get_or_create_wallet(hotel_id)
     if wallet:
-        return jsonify({'success': True, 'wallet': wallet})
+        response = jsonify({'success': True, 'wallet': wallet})
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        return response
     return jsonify({'success': False, 'message': 'Could not retrieve or create wallet'})
 
 
 @wallet_bp.route('/api/add-balance', methods=['POST'])
 def add_balance():
-    """Add balance to hotel wallet (Admin or Manager) - requires UTR number"""
+    """Add balance to hotel wallet (Admin or Manager). UTR is optional."""
     try:
         data = request.json
         hotel_id = int(data.get('hotel_id', 0))
         amount = float(data.get('amount', 0))
-        utr_number = data.get('utr_number', '').strip()
+        utr_number = (data.get('utr_number') or '').strip() or None
         
         if not hotel_id:
             return jsonify({'success': False, 'message': 'Hotel ID is required'})
         
         if amount <= 0:
             return jsonify({'success': False, 'message': 'Amount must be greater than 0'})
-        
-        if not utr_number:
-            return jsonify({'success': False, 'message': 'UTR Number is required'})
         
         # Determine who is adding balance
         admin_id = session.get('admin_id')
@@ -112,15 +112,16 @@ def add_balance():
         
         # Log activity on success
         if result.get('success'):
+            utr_suffix = f" (UTR: {utr_number})" if utr_number else ""
             if admin_id:
                 # Admin action - log without hotel_id for admin dashboard
-                log_wallet_activity('wallet', f"Balance ₹{amount:.0f} added to hotel wallet (UTR: {utr_number})", None, role='admin')
+                log_wallet_activity('wallet', f"Balance ₹{amount:.0f} added to hotel wallet{utr_suffix}", None, role='admin')
             else:
                 # Manager action - log with hotel_id for manager dashboard
                 # Ensure hotel_id is an integer for proper DB storage
                 log_hotel_id = int(manager_hotel_id) if manager_hotel_id else hotel_id
                 print(f"[WALLET DEBUG] Logging manager activity - hotel_id={log_hotel_id}, role=manager")
-                log_wallet_activity('wallet', f"Wallet balance increased by ₹{amount:.0f} (UTR: {utr_number})", log_hotel_id, role='manager')
+                log_wallet_activity('wallet', f"Wallet balance increased by ₹{amount:.0f}{utr_suffix}", log_hotel_id, role='manager')
         
         return jsonify(result)
     except Exception as e:
@@ -174,7 +175,10 @@ def update_charges():
         if result.get('success'):
             log_wallet_activity('wallet', f"Hotel charges updated (₹{per_verification_charge}/verify, ₹{per_order_charge}/order)", None)
         
-        return jsonify(result)
+        response = jsonify(result)
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        return response
     except Exception as e:
         print(f"Error in update_charges route: {e}")
         return jsonify({'success': False, 'message': f'Server error: {str(e)}'})

@@ -25,6 +25,28 @@ class Table:
                         cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_def}")
                 except Exception as e:
                     print(f"Error ensuring column {table_name}.{column_name}: {e}")
+
+            def drop_table_fk_constraints_for_archival(table_name, column_name='table_id'):
+                """Drop FK constraints pointing to tables(id) so table deletion doesn't remove history."""
+                try:
+                    cursor.execute(
+                        """
+                        SELECT CONSTRAINT_NAME
+                        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                        WHERE TABLE_SCHEMA = DATABASE()
+                          AND TABLE_NAME = %s
+                          AND COLUMN_NAME = %s
+                          AND REFERENCED_TABLE_NAME = 'tables'
+                        """,
+                        (table_name, column_name)
+                    )
+                    constraints = cursor.fetchall() or []
+                    for row in constraints:
+                        constraint_name = row[0] if isinstance(row, tuple) else row.get('CONSTRAINT_NAME')
+                        if constraint_name:
+                            cursor.execute(f"ALTER TABLE {table_name} DROP FOREIGN KEY {constraint_name}")
+                except Exception as e:
+                    print(f"Error dropping FK {table_name}.{column_name} -> tables.id: {e}")
             
             # Ensure gst_percentage column exists in hotels table
             try:
@@ -65,8 +87,7 @@ class Table:
                     items JSON NOT NULL,
                     total_amount DECIMAL(10,2) NOT NULL,
                     order_status ENUM('ACTIVE', 'PREPARING', 'COMPLETED') DEFAULT 'ACTIVE',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE CASCADE
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
 
@@ -111,8 +132,7 @@ class Table:
                     payment_method VARCHAR(50),
                     utr_id VARCHAR(100),
                     paid_at TIMESTAMP NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE CASCADE
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             
@@ -164,6 +184,11 @@ class Table:
             # Ensure payment columns exist in table_orders
             ensure_column("table_orders", "payment_status", "payment_status ENUM('PENDING', 'PAID') DEFAULT 'PENDING'")
             ensure_column("table_orders", "payment_method", "payment_method VARCHAR(50)")
+
+            # Critical data-retention rule:
+            # Keep orders/bills independent from table lifecycle.
+            drop_table_fk_constraints_for_archival("table_orders", "table_id")
+            drop_table_fk_constraints_for_archival("bills", "table_id")
             
             # Ensure charge_deducted column exists in table_orders (for per-order charge tracking)
             ensure_column("table_orders", "charge_deducted", "charge_deducted BOOLEAN DEFAULT FALSE")
@@ -377,6 +402,54 @@ class Table:
 
 class TableOrder:
     @staticmethod
+    def sanitize_order_items(items):
+        """Keep only valid items with positive quantity and non-negative price."""
+        cleaned = []
+        if not isinstance(items, list):
+            return cleaned
+
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+
+            try:
+                quantity = int(item.get('quantity', 0))
+                price = float(item.get('price', 0))
+            except Exception:
+                continue
+
+            if quantity <= 0 or price < 0:
+                continue
+
+            name = str(item.get('name') or '').strip()
+            if not name:
+                continue
+
+            cleaned.append({
+                'id': item.get('id'),
+                'name': name,
+                'price': price,
+                'quantity': quantity
+            })
+
+        return cleaned
+
+    @staticmethod
+    def resolve_valid_kitchen_section_id(cursor, kitchen_section_id):
+        """Return a valid kitchen section id or None to satisfy FK constraints."""
+        if kitchen_section_id is None:
+            return None
+        try:
+            cursor.execute(
+                "SELECT id FROM kitchen_sections WHERE id = %s LIMIT 1",
+                (kitchen_section_id,)
+            )
+            row = cursor.fetchone()
+            return row['id'] if row else None
+        except Exception:
+            return None
+
+    @staticmethod
     def get_active_order_for_guest(table_id, session_id=None, guest_name=None):
         """Get existing ACTIVE/PREPARING order for same table + guest/session.
 
@@ -396,6 +469,8 @@ class TableOrder:
                       AND session_id = %s
                       AND order_status IN ('ACTIVE', 'PREPARING')
                       AND COALESCE(payment_status, 'PENDING') != 'PAID'
+                                            AND COALESCE(total_amount, 0) > 0
+                                            AND COALESCE(JSON_LENGTH(items), 0) > 0
                     ORDER BY created_at DESC
                     LIMIT 1
                 """, (table_id, session_id))
@@ -407,6 +482,8 @@ class TableOrder:
                       AND guest_name = %s
                       AND order_status IN ('ACTIVE', 'PREPARING')
                       AND COALESCE(payment_status, 'PENDING') != 'PAID'
+                                            AND COALESCE(total_amount, 0) > 0
+                                            AND COALESCE(JSON_LENGTH(items), 0) > 0
                     ORDER BY created_at DESC
                     LIMIT 1
                 """, (table_id, guest_name))
@@ -423,6 +500,10 @@ class TableOrder:
     def add_items_to_order(order_id, items):
         """Merge new items into an existing ACTIVE order."""
         try:
+            items = TableOrder.sanitize_order_items(items)
+            if not items:
+                return None, "No valid items to add"
+
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
 
@@ -482,6 +563,7 @@ class TableOrder:
                 dish_info = cursor.fetchone()
                 category_id = dish_info['category_id'] if dish_info else None
                 kitchen_section_id = dish_info['kitchen_id'] if dish_info else None
+                kitchen_section_id = TableOrder.resolve_valid_kitchen_section_id(cursor, kitchen_section_id)
 
                 cursor.execute("""
                     INSERT INTO order_items
@@ -503,16 +585,25 @@ class TableOrder:
     def add_order(table_id, session_id, items, total_amount, hotel_id=None, guest_name=None, waiter_id=None):
         """Add new ACTIVE order and set table BUSY with assigned waiter. Also populate order_items table with kitchen routing."""
         try:
+            items = TableOrder.sanitize_order_items(items)
+            if not items:
+                return None, "Order must contain at least one valid item"
+
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
             import json
             items_json = json.dumps(items)
+            computed_total = round(sum(float(i.get('price', 0)) * int(i.get('quantity', 0)) for i in items), 2)
+            if computed_total <= 0:
+                cursor.close()
+                connection.close()
+                return None, "Order total must be greater than zero"
             
             # Add order as ACTIVE with guest_name and waiter_id from assigned table waiter
             cursor.execute(
                 "INSERT INTO table_orders (table_id, session_id, guest_name, items, total_amount, order_status, hotel_id, waiter_id) VALUES (%s, %s, %s, %s, %s, 'ACTIVE', %s, %s)",
-                (table_id, session_id, guest_name, items_json, total_amount, hotel_id, waiter_id)
+                (table_id, session_id, guest_name, items_json, computed_total, hotel_id, waiter_id)
             )
             
             order_id = cursor.lastrowid
@@ -538,6 +629,7 @@ class TableOrder:
                 dish_info = cursor.fetchone()
                 category_id = dish_info['category_id'] if dish_info else None
                 kitchen_section_id = dish_info['kitchen_id'] if dish_info else None
+                kitchen_section_id = TableOrder.resolve_valid_kitchen_section_id(cursor, kitchen_section_id)
                 
                 # Insert into order_items with kitchen routing
                 cursor.execute("""
@@ -607,6 +699,10 @@ class TableOrder:
                 conditions.append("(o.hotel_id = %s OR (o.hotel_id IS NULL AND t.hotel_id = %s))")
                 params.extend([hotel_id, hotel_id])
 
+            # Safety filter: manager views should never show empty/unconfirmed orders.
+            conditions.append("COALESCE(o.total_amount, 0) > 0")
+            conditions.append("COALESCE(JSON_LENGTH(o.items), 0) > 0")
+
             if date_from:
                 conditions.append("DATE(o.created_at) >= %s")
                 params.append(date_from)
@@ -650,13 +746,14 @@ class TableOrder:
                 conditions.append(f"NOT {paid_condition}")
 
             if table_number:
-                conditions.append("CAST(t.table_number AS CHAR) LIKE %s")
+                conditions.append("COALESCE(CAST(t.table_number AS CHAR), 'Table Deleted') LIKE %s")
                 params.append(f"%{table_number}%")
 
             where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
             query = f"""
-                SELECT o.*, t.table_number, t.status as table_status,
+                  SELECT o.*, COALESCE(CAST(t.table_number AS CHAR), 'Table Deleted') as table_number,
+                      COALESCE(t.status, 'DELETED') as table_status,
                        (SELECT b.payment_method FROM bills b
                         WHERE b.table_id = o.table_id AND b.session_id = o.session_id
                         ORDER BY b.created_at DESC LIMIT 1) as payment_method,
@@ -686,7 +783,7 @@ class TableOrder:
                         WHERE b.table_id = o.table_id AND b.session_id = o.session_id
                         LIMIT 1) as bill_exists
                 FROM table_orders o
-                JOIN tables t ON o.table_id = t.id
+                LEFT JOIN tables t ON o.table_id = t.id
                 {where_clause}
                 ORDER BY o.created_at DESC
             """
@@ -797,10 +894,13 @@ class TableOrder:
 
             cursor.execute(
                 """
-                SELECT o.*, t.table_number, t.status as table_status
+                                SELECT o.*, COALESCE(CAST(t.table_number AS CHAR), 'Table Deleted') as table_number,
+                                             COALESCE(t.status, 'DELETED') as table_status
                 FROM table_orders o
-                JOIN tables t ON o.table_id = t.id
+                                LEFT JOIN tables t ON o.table_id = t.id
                 WHERE o.table_id = %s AND o.session_id = %s
+                  AND COALESCE(o.total_amount, 0) > 0
+                  AND COALESCE(JSON_LENGTH(o.items), 0) > 0
                 ORDER BY o.created_at DESC
                 """,
                 (table_id, session_id)

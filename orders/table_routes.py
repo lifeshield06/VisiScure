@@ -1,9 +1,10 @@
 import os
-from flask import request, jsonify, render_template, send_file, session
+from flask import request, jsonify, render_template, send_file, session, render_template_string
 from . import orders_bp
 from .table_services import TableService, OrderService
 from .table_models import Table, TableOrder, Bill, ActiveTable, BillRequest
 from database.db import get_db_connection
+from wallet.models import HotelWallet
 
 # Initialize tables
 Table.create_tables()
@@ -25,10 +26,43 @@ def log_order_activity(activity_type, message, hotel_id=None):
         print(f"[ORDER ACTIVITY ERROR] {e}")
 
 def check_food_module():
-    """Check if food module is enabled for this manager's hotel"""
-    if not session.get('manager_id'):
+    """Check if food module is enabled for current hotel session context."""
+    # Fast path: already cached in session
+    if session.get('food_enabled') is True:
+        return True
+
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
         return False
-    return session.get('food_enabled', False)
+
+    # Fallback: fetch current module flag from DB and cache it in session
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT food_enabled FROM hotel_modules WHERE hotel_id = %s LIMIT 1",
+            (hotel_id,)
+        )
+        row = cursor.fetchone()
+        enabled = bool(row[0]) if row and row[0] is not None else False
+        session['food_enabled'] = enabled
+        cursor.close()
+        connection.close()
+        return enabled
+    except Exception:
+        return False
+
+
+def _check_order_wallet_balance(hotel_id):
+    """Always fetch latest wallet balance/charge state from DB for order operations."""
+    if not hotel_id:
+        return {'sufficient': True, 'message': 'No hotel context'}
+    return HotelWallet.check_balance_for_order(hotel_id)
+
+
+def _is_order_wallet_blocked(hotel_id):
+    result = _check_order_wallet_balance(hotel_id)
+    return (not bool(result.get('sufficient', True))), result
 
 
 def settle_bill_charge_after_paid(hotel_id, bill_id, table_id=None, session_id=None, guest_name=None):
@@ -64,6 +98,10 @@ def add_table():
         
         if not table_number:
             return jsonify({"success": False, "message": "Table number is required"})
+
+        blocked, _wallet = _is_order_wallet_blocked(hotel_id)
+        if blocked:
+            return jsonify({"success": False, "message": "Insufficient wallet balance. Please recharge to continue."}), 402
         
         result = TableService.add_new_table(table_number, hotel_id)
         
@@ -159,6 +197,18 @@ def table_menu(table_id):
     upi_qr_image = None
     
     if hotel_id:
+        blocked, _wallet = _is_order_wallet_blocked(hotel_id)
+        if blocked:
+            return render_template_string(
+                """
+                <!doctype html>
+                <html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>
+                <title>Service Unavailable</title>
+                <style>body{font-family:Inter,Segoe UI,Arial,sans-serif;background:#f8fafc;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:1rem}.card{max-width:520px;width:100%;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:1.25rem;box-shadow:0 8px 24px rgba(15,23,42,.08)}h1{margin:.2rem 0 .5rem;font-size:1.15rem;color:#0f172a}p{margin:0;color:#334155;line-height:1.55}</style>
+                </head><body><div class='card'><h1>Service temporarily unavailable</h1><p>Service temporarily unavailable. Please contact hotel staff.</p></div></body></html>
+                """
+            ), 503
+
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -194,6 +244,17 @@ def check_guest_access():
         
         if not table_id:
             return jsonify({"success": False, "message": "Table ID required", "can_order": False})
+
+        table = Table.get_table_by_id(table_id)
+        hotel_id = table.get('hotel_id') if table else None
+        blocked, _wallet = _is_order_wallet_blocked(hotel_id)
+        if blocked:
+            return jsonify({
+                "success": False,
+                "can_order": False,
+                "view_only_mode": True,
+                "message": "Service temporarily unavailable. Please contact hotel staff."
+            }), 503
         
         if not guest_name or not guest_name.strip():
             return jsonify({"success": False, "message": "Guest name is required", "can_order": False})
@@ -219,8 +280,18 @@ def create_order():
         
         if not guest_name or not guest_name.strip():
             return jsonify({"success": False, "message": "Guest name is required"})
+
+        table = Table.get_table_by_id(table_id)
+        hotel_id = table.get('hotel_id') if table else None
+        blocked, _wallet = _is_order_wallet_blocked(hotel_id)
+        if blocked:
+            return jsonify({"success": False, "message": "Insufficient wallet balance. Please recharge to continue."}), 402
+
+        valid_items = TableOrder.sanitize_order_items(items)
+        if not valid_items:
+            return jsonify({"success": False, "message": "Please add at least one valid item before placing order"})
         
-        result = OrderService.create_order(table_id, items, session_id, guest_name)
+        result = OrderService.create_order(table_id, valid_items, session_id, guest_name)
         
         # Log activity on success
         if result.get('success'):
@@ -491,6 +562,10 @@ def complete_bill():
         
         # Get bill info before completing
         bill_info = Bill.get_bill_details(bill_id) if hasattr(Bill, 'get_bill_details') else None
+        bill_hotel_id = bill_info.get('hotel_id') if bill_info else None
+        blocked, _wallet = _is_order_wallet_blocked(bill_hotel_id)
+        if blocked:
+            return jsonify({"success": False, "message": "Payment unavailable due to system balance issue."}), 402
         
         result = OrderService.complete_bill(bill_id)
         
@@ -541,6 +616,9 @@ def process_payment():
         table = Table.get_table_by_id(table_id)
         table_num = table['table_number'] if table else table_id
         hotel_id = (table.get('hotel_id') if table else None) or open_bill.get('hotel_id')
+        blocked, _wallet = _is_order_wallet_blocked(hotel_id)
+        if blocked:
+            return jsonify({"success": False, "message": "Payment unavailable due to system balance issue."}), 402
         bill_total = open_bill.get('final_total') if open_bill.get('final_total') is not None else open_bill.get('total_amount', 0)
         
         # Process payment in atomic transaction with tip
@@ -969,6 +1047,12 @@ def mark_payment_done():
             cursor.close()
             connection.close()
             return jsonify({"success": False, "message": "Hotel ID not found"})
+
+        blocked, _wallet = _is_order_wallet_blocked(hotel_id)
+        if blocked:
+            cursor.close()
+            connection.close()
+            return jsonify({"success": False, "message": "Payment unavailable due to system balance issue."}), 402
         
         print(f"[MARK_PAYMENT_DONE] Marking payment for order {order_id}")
         

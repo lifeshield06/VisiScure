@@ -100,14 +100,8 @@ class TableService:
             
             table_id, qr_path = table
             
-            # Delete related records first to avoid foreign key constraints
+            # Delete transient relations only; keep orders/bills as permanent history.
             try:
-                # Delete bills first
-                cursor.execute("DELETE FROM bills WHERE table_id = %s", (table_id,))
-                
-                # Delete orders
-                cursor.execute("DELETE FROM table_orders WHERE table_id = %s", (table_id,))
-                
                 # Delete waiter calls
                 cursor.execute("DELETE FROM waiter_calls WHERE table_id = %s", (table_id,))
                 
@@ -117,7 +111,7 @@ class TableService:
                 # Delete waiter table assignments
                 cursor.execute("DELETE FROM waiter_table_assignments WHERE table_id = %s", (table_id,))
                 
-                # Finally delete the table
+                # Finally delete the table itself
                 cursor.execute("DELETE FROM tables WHERE id = %s", (table_id,))
                 
                 connection.commit()
@@ -281,9 +275,16 @@ class OrderService:
 
             if not session_id:
                 session_id = str(uuid.uuid4())
+
+            # Persist only confirmed, valid items.
+            cleaned_items = TableOrder.sanitize_order_items(items)
+            if not cleaned_items:
+                return {"success": False, "message": "Please add at least one valid item before placing order"}
             
             # Calculate total
-            total_amount = sum(item['price'] * item['quantity'] for item in items)
+            total_amount = round(sum(item['price'] * item['quantity'] for item in cleaned_items), 2)
+            if total_amount <= 0:
+                return {"success": False, "message": "Order total must be greater than zero"}
             
             # Get assigned waiter_id - check both tables.waiter_id AND waiter_table_assignments
             waiter_id = table.get('waiter_id')
@@ -311,7 +312,7 @@ class OrderService:
 
             if active_order:
                 order_id = active_order['id']
-                order_id, error_message = TableOrder.add_items_to_order(order_id, items)
+                order_id, error_message = TableOrder.add_items_to_order(order_id, cleaned_items)
                 if not order_id:
                     if error_message:
                         return {"success": False, "message": f"Failed to update active order: {error_message}"}
@@ -319,7 +320,7 @@ class OrderService:
                 order_message = "Items added to existing active order"
             else:
                 # Create new ACTIVE order only if no existing active order is found
-                order_id, error_message = TableOrder.add_order(table_id, session_id, items, total_amount, hotel_id, guest_name, waiter_id)
+                order_id, error_message = TableOrder.add_order(table_id, session_id, cleaned_items, total_amount, hotel_id, guest_name, waiter_id)
                 if not order_id:
                     if error_message:
                         return {"success": False, "message": f"Failed to create order: {error_message}"}
@@ -327,7 +328,7 @@ class OrderService:
                 order_message = "Order created successfully"
             
             # Create or update bill for this guest (same guest + same table = same bill)
-            bill_info = Bill.create_bill(order_id, table_id, session_id, items, total_amount, hotel_id, guest_name)
+            bill_info = Bill.create_bill(order_id, table_id, session_id, cleaned_items, total_amount, hotel_id, guest_name)
 
             # New items were added: reopen bill-request flow for this active session.
             BillRequest.reset_for_new_order(table_id, session_id)

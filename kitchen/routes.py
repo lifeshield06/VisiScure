@@ -119,6 +119,8 @@ def get_kitchen_orders():
             LEFT JOIN menu_categories mc ON oi.category_id = mc.id
             WHERE oi.kitchen_section_id = %s
               AND oi.item_status != 'COMPLETED'
+                            AND (o.payment_status IS NULL OR o.payment_status != 'PAID')
+                            AND o.order_status != 'COMPLETED'
             ORDER BY oi.created_at ASC
         """, (kitchen_id,))
         

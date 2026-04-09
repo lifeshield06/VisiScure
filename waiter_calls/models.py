@@ -10,16 +10,44 @@ from datetime import datetime
 class WaiterCallService:
     """Service layer for managing waiter assistance requests"""
 
+    _schema_checked = False
+
+    @staticmethod
+    def _ensure_waiter_calls_schema(cursor):
+        """One-time compatibility fix for legacy schemas."""
+        if WaiterCallService._schema_checked:
+            return
+        try:
+            cursor.execute(
+                """
+                SELECT IS_NULLABLE
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'waiter_calls'
+                  AND COLUMN_NAME = 'waiter_id'
+                LIMIT 1
+                """
+            )
+            row = cursor.fetchone()
+            if row:
+                is_nullable = row['IS_NULLABLE'] if isinstance(row, dict) else row[0]
+                if str(is_nullable).upper() == 'NO':
+                    cursor.execute("ALTER TABLE waiter_calls MODIFY COLUMN waiter_id INT NULL")
+            WaiterCallService._schema_checked = True
+        except Exception as schema_error:
+            print(f"[WAITER_CALL SCHEMA WARNING] {schema_error}")
+
     @staticmethod
     def create_request(table_id, session_id=None, guest_name=None):
         """
         Create waiter assistance requests for waiters assigned to the table.
-        Falls back to a hotel-level call (waiter_id=NULL) if no waiter is assigned,
-        so the button always works.
+        Falls back to notifying all hotel waiters if no waiter is assigned to table.
         """
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
+
+            WaiterCallService._ensure_waiter_calls_schema(cursor)
 
             # LEFT JOIN so we always get the table row even with no waiter assigned
             cursor.execute(
@@ -79,15 +107,34 @@ class WaiterCallService:
                     notified_waiters.append(waiter_id)
                     print(f"[WAITER_CALL] Created request {cursor.lastrowid} for table {table_id}, waiter {waiter_id}")
             else:
-                # No waiter assigned — hotel-level call
+                # No waiter assigned to table — notify all waiters in same hotel.
                 cursor.execute(
-                    """INSERT INTO waiter_calls
-                       (hotel_id, table_id, waiter_id, session_id, guest_name, status, created_at)
-                       VALUES (%s, %s, NULL, %s, %s, 'PENDING', NOW())""",
-                    (hotel_id, table_id, session_id, guest_name)
+                    """SELECT id
+                       FROM waiters
+                       WHERE hotel_id = %s""",
+                    (hotel_id,)
                 )
-                request_ids.append(cursor.lastrowid)
-                print(f"[WAITER_CALL] Hotel-level request {cursor.lastrowid} for table {table_id} (no waiter assigned)")
+                hotel_waiters = cursor.fetchall() or []
+
+                if not hotel_waiters:
+                    cursor.close()
+                    connection.close()
+                    return {
+                        'success': False,
+                        'message': 'No waiter is available for this hotel. Please contact staff.'
+                    }
+
+                for waiter in hotel_waiters:
+                    waiter_id = waiter['id']
+                    cursor.execute(
+                        """INSERT INTO waiter_calls
+                           (hotel_id, table_id, waiter_id, session_id, guest_name, status, created_at)
+                           VALUES (%s, %s, %s, %s, %s, 'PENDING', NOW())""",
+                        (hotel_id, table_id, waiter_id, session_id, guest_name)
+                    )
+                    request_ids.append(cursor.lastrowid)
+                    notified_waiters.append(waiter_id)
+                    print(f"[WAITER_CALL] Fallback request {cursor.lastrowid} for table {table_id}, waiter {waiter_id}")
 
             connection.commit()
             cursor.close()

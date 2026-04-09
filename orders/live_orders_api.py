@@ -61,6 +61,8 @@ def get_live_orders():
                 WHERE table_id = %s 
                   AND hotel_id = %s
                   AND order_status IN ('ACTIVE', 'PREPARING')
+                                    AND COALESCE(total_amount, 0) > 0
+                                    AND COALESCE(JSON_LENGTH(items), 0) > 0
                 ORDER BY created_at DESC
             """, (table_id, hotel_id))
             
@@ -136,7 +138,9 @@ def get_table_orders(table_id):
             FROM table_orders
             WHERE table_id = %s 
               AND hotel_id = %s
-              AND order_status IN ('ACTIVE', 'PREPARING', 'PENDING')
+                            AND order_status IN ('ACTIVE', 'PREPARING')
+                            AND COALESCE(total_amount, 0) > 0
+                            AND COALESCE(JSON_LENGTH(items), 0) > 0
             ORDER BY created_at DESC
         """, (table_id, hotel_id))
         
@@ -240,7 +244,10 @@ def get_order_summary():
                 COUNT(*) as count,
                 SUM(total_amount) as total_amount
             FROM table_orders
-            WHERE hotel_id = %s AND order_status IN ('ACTIVE', 'PREPARING', 'COMPLETED')
+            WHERE hotel_id = %s
+              AND order_status IN ('ACTIVE', 'PREPARING', 'COMPLETED')
+              AND COALESCE(total_amount, 0) > 0
+              AND COALESCE(JSON_LENGTH(items), 0) > 0
             GROUP BY order_status
         """, (hotel_id,))
         

@@ -102,24 +102,6 @@
                 </div>
             </section>
 
-            <!-- Waiter Call Assistance Requests Section -->
-            <div class="assistance-banner" id="assistance-banner" style="display: none;">
-                <div class="banner-content">
-                    <i class="fas fa-bell"></i>
-                    <span id="banner-message">🔔 TABLE CALLING WAITER</span>
-                </div>
-            </div>
-
-            <section class="card-section" id="assistance-requests-section" style="display: none;">
-                <div class="section-header">
-                    <h2><i class="fas fa-hand-paper"></i> Table Assistance Requests</h2>
-                    <span class="badge badge-danger" id="assistance-count">0</span>
-                </div>
-                <div class="assistance-requests-container" id="assistance-requests">
-                    <!-- Assistance requests will be loaded via JavaScript -->
-                </div>
-            </section>
-
             <!-- Active Orders Section -->
             <section class="card-section" id="active-orders">
                 <div class="section-header">
@@ -1001,6 +983,11 @@
             const section = document.getElementById('assistance-requests-section');
             const container = document.getElementById('assistance-requests');
             const countBadge = document.getElementById('assistance-count');
+
+            // Assistance requests section removed from UI.
+            if (!section || !container || !countBadge) {
+                return;
+            }
             
             if (requests.length === 0) {
                 section.style.display = 'none';
@@ -1042,6 +1029,10 @@
         function updateBanner(requests) {
             const banner = document.getElementById('assistance-banner');
             const message = document.getElementById('banner-message');
+
+            if (!banner || !message) {
+                return;
+            }
             
             if (requests.length === 0) {
                 banner.style.display = 'none';
