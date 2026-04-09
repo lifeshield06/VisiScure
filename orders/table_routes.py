@@ -140,7 +140,8 @@ def test_printer():
         if not hotel_id:
             return jsonify({"success": False, "message": "Hotel ID required"}), 401
         
-        section = request.get_json().get('section', '').strip() or 'GENERAL'
+        data = request.get_json() or {}
+        section = data.get('section', '').strip() or 'GENERAL'
         printer_name = KOTService._get_printer_name(section)
         
         if not printer_name:
@@ -166,6 +167,103 @@ def test_printer():
         }), (200 if ok else 400)
     except Exception as e:
         print(f"[PRINTER_TEST ERROR] {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@orders_bp.route('/api/printer/monitor/status', methods=['GET'])
+def get_monitor_status():
+    """Get real-time printer monitoring status"""
+    try:
+        from .printer_monitor_service import printer_monitor
+        
+        hotel_id = session.get('hotel_id')
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"}), 401
+        
+        result = printer_monitor.get_current_status(hotel_id=hotel_id)
+        return jsonify(result), (200 if result.get('success') else 500)
+    except Exception as e:
+        print(f"[MONITOR_STATUS ERROR] {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@orders_bp.route('/api/printer/monitor/alerts', methods=['GET'])
+def get_monitor_alerts():
+    """Get printer connection alerts"""
+    try:
+        from .printer_monitor_service import printer_monitor
+        
+        hotel_id = session.get('hotel_id')
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"}), 401
+        
+        unresolved_only = request.args.get('unresolved_only', 'true').lower() == 'true'
+        alerts = printer_monitor.get_alerts(hotel_id=hotel_id, unresolved_only=unresolved_only)
+        
+        return jsonify({"success": True, "alerts": alerts}), 200
+    except Exception as e:
+        print(f"[MONITOR_ALERTS ERROR] {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@orders_bp.route('/api/printer/monitor/history', methods=['GET'])
+def get_monitor_history():
+    """Get printer status history"""
+    try:
+        from .printer_monitor_service import printer_monitor
+        
+        hotel_id = session.get('hotel_id')
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"}), 401
+        
+        printer_name = request.args.get('printer_name', '').strip() or None
+        hours = int(request.args.get('hours', 24))
+        
+        history = printer_monitor.get_status_history(
+            printer_name=printer_name,
+            hotel_id=hotel_id,
+            hours=min(hours, 168)  # Max 7 days
+        )
+        
+        return jsonify({"success": True, "history": history}), 200
+    except Exception as e:
+        print(f"[MONITOR_HISTORY ERROR] {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@orders_bp.route('/api/printer/monitor/register', methods=['POST'])
+def register_monitored_printer():
+    """Register a printer for real-time monitoring"""
+    try:
+        from .printer_monitor_service import register_printer
+        
+        hotel_id = session.get('hotel_id')
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"}), 401
+        
+        data = request.get_json()
+        printer_name = data.get('printer_name', '').strip()
+        section_name = data.get('section_name', '').strip() or None
+        is_primary = data.get('is_primary', False)
+        check_interval = int(data.get('check_interval', 10))
+        
+        if not printer_name:
+            return jsonify({"success": False, "message": "Printer name required"}), 400
+        
+        success = register_printer(
+            hotel_id=hotel_id,
+            printer_name=printer_name,
+            section_name=section_name,
+            is_primary=is_primary,
+            check_interval=max(5, min(check_interval, 300))  # 5-300 seconds
+        )
+        
+        if success:
+            return jsonify({"success": True, "message": "Printer registered for monitoring"}), 200
+        else:
+            return jsonify({"success": False, "message": "Failed to register printer"}), 500
+    except Exception as e:
+        print(f"[REGISTER_PRINTER ERROR] {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 @orders_bp.route('/api/tables', methods=['GET'])

@@ -407,6 +407,40 @@ def init_db():
         from police.models import PoliceStation
         PoliceStation.create_tables()
         
+        # Initialize printer monitoring service
+        try:
+            from orders.printer_monitor_service import printer_monitor, register_printer
+            
+            # Register default printers from environment
+            default_printer = os.getenv('KOT_PRINTER_DEFAULT', '').strip()
+            if default_printer:
+                register_printer(
+                    hotel_id=0,  # System-wide default
+                    printer_name=default_printer,
+                    section_name='GENERAL',
+                    is_primary=True,
+                    check_interval=10
+                )
+            
+            # Register section-specific printers
+            for section in ['VEG', 'NON_VEG', 'BAR']:
+                section_printer = os.getenv(f'KOT_PRINTER_{section}', '').strip()
+                if section_printer and section_printer != default_printer:
+                    register_printer(
+                        hotel_id=0,
+                        printer_name=section_printer,
+                        section_name=section,
+                        is_primary=False,
+                        check_interval=10
+                    )
+            
+            # Start background monitoring (5-second check interval)
+            check_interval = int(os.getenv('PRINTER_MONITOR_INTERVAL', '10'))
+            printer_monitor.start_monitoring(check_interval=max(5, min(check_interval, 60)))
+            print("Printer monitoring service initialized and started")
+        except Exception as e:
+            print(f"Warning: Printer monitoring service initialization failed: {e}")
+        
         print("Database initialized successfully")
     except Error as exc:
         print(f"Error initializing database: {exc}")

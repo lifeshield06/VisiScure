@@ -150,6 +150,18 @@
             box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
             margin-bottom: 0.5rem;
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .printer-status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
         }
         
         .printer-status-card.connected {
@@ -160,6 +172,12 @@
         .printer-status-card.offline {
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
             box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+            animation: printerErrorPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes printerErrorPulse {
+            0%, 100% { box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3); }
+            50% { box-shadow: 0 10px 40px rgba(239, 68, 68, 0.5); }
         }
         
         .printer-status-content {
@@ -180,6 +198,16 @@
             justify-content: center;
             font-size: 1.75rem;
             flex-shrink: 0;
+            transition: transform 0.3s ease;
+        }
+        
+        .printer-status-card.checking .printer-icon {
+            animation: printerSpin 1s linear infinite;
+        }
+        
+        @keyframes printerSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
         
         .printer-info {
@@ -217,16 +245,18 @@
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.8);
             animation: printerPulse 2s infinite;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
         }
         
         .printer-status-card.offline .printer-status-dot {
             animation: none;
             background: #fca5a5;
+            box-shadow: 0 0 8px rgba(252, 165, 165, 0.4);
         }
         
         @keyframes printerPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.2); }
         }
         
         .printer-actions {
@@ -268,6 +298,95 @@
             display: flex;
             align-items: center;
             gap: 0.375rem;
+        }
+        
+        /* Printer Alert Banner */
+        .printer-alert-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            padding: 1rem 1.5rem;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            animation: slideDownBanner 0.3s ease-out;
+        }
+        
+        @keyframes slideDownBanner {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .printer-alert-banner.show {
+            display: flex;
+        }
+        
+        .printer-alert-banner.disconnected {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .printer-alert-banner.connected {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .printer-alert-banner.error {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+        
+        .printer-alert-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+        }
+        
+        .printer-alert-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        .printer-alert-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .printer-alert-title {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        
+        .printer-alert-message {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        
+        .printer-alert-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        
+        .printer-alert-close:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .kitchen-card {
@@ -1057,6 +1176,22 @@
     </style>
 </head>
 <body>
+    <!-- Printer Alert Banner -->
+    <div class="printer-alert-banner" id="printer-alert-banner">
+        <div class="printer-alert-content">
+            <div class="printer-alert-icon" id="printer-alert-icon">
+                <i class="fas fa-print"></i>
+            </div>
+            <div class="printer-alert-text">
+                <div class="printer-alert-title" id="printer-alert-title">Printer Status</div>
+                <div class="printer-alert-message" id="printer-alert-message">Checking printer...</div>
+            </div>
+        </div>
+        <button class="printer-alert-close" onclick="closePrinterAlert()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    
     <div class="header">
         <div class="header-content">
             <div class="header-top">
@@ -1388,41 +1523,95 @@
         }
         
         // ===== PRINTER STATUS FUNCTIONS =====
+        let lastPrinterState = {};
+        
+        function showPrinterAlert(alertType, title, message, duration = 8000) {
+            const banner = document.getElementById('printer-alert-banner');
+            const icon = document.getElementById('printer-alert-icon');
+            const titleEl = document.getElementById('printer-alert-title');
+            const msgEl = document.getElementById('printer-alert-message');
+            
+            if (!banner) return;
+            
+            // Update banner
+            banner.className = 'printer-alert-banner show ' + alertType;
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+            
+            // Set appropriate icon
+            if (alertType === 'disconnected') {
+                icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+            } else if (alertType === 'connected') {
+                icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+            } else if (alertType === 'error') {
+                icon.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+            }
+            
+            // Auto hide after duration
+            setTimeout(closePrinterAlert, duration);
+        }
+        
+        function closePrinterAlert() {
+            const banner = document.getElementById('printer-alert-banner');
+            if (banner) {
+                banner.classList.remove('show');
+            }
+        }
+        
         function checkPrinterStatus() {
-            fetch('/api/printer/status')
+            fetch('/orders/api/printer/monitor/status')
                 .then(r => r.json())
                 .then(response => {
-                    if (response.success && response.data.printers) {
-                        const data = response.data;
-                        const defaultStatus = data.printers['DEFAULT'];
-                        const card = document.getElementById('printer-status-card');
-                        const statusLabel = document.getElementById('printer-status-label');
-                        const printerName = document.getElementById('printer-name');
-                        const failedBadge = document.getElementById('failed-kot-count');
-                        const failedCount = document.getElementById('failed-count');
-                        
-                        if (!card) return;
-                        
-                        // Update card styling based on status
-                        card.classList.remove('connected', 'offline');
-                        if (defaultStatus.connected) {
-                            card.classList.add('connected');
-                            statusLabel.innerHTML = '<span class="printer-status-dot"></span> Ready to Print';
-                        } else {
-                            card.classList.add('offline');
-                            statusLabel.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + defaultStatus.status;
-                        }
-                        
-                        printerName.textContent = defaultStatus.printer_name || 'Not Configured';
-                        
-                        // Show failed KOT count if any
-                        if (data.failed_kot_count > 0) {
-                            failedBadge.style.display = 'flex';
-                            failedCount.textContent = data.failed_kot_count;
-                        } else {
-                            failedBadge.style.display = 'none';
+                    if (!response.success) return;
+                    
+                    const data = response.data || {};
+                    const printers = data.printers || [];
+                    const card = document.getElementById('printer-status-card');
+                    
+                    if (!card || printers.length === 0) return;
+                    
+                    // Get primary/first printer
+                    const printer = printers[0];
+                    const currentState = {
+                        status: printer.status,
+                        name: printer.printer_name,
+                        connected: printer.connected
+                    };
+                    
+                    const statusLabel = document.getElementById('printer-status-label');
+                    const printerName = document.getElementById('printer-name');
+                    
+                    // Update card styling
+                    card.classList.remove('connected', 'offline', 'checking');
+                    
+                    if (printer.status === 'CONNECTED') {
+                        card.classList.add('connected');
+                        statusLabel.innerHTML = '<span class="printer-status-dot"></span> Ready to Print';
+                    } else if (printer.status === 'CHECKING') {
+                        card.classList.add('checking');
+                        statusLabel.innerHTML = '<span class="printer-status-dot"></span> Checking...';
+                    } else {
+                        card.classList.add('offline');
+                        statusLabel.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + (printer.status || 'Offline');
+                    }
+                    
+                    printerName.textContent = printer.printer_name || 'Not Configured';
+                    
+                    // Detect state change and show alert
+                    if (lastPrinterState.status && lastPrinterState.status !== currentState.status) {
+                        if (currentState.status === 'CONNECTED') {
+                            showPrinterAlert('connected', '✅ Printer Connected', 
+                                'Printer is now ready to print', 6000);
+                        } else if (currentState.status === 'DISCONNECTED') {
+                            showPrinterAlert('disconnected', '❌ Printer Disconnected', 
+                                'Printer is offline - orders will be marked as FAILED', 10000);
+                        } else if (currentState.status === 'ERROR') {
+                            showPrinterAlert('error', '⚠️ Printer Error', 
+                                'Error connecting to printer', 8000);
                         }
                     }
+                    
+                    lastPrinterState = currentState;
                 })
                 .catch(err => {
                     console.error('Printer status check failed:', err);
@@ -1439,7 +1628,7 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
             
-            fetch('/api/printer/test', {
+            fetch('/orders/api/printer/test', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({section: 'GENERAL'})
@@ -1450,17 +1639,19 @@
                 btn.innerHTML = '<i class="fas fa-vial"></i> Test';
                 
                 if (data.success) {
-                    alert('✅ Test print sent successfully!');
+                    showPrinterAlert('connected', '✅ Test Print Sent', 
+                        'Test page sent to printer successfully', 5000);
                     checkPrinterStatus();
                 } else {
-                    alert('❌ Test print failed: ' + data.message);
+                    showPrinterAlert('error', '❌ Test Print Failed', 
+                        data.message || 'Failed to send test print', 6000);
                     checkPrinterStatus();
                 }
             })
             .catch(err => {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-vial"></i> Test';
-                alert('❌ Error: ' + err.message);
+                showPrinterAlert('error', '❌ Error', err.message, 6000);
             });
         }
         
@@ -1471,7 +1662,7 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Retrying...';
             
-            fetch(`/api/kot/reprint/${ticketId}`, {
+            fetch(`/orders/api/kot/reprint/${ticketId}`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({})
@@ -1500,7 +1691,7 @@
         checkPrinterStatus();
         
         setInterval(loadOrders, 5000);
-        setInterval(checkPrinterStatus, 10000);  // Check printer every 10 seconds
+        setInterval(checkPrinterStatus, 5000);  // Check printer every 5 seconds for real-time updates
     </script>
 </body>
 </html>
