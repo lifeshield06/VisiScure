@@ -319,3 +319,119 @@ class KOTService:
         finally:
             cursor.close()
             connection.close()
+
+    @staticmethod
+    def get_kot_tickets(hotel_id: int, status: str = None, limit: int = 50) -> Dict:
+        KOTService.ensure_schema()
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            query = """
+                SELECT id, kot_number, order_id, table_id, section_name, print_status,
+                       error_message, created_at, printed_at
+                FROM kitchen_kot_tickets
+                WHERE hotel_id = %s
+            """
+            params = [hotel_id]
+            if status:
+                query += " AND print_status = %s"
+                params.append(status.upper())
+            query += " ORDER BY created_at DESC LIMIT %s"
+            params.append(int(limit))
+            cursor.execute(query, tuple(params))
+            tickets = cursor.fetchall() or []
+            for t in tickets:
+                if t.get('created_at'):
+                    t['created_at'] = t['created_at'].isoformat()
+                if t.get('printed_at'):
+                    t['printed_at'] = t['printed_at'].isoformat()
+            return {'success': True, 'tickets': tickets}
+        except Exception as e:
+            return {'success': False, 'message': f'Failed to get KOT tickets: {e}', 'tickets': []}
+        finally:
+            cursor.close()
+            connection.close()
+
+    @staticmethod
+    def reprint_ticket(ticket_id: int, hotel_id: int = None) -> Dict:
+        KOTService.ensure_schema()
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            base_query = """
+                SELECT kt.id, kt.kot_number, kt.hotel_id, kt.order_id, kt.table_id, kt.session_id,
+                       kt.section_name, kt.note, kt.created_at,
+                       COALESCE(CAST(t.table_number AS CHAR), 'Table Deleted') as table_number,
+                       h.hotel_name
+                FROM kitchen_kot_tickets kt
+                LEFT JOIN tables t ON kt.table_id = t.id
+                LEFT JOIN hotels h ON h.id = kt.hotel_id
+                WHERE kt.id = %s
+            """
+            params = [ticket_id]
+            if hotel_id:
+                base_query += " AND kt.hotel_id = %s"
+                params.append(hotel_id)
+            cursor.execute(base_query, tuple(params))
+            ticket = cursor.fetchone()
+            if not ticket:
+                return {'success': False, 'message': 'KOT ticket not found'}
+
+            cursor.execute(
+                """
+                SELECT item_name as dish_name, quantity
+                FROM kitchen_kot_items
+                WHERE kot_ticket_id = %s
+                ORDER BY id ASC
+                """,
+                (ticket_id,)
+            )
+            items = cursor.fetchall() or []
+            if not items:
+                return {'success': False, 'message': 'No KOT items found for ticket'}
+
+            ticket_text = KOTService._build_kot_text(
+                hotel_name=ticket.get('hotel_name') or 'Tip Top Hotel',
+                section_name=ticket.get('section_name') or 'GENERAL',
+                kot_number=ticket.get('kot_number') or f"KOT-{ticket_id:06d}",
+                table_number=KOTService._safe_text(ticket.get('table_number'), 'Table Deleted'),
+                order_time=ticket.get('created_at') or datetime.now(),
+                items=items,
+                note=ticket.get('note')
+            )
+
+            printer_name = KOTService._get_printer_name(ticket.get('section_name') or 'GENERAL')
+            ok, message = KOTService._print_escpos(printer_name, ticket_text)
+
+            if ok:
+                cursor.execute(
+                    """
+                    UPDATE kitchen_kot_tickets
+                    SET print_status = 'PRINTED', printed_at = NOW(), error_message = NULL
+                    WHERE id = %s
+                    """,
+                    (ticket_id,)
+                )
+            else:
+                cursor.execute(
+                    """
+                    UPDATE kitchen_kot_tickets
+                    SET print_status = 'FAILED', error_message = %s
+                    WHERE id = %s
+                    """,
+                    (message[:1000], ticket_id)
+                )
+            connection.commit()
+
+            return {
+                'success': ok,
+                'message': message,
+                'ticket_id': ticket_id,
+                'printer': printer_name,
+            }
+        except Exception as e:
+            connection.rollback()
+            return {'success': False, 'message': f'Reprint failed: {e}', 'ticket_id': ticket_id}
+        finally:
+            cursor.close()
+            connection.close()

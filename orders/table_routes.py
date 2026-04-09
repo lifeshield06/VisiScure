@@ -3,6 +3,7 @@ from flask import request, jsonify, render_template, send_file, session, render_
 from . import orders_bp
 from .table_services import TableService, OrderService
 from .table_models import Table, TableOrder, Bill, ActiveTable, BillRequest
+from .kot_service import KOTService
 from database.db import get_db_connection
 from wallet.models import HotelWallet
 
@@ -75,6 +76,42 @@ def settle_bill_charge_after_paid(hotel_id, bill_id, table_id=None, session_id=N
         session_id=session_id,
         guest_name=guest_name
     )
+
+
+@orders_bp.route('/api/kot/tickets', methods=['GET'])
+def get_kot_tickets():
+    """List KOT tickets for manager dashboard monitoring/retry."""
+    try:
+        hotel_id = session.get('hotel_id')
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"}), 401
+
+        status = (request.args.get('status') or '').strip().upper() or None
+        limit = int(request.args.get('limit') or 50)
+        limit = max(1, min(200, limit))
+
+        result = KOTService.get_kot_tickets(hotel_id=hotel_id, status=status, limit=limit)
+        status_code = 200 if result.get('success') else 500
+        return jsonify(result), status_code
+    except Exception as e:
+        print(f"[KOT_TICKETS ERROR] {e}")
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+
+@orders_bp.route('/api/kot/reprint/<int:ticket_id>', methods=['POST'])
+def reprint_kot_ticket(ticket_id):
+    """Reprint a KOT ticket by id (for FAILED/OFFLINE retry workflows)."""
+    try:
+        hotel_id = session.get('hotel_id')
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"}), 401
+
+        result = KOTService.reprint_ticket(ticket_id=ticket_id, hotel_id=hotel_id)
+        status_code = 200 if result.get('success') else 400
+        return jsonify(result), status_code
+    except Exception as e:
+        print(f"[KOT_REPRINT ERROR] {e}")
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 @orders_bp.route('/api/tables', methods=['GET'])
 def get_tables():
