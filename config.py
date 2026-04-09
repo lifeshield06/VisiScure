@@ -22,6 +22,6 @@ OTP_EXPIRY_MINUTES = 5
 OTP_MAX_ATTEMPTS = 3
 OTP_RESEND_COOLDOWN_SECONDS = 30
 
-# Razorpay Configuration (Test Keys - replace with live keys in production)
-RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_RPIKv0UoeCuE4T")
-RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "Wr1gDTqvaQ4p0KQHrBzWI5nf")
+# Razorpay Configuration
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID") or os.getenv("RAZORPAY_KEY", "rzp_live_1SRvM7JN9koBvX")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET") or os.getenv("RAZORPAY_SECRET", "tcWjEQumazXxpKzTnS6fiAML")

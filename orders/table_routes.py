@@ -127,10 +127,19 @@ def regenerate_qr(table_id):
 
 @orders_bp.route('/menu/<int:table_id>')
 def table_menu(table_id):
-    """Show menu for table (QR destination)"""
+    """Show menu for table (QR destination).
+
+    Also supports a revisit flow where table_id may actually be a hotel_id.
+    In that case, the first available table for that hotel is used.
+    """
     table = Table.get_table_by_id(table_id)
+
+    # Visit-again fallback: if no table with this ID exists, treat the ID as hotel_id.
     if not table:
-        return "Table not found", 404
+        hotel_tables = Table.get_all_tables(table_id)
+        if not hotel_tables:
+            return "Table not found", 404
+        table = hotel_tables[0]
     
     # Check for any open bill with a guest_name to determine initial busy state
     # Bills with NULL/empty guest_name are treated as available (orphaned bills)
@@ -171,7 +180,9 @@ def table_menu(table_id):
                          hotel_name=hotel_name,
                          hotel_logo=hotel_logo,
                          upi_id=upi_id,
-                         upi_qr_image=upi_qr_image)
+                         upi_qr_image=upi_qr_image,
+                         visit_again_url=f"/orders/menu/{hotel_id}" if hotel_id else f"/orders/menu/{table.get('id')}",
+                         share_restaurant_url=f"{request.host_url.rstrip('/')}/orders/menu/{hotel_id}" if hotel_id else f"{request.host_url.rstrip('/')}/orders/menu/{table.get('id')}")
 
 @orders_bp.route('/api/check-guest-access', methods=['POST'])
 def check_guest_access():
@@ -228,7 +239,30 @@ def get_orders():
     """Get all orders for current hotel"""
     try:
         hotel_id = session.get('hotel_id')
-        orders = TableOrder.get_all_orders(hotel_id)
+        date_from = (request.args.get('date_from') or '').strip()
+        date_to = (request.args.get('date_to') or '').strip()
+        payment_method = (request.args.get('payment_method') or '').strip().upper()
+        payment_status = (request.args.get('payment_status') or '').strip().upper()
+        table_number = (request.args.get('table_number') or '').strip()
+
+        if payment_method in ('', 'ALL'):
+            payment_method = None
+        elif payment_method not in ('CASH', 'UPI'):
+            payment_method = None
+
+        if payment_status in ('', 'ALL'):
+            payment_status = None
+        elif payment_status not in ('PAID', 'PENDING'):
+            payment_status = None
+
+        orders = TableOrder.get_all_orders(
+            hotel_id=hotel_id,
+            date_from=date_from or None,
+            date_to=date_to or None,
+            payment_method=payment_method,
+            payment_status=payment_status,
+            table_number=table_number or None,
+        )
         return jsonify({"success": True, "orders": orders})
     except Exception as e:
         return jsonify({"success": False, "message": "Server error"})
@@ -386,6 +420,43 @@ def get_bill_by_order(order_id):
     except Exception as e:
         return jsonify({"success": False, "message": "Server error"})
 
+@orders_bp.route('/apply-discount', methods=['POST'])
+@orders_bp.route('/api/apply-discount', methods=['POST'])
+def apply_bill_discount():
+    """Apply discount to an OPEN bill and persist discount values."""
+    try:
+        data = request.get_json() or {}
+        bill_id = data.get('bill_id')
+
+        if not bill_id:
+            return jsonify({"success": False, "message": "Bill ID is required"}), 400
+
+        has_percent = data.get('discount_percent') not in (None, '', 'null')
+        has_amount = data.get('discount_amount') not in (None, '', 'null')
+
+        if has_percent and has_amount:
+            return jsonify({"success": False, "message": "Provide either discount percent or discount amount, not both"}), 400
+
+        if not has_percent and not has_amount:
+            return jsonify({"success": False, "message": "Discount percent or discount amount is required"}), 400
+
+        discount_percent = float(data.get('discount_percent')) if has_percent else None
+        discount_amount = float(data.get('discount_amount')) if has_amount else None
+
+        result = Bill.apply_discount(
+            bill_id=bill_id,
+            discount_percent=discount_percent,
+            discount_amount=discount_amount,
+        )
+
+        status_code = 200 if result.get('success') else 400
+        return jsonify(result), status_code
+    except ValueError:
+        return jsonify({"success": False, "message": "Invalid numeric values in discount request"}), 400
+    except Exception as e:
+        print(f"[APPLY_DISCOUNT] Error: {e}")
+        return jsonify({"success": False, "message": "Server error"}), 500
+
 @orders_bp.route('/api/session-bill/<int:table_id>/<session_id>', methods=['GET'])
 def get_session_bill(table_id, session_id):
     """Get combined bill for entire session"""
@@ -470,7 +541,7 @@ def process_payment():
         table = Table.get_table_by_id(table_id)
         table_num = table['table_number'] if table else table_id
         hotel_id = (table.get('hotel_id') if table else None) or open_bill.get('hotel_id')
-        bill_total = open_bill.get('total_amount', 0)
+        bill_total = open_bill.get('final_total') if open_bill.get('final_total') is not None else open_bill.get('total_amount', 0)
         
         # Process payment in atomic transaction with tip
         payment_success = Bill.process_payment_atomic(table_id, open_bill['id'], payment_method, tip_amount, utr_id)
@@ -1673,15 +1744,60 @@ def update_digital_fee_settings():
         if not hotel_id:
             return jsonify({"success": False, "message": "Not authenticated"})
         
-        data = request.get_json()
+        data = request.get_json() or {}
         enabled = data.get('digital_fee_enabled', True)
         
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
         cursor.execute(
             "UPDATE hotel_wallet SET digital_fee_enabled = %s WHERE hotel_id = %s",
             (1 if enabled else 0, hotel_id)
         )
+
+        # Fetch configured fee and re-sync all OPEN bills so UI/API/print paths stay consistent.
+        cursor.execute(
+            "SELECT COALESCE(per_order_charge, 0) AS per_order_charge FROM hotel_wallet WHERE hotel_id = %s",
+            (hotel_id,)
+        )
+        wallet_row = cursor.fetchone() or {}
+        live_fee = float(wallet_row.get('per_order_charge') or 0.0) if enabled else 0.0
+
+        cursor.execute(
+            """
+            SELECT id, subtotal, tax_amount, discount_percent, discount_amount
+            FROM bills
+            WHERE hotel_id = %s
+              AND bill_status = 'OPEN'
+              AND COALESCE(payment_status, 'PENDING') != 'PAID'
+            """,
+            (hotel_id,)
+        )
+        open_bills = cursor.fetchall() or []
+
+        for bill in open_bills:
+            subtotal = round(float(bill.get('subtotal') or 0.0), 2)
+            tax_amount = round(float(bill.get('tax_amount') or 0.0), 2)
+            discount_percent = round(float(bill.get('discount_percent') or 0.0), 2)
+            discount_amount = round(float(bill.get('discount_amount') or 0.0), 2)
+
+            grand_total = round(subtotal + tax_amount + live_fee, 2)
+            has_discount = discount_amount > 0 or discount_percent > 0
+            final_total = round(max(grand_total - discount_amount, 0.0), 2) if has_discount else None
+            total_amount = final_total if final_total is not None else grand_total
+
+            cursor.execute(
+                """
+                UPDATE bills
+                SET charges = %s,
+                    convenience_fee = %s,
+                    grand_total = %s,
+                    final_total = %s,
+                    total_amount = %s
+                WHERE id = %s
+                """,
+                (live_fee, live_fee, grand_total, final_total, total_amount, bill['id'])
+            )
+
         conn.commit()
         cursor.close()
         conn.close()

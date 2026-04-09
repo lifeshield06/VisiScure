@@ -7096,6 +7096,48 @@
                         <div class="orders-card-header">
                             <h3 class="orders-card-title"><i class="fas fa-receipt"></i> Table Orders</h3>
                         </div>
+                        <div class="orders-filter-bar" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:0.9rem;margin-bottom:1rem;">
+                            <div class="row g-2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0.65rem;align-items:end;">
+                                <div class="col-12 col-sm-6 col-lg-2">
+                                    <label for="filter-date-from" style="display:block;font-size:0.74rem;color:#64748b;font-weight:600;margin-bottom:0.3rem;">From</label>
+                                    <input type="date" id="filter-date-from" class="form-control" placeholder="mm/dd/yyyy" style="width:100%;padding:0.58rem 0.7rem;border:1px solid #cbd5e1;border-radius:8px;">
+                                </div>
+                                <div class="col-12 col-sm-6 col-lg-2">
+                                    <label for="filter-date-to" style="display:block;font-size:0.74rem;color:#64748b;font-weight:600;margin-bottom:0.3rem;">To</label>
+                                    <input type="date" id="filter-date-to" class="form-control" placeholder="mm/dd/yyyy" style="width:100%;padding:0.58rem 0.7rem;border:1px solid #cbd5e1;border-radius:8px;">
+                                </div>
+                                <div class="col-12 col-sm-6 col-lg-2">
+                                    <label for="filter-payment-method" style="display:block;font-size:0.74rem;color:#64748b;font-weight:600;margin-bottom:0.3rem;">Payment Method</label>
+                                    <select id="filter-payment-method" class="form-select" style="width:100%;padding:0.58rem 0.7rem;border:1px solid #cbd5e1;border-radius:8px;">
+                                        <option value="">Select Method</option>
+                                        <option value="ALL">All</option>
+                                        <option value="CASH">Cash</option>
+                                        <option value="UPI">UPI</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-sm-6 col-lg-2">
+                                    <label for="filter-payment-status" style="display:block;font-size:0.74rem;color:#64748b;font-weight:600;margin-bottom:0.3rem;">Payment Status</label>
+                                    <select id="filter-payment-status" class="form-select" style="width:100%;padding:0.58rem 0.7rem;border:1px solid #cbd5e1;border-radius:8px;">
+                                        <option value="">Select Status</option>
+                                        <option value="ALL">All</option>
+                                        <option value="PAID">Paid</option>
+                                        <option value="PENDING">Pending</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-sm-6 col-lg-2">
+                                    <label for="filter-table-number" style="display:block;font-size:0.74rem;color:#64748b;font-weight:600;margin-bottom:0.3rem;">Table Number</label>
+                                    <input type="text" id="filter-table-number" class="form-control" placeholder="Enter Table No" onkeydown="if(event.key==='Enter'){applyOrdersFilter(event);}" style="width:100%;padding:0.58rem 0.7rem;border:1px solid #cbd5e1;border-radius:8px;">
+                                </div>
+                                <div class="col-12 col-sm-6 col-lg-2" style="display:flex;gap:0.5rem;align-items:flex-end;">
+                                    <button type="button" class="btn-sm" onclick="applyOrdersFilter(event)" style="flex:1;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;border:none;padding:0.6rem 0.75rem;border-radius:8px;font-weight:600;">
+                                        <i class="fas fa-filter"></i> Apply Filter
+                                    </button>
+                                    <button type="button" class="btn-sm" onclick="resetOrdersFilter()" style="flex:1;background:#e2e8f0;color:#334155;border:none;padding:0.6rem 0.75rem;border-radius:8px;font-weight:600;">
+                                        <i class="fas fa-rotate-left"></i> Reset
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                         <div id="orders-list">
                             <div class="empty-state">
                                 <i class="fas fa-spinner fa-spin"></i>
@@ -7133,6 +7175,63 @@
                             <i class="fas fa-spinner fa-spin"></i>
                             <p>Loading tables...</p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Table Orders Modal -->
+                <div id="tableOrdersModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; overflow-y: auto;">
+                    <div style="position: relative; background: white; margin: 20px auto; max-width: 600px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                        <!-- Modal Header -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #e5e7eb; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px 12px 0 0;">
+                            <h2 style="margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.65rem;">
+                                <i class="fas fa-utensils"></i> <span class="modal-table-number">Table -</span> Orders
+                            </h2>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <button id="table-add-order-btn" onclick="openAddOrderMenuFromPopup()" style="display: none; background: rgba(255,255,255,0.16); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 0.55rem 0.85rem; border-radius: 10px; font-weight: 700; cursor: pointer;">
+                                    <i class="fas fa-plus"></i> Add Order
+                                </button>
+                                <button onclick="closeTableOrdersModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: white;">&times;</button>
+                            </div>
+                        </div>
+
+                        <!-- Modal Body -->
+                        <div style="padding: 20px;">
+                            <!-- Loading State -->
+                            <div class="modal-loading-state" style="text-align: center; padding: 40px;">
+                                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #667eea;"></i>
+                                <p style="margin-top: 10px; color: #666;">Loading orders...</p>
+                            </div>
+
+                            <!-- Orders List -->
+                            <div class="modal-orders-container" style="display: none;"></div>
+
+                            <!-- No Orders State -->
+                            <div class="modal-no-orders-state" style="display: none; text-align: center; padding: 40px; color: #999;">
+                                <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 10px; opacity: 0.5;"></i>
+                                <h3>No Active Order</h3>
+                                <p>No current active orders for this table's current session.</p>
+                            </div>
+
+                            <!-- Error State -->
+                            <div class="modal-error-state" style="display: none; padding: 20px; background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; color: #991b1b;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span> Error loading orders. Please try again.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Order Menu Modal -->
+                <div id="tableAddOrderModal" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.72); z-index: 11000;">
+                    <div style="position: absolute; inset: 16px; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 70px rgba(0,0,0,0.35); display: flex; flex-direction: column;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.95rem 1.1rem;background:linear-gradient(135deg,#0f172a,#334155);color:white;">
+                            <div style="display:flex;align-items:center;gap:0.6rem;font-weight:700;">
+                                <i class="fas fa-utensils"></i>
+                                <span id="add-order-modal-title">Add items to Table -</span>
+                            </div>
+                            <button onclick="closeAddOrderMenuModal()" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>
+                        </div>
+                        <iframe id="add-order-menu-iframe" title="Add Order Menu" style="border:0; width:100%; flex:1; background:#fff;"></iframe>
                     </div>
                 </div>
             </div>
@@ -10794,21 +10893,21 @@
                 const statusClass = table.status === 'BUSY' ? 'busy' : 'available';
                 const statusText = table.status === 'BUSY' ? 'BUSY' : 'AVAILABLE';
                 const qrPreview = table.qr_code_path ? 
-                    `<img src="/${table.qr_code_path}" alt="QR Code for Table ${table.table_number}" onclick="showQRPreview('/${table.qr_code_path}', '${table.table_number}', ${table.id})">` :
+                    `<img src="/${table.qr_code_path}" alt="QR Code for Table ${table.table_number}" onclick="event.stopPropagation(); showQRPreview('/${table.qr_code_path}', '${table.table_number}', ${table.id})">` :
                     '<div class="table-qr-placeholder"><i class="fas fa-qrcode"></i></div>';
                 
                 tablesHTML += `
-                    <div class="table-card-item">
+                    <div class="table-card-item" onclick="openTableOrdersModal(${table.id}, '${table.table_number}')" style="cursor: pointer; transition: all 0.3s ease;">
                         <div class="table-card-header">
                             <h4><i class="fas fa-chair" style="margin-right: 8px; color: var(--primary);"></i>Table ${table.table_number}</h4>
                             <span class="table-status-badge ${statusClass}">${statusText}</span>
                         </div>
                         <div class="table-qr-preview">${qrPreview}</div>
                         <div class="table-card-actions">
-                            <button onclick="downloadTableQR(${table.id})" class="btn-download">
+                            <button onclick="event.stopPropagation(); downloadTableQR(${table.id})" class="btn-download">
                                 <i class="fas fa-download"></i> Download QR
                             </button>
-                            <button onclick="deleteTable('${table.table_number}')" class="btn-delete-table">
+                            <button onclick="event.stopPropagation(); deleteTable('${table.table_number}')" class="btn-delete-table">
                                 <i class="fas fa-trash"></i> Delete
                             </button>
                         </div>
@@ -10852,8 +10951,276 @@
             window.open(`/orders/api/download-qr/${tableId}`, '_blank');
         }
         
+        function buildOrdersFilterQuery() {
+            const dateFrom = document.getElementById('filter-date-from')?.value || '';
+            const dateTo = document.getElementById('filter-date-to')?.value || '';
+            const paymentMethod = document.getElementById('filter-payment-method')?.value || '';
+            const paymentStatus = document.getElementById('filter-payment-status')?.value || '';
+            const tableNumber = (document.getElementById('filter-table-number')?.value || '').trim();
+
+            const params = new URLSearchParams();
+            if (dateFrom) params.append('date_from', dateFrom);
+            if (dateTo) params.append('date_to', dateTo);
+            if (paymentMethod) params.append('payment_method', paymentMethod);
+            if (paymentStatus) params.append('payment_status', paymentStatus);
+            if (tableNumber) params.append('table_number', tableNumber);
+
+            return params.toString();
+        }
+
+        // ==================== TABLE ORDERS MODAL FUNCTIONS ====================
+        let currentModalTableId = null;
+        let currentModalTableNumber = null;
+        let currentModalSessionId = null;
+        let currentModalGuestName = null;
+
+        function openAddOrderMenuFromPopup() {
+            if (!currentModalTableId || !currentModalSessionId || !currentModalGuestName) {
+                alert('No active order session found for this table.');
+                return;
+            }
+
+            const iframe = document.getElementById('add-order-menu-iframe');
+            const modal = document.getElementById('tableAddOrderModal');
+            const title = document.getElementById('add-order-modal-title');
+
+            title.textContent = `Add items to Table ${currentModalTableNumber || currentModalTableId}`;
+            iframe.src = `/orders/menu/${currentModalTableId}?manager_mode=1&manager_session_id=${encodeURIComponent(currentModalSessionId)}&manager_guest_name=${encodeURIComponent(currentModalGuestName)}`;
+            modal.style.display = 'block';
+        }
+
+        function closeAddOrderMenuModal() {
+            const modal = document.getElementById('tableAddOrderModal');
+            const iframe = document.getElementById('add-order-menu-iframe');
+            modal.style.display = 'none';
+            iframe.src = 'about:blank';
+        }
+
+        function refreshCurrentTableOrders() {
+            if (currentModalTableId && currentModalTableNumber) {
+                openTableOrdersModal(currentModalTableId, currentModalTableNumber);
+            }
+        }
+
+        window.addEventListener('message', function(event) {
+            const data = event.data || {};
+            if (data.type === 'manager-order-added') {
+                closeAddOrderMenuModal();
+                refreshCurrentTableOrders();
+            }
+        });
+
+        function openTableOrdersModal(tableId, tableNumber) {
+            const modal = document.getElementById('tableOrdersModal');
+            const ordersContainer = modal.querySelector('.modal-orders-container');
+            const noOrdersState = modal.querySelector('.modal-no-orders-state');
+            const errorState = modal.querySelector('.modal-error-state');
+            const loading = modal.querySelector('.modal-loading-state');
+            const modalTableNumber = modal.querySelector('.modal-table-number');
+            const addOrderBtn = document.getElementById('table-add-order-btn');
+            
+            // Store current table info for later use
+            currentModalTableId = tableId;
+            currentModalTableNumber = tableNumber;
+            currentModalSessionId = null;
+            currentModalGuestName = null;
+            
+            // Update table number
+            modalTableNumber.textContent = `Table ${tableNumber}`;
+            
+            // Show modal
+            modal.style.display = 'block';
+            
+            // Show loading state
+            loading.style.display = 'block';
+            ordersContainer.style.display = 'none';
+            noOrdersState.style.display = 'none';
+            errorState.style.display = 'none';
+            
+            // Fetch orders for this table
+            fetch(`/orders/api/table-orders/${tableId}`)
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    
+                    if (data.orders && data.orders.length > 0) {
+                        const latestActiveOrder = [...data.orders].sort((a, b) => {
+                            if (a.created_at && b.created_at) {
+                                return new Date(b.created_at) - new Date(a.created_at);
+                            }
+                            return (b.id || 0) - (a.id || 0);
+                        })[0];
+
+                        currentModalSessionId = latestActiveOrder?.session_id || null;
+                        currentModalGuestName = latestActiveOrder?.guest_name || null;
+                        if (addOrderBtn) {
+                            addOrderBtn.style.display = (currentModalSessionId && currentModalGuestName) ? 'inline-flex' : 'none';
+                        }
+
+                        renderTableOrdersModal(data.orders, tableId);
+                        ordersContainer.style.display = 'block';
+                        noOrdersState.style.display = 'none';
+                        errorState.style.display = 'none';
+                    } else {
+                        if (addOrderBtn) addOrderBtn.style.display = 'none';
+                        ordersContainer.style.display = 'none';
+                        noOrdersState.style.display = 'block';
+                        errorState.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading table orders:', error);
+                    loading.style.display = 'none';
+                    ordersContainer.style.display = 'none';
+                    noOrdersState.style.display = 'none';
+                    errorState.style.display = 'block';
+                    if (addOrderBtn) addOrderBtn.style.display = 'none';
+                });
+        }
+
+        function renderTableOrdersModal(orders, tableId) {
+            const ordersContainer = document.getElementById('tableOrdersModal').querySelector('.modal-orders-container');
+            
+            // Filter to show only active, preparing, or pending orders
+            const activeOrders = orders.filter(order => {
+                const status = (order.order_status || '').toUpperCase();
+                return ['ACTIVE', 'PREPARING', 'PENDING'].includes(status);
+            });
+            
+            // If no active orders, show the "no active orders" state instead
+            if (activeOrders.length === 0) {
+                const noOrdersState = document.getElementById('tableOrdersModal').querySelector('.modal-no-orders-state');
+                ordersContainer.style.display = 'none';
+                noOrdersState.style.display = 'block';
+                return;
+            }
+            
+            // Sort by created_at (most recent first) or by id to get the latest order from current session
+            const latestOrder = activeOrders.sort((a, b) => {
+                // Try to sort by created_at first (if available)
+                if (a.created_at && b.created_at) {
+                    return new Date(b.created_at) - new Date(a.created_at);
+                }
+                // Fallback to id (highest first)
+                return (b.id || b.order_id || 0) - (a.id || a.order_id || 0);
+            })[0]; // Take only the first (latest) order
+            
+            const statusClass = (latestOrder.order_status || '').toLowerCase();
+            const statusBadgeColor = statusClass === 'active' ? '#3b82f6' :
+                                    statusClass === 'preparing' ? '#f59e0b' :
+                                    statusClass === 'pending' ? '#8b5cf6' : '#6b7280';
+            
+            let itemsHTML = '';
+            try {
+                const items = typeof latestOrder.items === 'string' ? JSON.parse(latestOrder.items) : latestOrder.items;
+                if (Array.isArray(items)) {
+                    items.forEach(item => {
+                        const imageUrl = item.image_url || '/static/images/default_profile.png';
+                        const itemName = item.dish_name || item.name || 'Unknown';
+                        const quantity = item.quantity || 1;
+                        const price = parseFloat(item.price || 0);
+                        const itemTotal = (price * quantity).toFixed(2);
+                        
+                        itemsHTML += `
+                            <div style="display: flex; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb; align-items: flex-start;">
+                                <!-- Item Image -->
+                                <img src="${imageUrl}" alt="${itemName}" onerror="this.src='/static/images/default_profile.png'" style="width: 60px; height: 60px; border-radius: 0.375rem; object-fit: cover; flex-shrink: 0; background: #f3f4f6;">
+                                
+                                <!-- Item Details -->
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">${itemName}</div>
+                                    <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">
+                                        <span style="display: inline-block; background: #f3f4f6; padding: 0.125rem 0.5rem; border-radius: 0.25rem;">Qty: ${quantity}</span>
+                                        <span style="display: inline-block; margin-left: 0.5rem;">₹${price.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Item Total -->
+                                <div style="text-align: right; flex-shrink: 0;">
+                                    <div style="font-weight: 600; color: #1f2937;">₹${itemTotal}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (e) {
+                console.error('Error rendering items:', e);
+                itemsHTML = '<div style="color: #ef4444; padding: 0.5rem 0;">Error loading items</div>';
+            }
+            
+            let ordersHTML = `
+                <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <div style="font-weight: 600; color: #1f2937;">Order #${latestOrder.order_id || latestOrder.id}</div>
+                            <div style="font-size: 0.875rem; color: #6b7280;">${latestOrder.guest_name || 'Guest'}</div>
+                        </div>
+                        <span style="background: ${statusBadgeColor}; color: white; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">
+                            ${latestOrder.order_status || 'ACTIVE'}
+                        </span>
+                    </div>
+                    
+                    <div style="border-bottom: 1px solid #d1d5db; padding: 0.5rem 0; margin-bottom: 0.75rem;">
+                        ${itemsHTML}
+                    </div>
+                    
+                    <div style="display: flex; justify-content: flex-end; align-items: center;">
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.875rem; color: #6b7280;">Total Amount</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #1f2937;">₹${(latestOrder.total_amount || 0).toFixed(2)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            ordersContainer.innerHTML = ordersHTML;
+        }
+
+        function closeTableOrdersModal() {
+            const modal = document.getElementById('tableOrdersModal');
+            modal.style.display = 'none';
+        }
+
+        // Close modal when clicking outside the modal content
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('tableOrdersModal');
+            if (modal) {
+                modal.addEventListener('click', function(event) {
+                    if (event.target === modal) {
+                        closeTableOrdersModal();
+                    }
+                });
+            }
+        });
+
+        // ==================== END TABLE ORDERS MODAL FUNCTIONS ====================
+
+        function applyOrdersFilter(event) {
+            if (event) event.preventDefault();
+            loadOrdersData();
+        }
+
+        function resetOrdersFilter() {
+            const fromInput = document.getElementById('filter-date-from');
+            const toInput = document.getElementById('filter-date-to');
+            const methodInput = document.getElementById('filter-payment-method');
+            const statusInput = document.getElementById('filter-payment-status');
+            const tableInput = document.getElementById('filter-table-number');
+
+            if (fromInput) fromInput.value = '';
+            if (toInput) toInput.value = '';
+            if (methodInput) methodInput.value = '';
+            if (statusInput) statusInput.value = '';
+            if (tableInput) tableInput.value = '';
+
+            loadOrdersData();
+        }
+
         function loadOrdersData() {
-            fetch('/orders/api/orders')
+            const query = buildOrdersFilterQuery();
+            const url = query ? `/orders/api/orders?${query}` : '/orders/api/orders';
+
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -11242,6 +11609,9 @@
                 });
         }
         
+        let activeBillModalContext = null;
+        let currentManagerBillSnapshot = null;
+
         function showBillModal(bill) {
             // Remove any existing modal first
             const existingModal = document.getElementById('billModal');
@@ -11258,6 +11628,35 @@
             const paymentMethod = bill.payment_method || '';
             const utrId = bill.utr_id || '';
             const isPaid = paymentStatus === 'PAID';
+            const items = Array.isArray(bill.items) ? bill.items : [];
+            const subtotalValue = parseFloat(bill.subtotal || 0);
+            const totalTaxValue = parseFloat(bill.tax_amount || 0);
+            const convenienceFeeValue = parseFloat(bill.total_convenience_fee || bill.charges || 0);
+            const grossTotal = parseFloat(bill.total_amount || bill.grand_total || (subtotalValue + totalTaxValue + convenienceFeeValue));
+            const hasPercentDiscount = bill.discount_percent !== null && bill.discount_percent !== undefined && !Number.isNaN(Number(bill.discount_percent));
+            const storedDiscountAmount = parseFloat(bill.discount_amount || 0);
+            const storedDiscountPercent = parseFloat(bill.discount_percent || 0);
+            const finalTotalValue = bill.final_total !== null && bill.final_total !== undefined
+                ? parseFloat(bill.final_total)
+                : grossTotal;
+            const finalTotalLabelText = isPaid ? 'Amount Paid:' : 'Final Payable:';
+            const discountLabelText = hasPercentDiscount && storedDiscountPercent > 0
+                ? `Discount (${storedDiscountPercent.toFixed(2)}%)`
+                : 'Discount';
+
+            currentManagerBillSnapshot = JSON.parse(JSON.stringify(bill));
+
+            activeBillModalContext = {
+                billId: bill.id,
+                grossTotal: grossTotal,
+                isPaid: isPaid,
+                hasPercentDiscount: hasPercentDiscount
+            };
+
+            const finalTotalLabel = document.getElementById('final-total-label');
+            if (finalTotalLabel) {
+                finalTotalLabel.textContent = finalTotalLabelText;
+            }
             
             // Payment method styling
             let methodBg = '', methodColor = '', methodIcon = '';
@@ -11271,7 +11670,7 @@
                 methodIcon = '<i class="fas fa-money-bill-wave" style="margin-right: 0.5rem;"></i>';
             }
             
-            const itemsHTML = bill.items.map(item => {
+            const itemsHTML = items.map(item => {
                 // Get per-item tax amounts (enriched by backend)
                 const itemCgst = item.cgst_amount || 0;
                 const itemSgst = item.sgst_amount || 0;
@@ -11291,7 +11690,7 @@
             `}).join('');
             
             // Mobile-friendly item cards
-            const mobileItemsHTML = bill.items.map(item => {
+            const mobileItemsHTML = items.map(item => {
                 const itemCgst = item.cgst_amount || 0;
                 const itemSgst = item.sgst_amount || 0;
                 const itemTotal = item.total_with_tax || (item.price * item.quantity + itemCgst + itemSgst);
@@ -11389,10 +11788,26 @@
                             ${mobileItemsHTML}
                         </div>
                         
+                        <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 10px; padding: 1rem; margin-top: 1rem;">
+                            <h4 style="font-size: 0.85rem; color: #4338ca; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">Discount</h4>
+                            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; align-items: end;">
+                                <div>
+                                    <label style="display: block; font-size: 0.72rem; color: #4b5563; margin-bottom: 0.3rem;">Discount %</label>
+                                    <input id="discount-percent-input" type="number" min="0" max="100" step="0.01" value="${storedDiscountPercent > 0 ? storedDiscountPercent.toFixed(2) : ''}" ${isPaid ? 'disabled' : ''} style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.55rem 0.6rem; font-size: 0.9rem;">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 0.72rem; color: #4b5563; margin-bottom: 0.3rem;">Discount Amount (₹)</label>
+                                    <input id="discount-amount-input" type="number" min="0" step="0.01" value="" ${isPaid ? 'disabled' : ''} style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.55rem 0.6rem; font-size: 0.9rem;">
+                                </div>
+                                <button id="apply-discount-btn" onclick="applyBillDiscount()" ${isPaid ? 'disabled' : ''} style="height: 2.35rem; border: 0; border-radius: 8px; background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; font-weight: 600; cursor: ${isPaid ? 'not-allowed' : 'pointer'}; opacity: ${isPaid ? '0.65' : '1'};">Apply</button>
+                            </div>
+                            <p id="discount-feedback" style="margin: 0.6rem 0 0; color: #374151; font-size: 0.8rem; min-height: 1rem;">${isPaid ? 'Discount cannot be edited after payment.' : ''}</p>
+                        </div>
+
                         <div class="bill-totals" style="background: #f8fafc; border-radius: 10px; padding: 1rem; margin-top: 1rem;">
                             <div class="bill-total-row" style="display: flex; justify-content: space-between; padding: 0.5rem 0; color: #6b7280;">
-                                <span>Subtotal:</span>
-                                <span>₹${parseFloat(bill.subtotal).toFixed(2)}</span>
+                                <span>Food Subtotal:</span>
+                                <span>₹${subtotalValue.toFixed(2)}</span>
                             </div>
                             <div class="bill-total-row" style="display: flex; justify-content: space-between; padding: 0.4rem 0; color: #059669; border-top: 1px dashed #e2e8f0; margin-top: 0.25rem; padding-top: 0.5rem;">
                                 <span>Total CGST:</span>
@@ -11404,7 +11819,7 @@
                             </div>
                             <div class="bill-total-row" style="display: flex; justify-content: space-between; padding: 0.4rem 0; color: #6b7280;">
                                 <span>Total Tax:</span>
-                                <span>₹${parseFloat(bill.tax_amount || 0).toFixed(2)}</span>
+                                <span>₹${totalTaxValue.toFixed(2)}</span>
                             </div>
                             ${bill.tip_amount && parseFloat(bill.tip_amount) > 0 ? `
                             <div class="bill-total-row" style="display: flex; justify-content: space-between; padding: 0.5rem 0; color: #059669;">
@@ -11418,9 +11833,17 @@
                                 <span>₹${parseFloat(bill.total_convenience_fee).toFixed(2)}</span>
                             </div>
                             ` : ''}
+                            <div class="bill-total-row" style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-top: 1px dashed #e2e8f0; margin-top: 0.3rem; color: #374151;">
+                                <span>Original Total (Before Discount):</span>
+                                <span id="discount-subtotal-display">₹${grossTotal.toFixed(2)}</span>
+                            </div>
+                            <div class="bill-total-row" id="discount-summary-row" style="display: ${storedDiscountAmount > 0 ? 'flex' : 'none'}; justify-content: space-between; padding: 0.4rem 0; color: #dc2626;">
+                                <span id="discount-label-display">${discountLabelText}:</span>
+                                <span id="discount-amount-display">-₹${storedDiscountAmount.toFixed(2)}</span>
+                            </div>
                             <div class="bill-total-row grand-total" style="display: flex; justify-content: space-between; padding: 0.75rem 0; margin-top: 0.5rem; border-top: 2px solid #e2e8f0; font-size: 1.25rem; font-weight: 700;">
-                                <span>Grand Total:</span>
-                                <span style="color: #059669;">₹${parseFloat(bill.total_amount).toFixed(2)}</span>
+                                <span id="final-total-label">Final Payable:</span>
+                                <span id="final-total-display" style="color: #059669;">₹${finalTotalValue.toFixed(2)}</span>
                             </div>
                         </div>
                         <div style="margin-top: 1.25rem; padding: 1rem; border-radius: 10px; text-align: center; font-weight: 600; ${isPaid ? 'background: #d1fae5; color: #065f46;' : 'background: #fef3c7; color: #92400e;'}">
@@ -11468,9 +11891,140 @@
             
             // Append and show modal with animation
             document.body.appendChild(modal);
+
+            const discountPercentInput = document.getElementById('discount-percent-input');
+            const discountAmountInput = document.getElementById('discount-amount-input');
+
+            if (discountPercentInput && discountAmountInput && !isPaid) {
+                discountPercentInput.addEventListener('input', function() {
+                    if (this.value.trim() !== '') {
+                        discountAmountInput.value = '';
+                    }
+                });
+
+                discountAmountInput.addEventListener('input', function() {
+                    if (this.value.trim() !== '') {
+                        discountPercentInput.value = '';
+                    }
+                });
+            }
+
             // Force reflow before adding show class for animation
             modal.offsetHeight;
             modal.classList.add('show');
+        }
+
+        function applyBillDiscount() {
+            if (!activeBillModalContext || activeBillModalContext.isPaid) {
+                return;
+            }
+
+            const percentInput = document.getElementById('discount-percent-input');
+            const amountInput = document.getElementById('discount-amount-input');
+            const applyBtn = document.getElementById('apply-discount-btn');
+            const feedbackEl = document.getElementById('discount-feedback');
+            const subtotalDisplay = document.getElementById('discount-subtotal-display');
+            const discountDisplay = document.getElementById('discount-amount-display');
+            const discountLabelDisplay = document.getElementById('discount-label-display');
+            const discountSummaryRow = document.getElementById('discount-summary-row');
+            const finalDisplay = document.getElementById('final-total-display');
+
+            if (!percentInput || !amountInput || !applyBtn || !feedbackEl || !subtotalDisplay || !discountDisplay || !finalDisplay || !discountLabelDisplay || !discountSummaryRow) {
+                return;
+            }
+
+            const percentRaw = percentInput.value.trim();
+            const amountRaw = amountInput.value.trim();
+
+            if ((percentRaw && amountRaw) || (!percentRaw && !amountRaw)) {
+                feedbackEl.style.color = '#dc2626';
+                feedbackEl.textContent = 'Enter either discount percentage or discount amount.';
+                return;
+            }
+
+            const grossTotal = Number(activeBillModalContext.grossTotal || 0);
+            const payload = { bill_id: activeBillModalContext.billId };
+            const usingPercentInput = !!percentRaw;
+
+            if (percentRaw) {
+                const pct = Number(percentRaw);
+                if (Number.isNaN(pct) || pct < 0 || pct > 100) {
+                    feedbackEl.style.color = '#dc2626';
+                    feedbackEl.textContent = 'Discount % must be between 0 and 100.';
+                    return;
+                }
+                payload.discount_percent = pct;
+            } else {
+                const amt = Number(amountRaw);
+                if (Number.isNaN(amt) || amt < 0 || amt > grossTotal) {
+                    feedbackEl.style.color = '#dc2626';
+                    feedbackEl.textContent = `Discount amount must be between 0 and ₹${grossTotal.toFixed(2)}.`;
+                    return;
+                }
+                payload.discount_amount = amt;
+            }
+
+            applyBtn.disabled = true;
+            applyBtn.textContent = 'Applying...';
+
+            fetch('/orders/apply-discount', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to apply discount');
+                }
+
+                const subtotal = Number(data.subtotal || grossTotal);
+                const discountAmount = Number(data.discount_amount || 0);
+                const finalTotal = Number(data.final_total || subtotal);
+
+                subtotalDisplay.textContent = `₹${subtotal.toFixed(2)}`;
+                discountDisplay.textContent = `-₹${discountAmount.toFixed(2)}`;
+                finalDisplay.textContent = `₹${finalTotal.toFixed(2)}`;
+                discountSummaryRow.style.display = discountAmount > 0 ? 'flex' : 'none';
+
+                if (usingPercentInput) {
+                    if (data.discount_percent !== undefined && data.discount_percent !== null) {
+                        percentInput.value = Number(data.discount_percent).toFixed(2);
+                    }
+                    amountInput.value = '';
+                    discountLabelDisplay.textContent = `Discount (${Number(data.discount_percent || 0).toFixed(2)}%):`;
+                } else {
+                    amountInput.value = discountAmount.toFixed(2);
+                    percentInput.value = '';
+                    discountLabelDisplay.textContent = 'Discount:';
+                }
+
+                feedbackEl.style.color = '#059669';
+                feedbackEl.textContent = 'Discount applied and saved successfully.';
+                activeBillModalContext.grossTotal = subtotal;
+                activeBillModalContext.hasPercentDiscount = usingPercentInput;
+
+                if (currentManagerBillSnapshot) {
+                    currentManagerBillSnapshot.discount_amount = discountAmount;
+                    currentManagerBillSnapshot.discount_percent = usingPercentInput ? Number(data.discount_percent || 0) : null;
+                    currentManagerBillSnapshot.final_total = finalTotal;
+                    currentManagerBillSnapshot.total_amount = subtotal;
+                }
+
+                // Refresh dashboard list totals immediately so Total column reflects final_total.
+                if (typeof loadOrders === 'function') {
+                    loadOrders();
+                }
+            })
+            .catch(error => {
+                console.error('Error applying discount:', error);
+                feedbackEl.style.color = '#dc2626';
+                feedbackEl.textContent = error.message || 'Failed to apply discount.';
+            })
+            .finally(() => {
+                applyBtn.disabled = false;
+                applyBtn.textContent = 'Apply';
+            });
         }
         
         function closeBillModal() {
@@ -11489,7 +12043,69 @@
         }
         
         function printBill() {
-            const billContent = document.querySelector('.bill-modal-body').innerHTML;
+            if (!currentManagerBillSnapshot) {
+                return;
+            }
+
+            const bill = currentManagerBillSnapshot;
+            const items = Array.isArray(bill.items) ? bill.items : [];
+            const discountAmount = parseFloat(bill.discount_amount || 0);
+            const discountPercent = bill.discount_percent !== null && bill.discount_percent !== undefined
+                ? parseFloat(bill.discount_percent || 0)
+                : null;
+            const subtotalBeforeDiscount = parseFloat(bill.total_amount || bill.grand_total || 0);
+            const finalTotal = bill.final_total !== null && bill.final_total !== undefined
+                ? parseFloat(bill.final_total)
+                : subtotalBeforeDiscount;
+            const totalLabel = String(bill.payment_status || '').toUpperCase() === 'PAID' ? 'Amount Paid' : 'Final Payable';
+            const discountLabel = discountPercent !== null && !Number.isNaN(discountPercent) && discountPercent > 0
+                ? `Discount (${discountPercent.toFixed(2)}%)`
+                : 'Discount';
+
+            const printItemsRows = items.map(item => {
+                const itemCgst = item.cgst_amount || 0;
+                const itemSgst = item.sgst_amount || 0;
+                const itemTotal = item.total_with_tax || (item.price * item.quantity + itemCgst + itemSgst);
+                const cgstPct = item.cgst_percentage || 0;
+                const sgstPct = item.sgst_percentage || 0;
+                return `
+                    <tr>
+                        <td>${item.name || '-'}</td>
+                        <td style="text-align:center;">${item.quantity || 0}</td>
+                        <td style="text-align:right;">₹${parseFloat(item.price || 0).toFixed(2)}</td>
+                        <td style="text-align:right;">${cgstPct}% (₹${parseFloat(itemCgst).toFixed(2)})</td>
+                        <td style="text-align:right;">${sgstPct}% (₹${parseFloat(itemSgst).toFixed(2)})</td>
+                        <td style="text-align:right;">₹${parseFloat(itemTotal).toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const billContent = `
+                <div class="bill-header-info">
+                    ${bill.hotel_logo ? `<img src="/static/uploads/hotel_logos/${bill.hotel_logo}" alt="Hotel Logo" style="max-height:70px;max-width:180px;object-fit:contain;display:block;margin:0 auto 12px;">` : ''}
+                    <h3>${bill.hotel_name || 'Restaurant'}</h3>
+                    <p>${bill.hotel_address || ''}</p>
+                </div>
+                <div style="margin-bottom:14px;">
+                    <div><strong>Bill Number:</strong> #${bill.bill_number || '-'}</div>
+                    <div><strong>Table:</strong> Table ${bill.table_number || '-'}</div>
+                    <div><strong>Guest:</strong> ${bill.guest_name || 'Guest'}</div>
+                    <div><strong>Date:</strong> ${formatDateTime(bill.created_at)}</div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th><th>Qty</th><th>Price</th><th>CGST</th><th>SGST</th><th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>${printItemsRows}</tbody>
+                </table>
+                <div class="bill-totals">
+                    <div class="bill-total-row"><span>Original Total (Before Discount):</span><span>₹${subtotalBeforeDiscount.toFixed(2)}</span></div>
+                    ${discountAmount > 0 ? `<div class="bill-total-row"><span>${discountLabel}:</span><span style="color:#dc2626;">-₹${discountAmount.toFixed(2)}</span></div>` : ''}
+                    <div class="bill-total-row grand-total"><span>${totalLabel}:</span><span style="color:#059669;">₹${finalTotal.toFixed(2)}</span></div>
+                </div>
+            `;
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
                 <html>

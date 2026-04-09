@@ -158,6 +158,12 @@ class MenuCategory:
 
 
 class MenuDish:
+    IMAGE_UPLOAD_FOLDER = 'static/uploads/menu_images'
+
+    @staticmethod
+    def _build_image_url(filename):
+        return f"/static/uploads/menu_images/{filename}"
+
     @staticmethod
     def get_dishes_by_category(category_id, hotel_id=None):
         """Get all dishes for a specific category"""
@@ -205,7 +211,7 @@ class MenuDish:
                 
                 # Build image URLs only for valid images
                 if dish['images'] and len(dish['images']) > 0:
-                    dish['image_urls'] = [f"/static/uploads/{img}" for img in dish['images'] if img and img.strip()]
+                    dish['image_urls'] = [MenuDish._build_image_url(img) for img in dish['images'] if img and img.strip()]
                 else:
                     dish['images'] = []  # Ensure empty list
                     dish['image_urls'] = []
@@ -254,7 +260,7 @@ class MenuDish:
                     dish['images'] = []
                 # Only build URLs for valid images
                 if dish['images'] and len(dish['images']) > 0:
-                    dish['image_urls'] = [f"/static/uploads/{img}" for img in dish['images'] if img and img.strip()]
+                    dish['image_urls'] = [MenuDish._build_image_url(img) for img in dish['images'] if img and img.strip()]
                 else:
                     dish['images'] = []  # Ensure empty list
                     dish['image_urls'] = []
@@ -409,7 +415,7 @@ class MenuDish:
                 # Only create URLs for valid image filenames - ensure list is truly empty when no images
                 if dish['images'] and len(dish['images']) > 0:
                     # Create URLs from deduplicated image list
-                    dish['image_urls'] = [f"/static/uploads/{img}" for img in dish['images'] if img and img.strip()]
+                    dish['image_urls'] = [MenuDish._build_image_url(img) for img in dish['images'] if img and img.strip()]
                 else:
                     dish['images'] = []  # Ensure it's an empty list, not None or other
                     dish['image_urls'] = []

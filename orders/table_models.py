@@ -187,6 +187,10 @@ class Table:
             ensure_column("bills", "grand_total", "grand_total DECIMAL(10,2) DEFAULT NULL")
             ensure_column("bills", "payment_method", "payment_method VARCHAR(50)")
             ensure_column("bills", "is_charge_deducted", "is_charge_deducted BOOLEAN DEFAULT FALSE")
+            ensure_column("bills", "convenience_fee", "convenience_fee DECIMAL(10,2) DEFAULT 0.00")
+            ensure_column("bills", "bill_date", "bill_date DATETIME DEFAULT CURRENT_TIMESTAMP")
+            ensure_column("bills", "discount_percent", "discount_percent DECIMAL(5,2) DEFAULT 0.00")
+            ensure_column("bills", "discount_amount", "discount_amount DECIMAL(10,2) DEFAULT 0.00")
             
             # Ensure frozen total column in table_orders
             ensure_column("table_orders", "final_total", "final_total DECIMAL(10,2) DEFAULT NULL")
@@ -590,83 +594,104 @@ class TableOrder:
             return False
     
     @staticmethod
-    def get_all_orders(hotel_id=None):
-        """Get all orders with table info for a specific hotel"""
+    def get_all_orders(hotel_id=None, date_from=None, date_to=None, payment_method=None, payment_status=None, table_number=None):
+        """Get all orders with table info for a specific hotel with optional filters."""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
+            conditions = []
+            params = []
+
             if hotel_id:
-                cursor.execute("""
-                    SELECT o.*, t.table_number, t.status as table_status,
-                           (SELECT b.payment_method FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            ORDER BY b.created_at DESC LIMIT 1) as payment_method,
-                           (SELECT b.utr_id FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            ORDER BY b.created_at DESC LIMIT 1) as bill_utr_id,
-                           (SELECT b.payment_status FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            ORDER BY b.created_at DESC LIMIT 1) as bill_payment_status,
-                           (SELECT br.id FROM bill_requests br
-                            WHERE br.table_id = o.table_id AND br.session_id = o.session_id
-                            ORDER BY br.created_at DESC LIMIT 1) as bill_request_id,
-                           (SELECT br.status FROM bill_requests br
-                            WHERE br.table_id = o.table_id AND br.session_id = o.session_id
-                            ORDER BY br.created_at DESC LIMIT 1) as bill_request_status,
-                           (SELECT COALESCE(b.final_total, b.total_amount) FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            AND b.payment_status = 'PAID'
-                            ORDER BY b.created_at DESC LIMIT 1) as bill_frozen_total,
-                           (SELECT COALESCE(b.grand_total, b.total_amount) FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            ORDER BY b.created_at DESC LIMIT 1) as bill_running_total,
-                           (SELECT COALESCE(b.charges, 0) FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            ORDER BY b.created_at DESC LIMIT 1) as bill_charges,
-                           (SELECT COUNT(*) FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            LIMIT 1) as bill_exists
-                    FROM table_orders o
-                    JOIN tables t ON o.table_id = t.id
-                    WHERE o.hotel_id = %s OR (o.hotel_id IS NULL AND t.hotel_id = %s)
-                    ORDER BY o.created_at DESC
-                """, (hotel_id, hotel_id))
-            else:
-                cursor.execute("""
-                    SELECT o.*, t.table_number, t.status as table_status,
-                           (SELECT b.payment_method FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            ORDER BY b.created_at DESC LIMIT 1) as payment_method,
-                           (SELECT b.utr_id FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            ORDER BY b.created_at DESC LIMIT 1) as bill_utr_id,
-                           (SELECT b.payment_status FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            ORDER BY b.created_at DESC LIMIT 1) as bill_payment_status,
-                           (SELECT br.id FROM bill_requests br
-                            WHERE br.table_id = o.table_id AND br.session_id = o.session_id
-                            ORDER BY br.created_at DESC LIMIT 1) as bill_request_id,
-                           (SELECT br.status FROM bill_requests br
-                            WHERE br.table_id = o.table_id AND br.session_id = o.session_id
-                            ORDER BY br.created_at DESC LIMIT 1) as bill_request_status,
-                           (SELECT COALESCE(b.final_total, b.total_amount) FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            AND b.payment_status = 'PAID'
-                            ORDER BY b.created_at DESC LIMIT 1) as bill_frozen_total,
-                           (SELECT COALESCE(b.grand_total, b.total_amount) FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            ORDER BY b.created_at DESC LIMIT 1) as bill_running_total,
-                           (SELECT COALESCE(b.charges, 0) FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            ORDER BY b.created_at DESC LIMIT 1) as bill_charges,
-                           (SELECT COUNT(*) FROM bills b
-                            WHERE b.table_id = o.table_id AND b.session_id = o.session_id
-                            LIMIT 1) as bill_exists
-                    FROM table_orders o
-                    JOIN tables t ON o.table_id = t.id
-                    ORDER BY o.created_at DESC
+                conditions.append("(o.hotel_id = %s OR (o.hotel_id IS NULL AND t.hotel_id = %s))")
+                params.extend([hotel_id, hotel_id])
+
+            if date_from:
+                conditions.append("DATE(o.created_at) >= %s")
+                params.append(date_from)
+
+            if date_to:
+                conditions.append("DATE(o.created_at) <= %s")
+                params.append(date_to)
+
+            if payment_method:
+                conditions.append("""
+                    EXISTS (
+                        SELECT 1 FROM bills bfm
+                        WHERE bfm.table_id = o.table_id
+                          AND bfm.session_id = o.session_id
+                          AND UPPER(COALESCE(bfm.payment_method, '')) = %s
+                    )
                 """)
+                params.append(payment_method)
+
+            paid_condition = """
+                (
+                    UPPER(COALESCE(o.payment_status, '')) = 'PAID'
+                    OR EXISTS (
+                        SELECT 1 FROM bills bps
+                        WHERE bps.table_id = o.table_id
+                          AND bps.session_id = o.session_id
+                          AND UPPER(COALESCE(bps.payment_status, '')) = 'PAID'
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM bills bpm
+                        WHERE bpm.table_id = o.table_id
+                          AND bpm.session_id = o.session_id
+                          AND UPPER(COALESCE(bpm.payment_method, '')) IN ('UPI', 'ONLINE', 'RAZORPAY', 'CARD', 'NETBANKING', 'WALLET')
+                    )
+                )
+            """
+
+            if payment_status == 'PAID':
+                conditions.append(paid_condition)
+            elif payment_status == 'PENDING':
+                conditions.append(f"NOT {paid_condition}")
+
+            if table_number:
+                conditions.append("CAST(t.table_number AS CHAR) LIKE %s")
+                params.append(f"%{table_number}%")
+
+            where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+            query = f"""
+                SELECT o.*, t.table_number, t.status as table_status,
+                       (SELECT b.payment_method FROM bills b
+                        WHERE b.table_id = o.table_id AND b.session_id = o.session_id
+                        ORDER BY b.created_at DESC LIMIT 1) as payment_method,
+                       (SELECT b.utr_id FROM bills b
+                        WHERE b.table_id = o.table_id AND b.session_id = o.session_id
+                        ORDER BY b.created_at DESC LIMIT 1) as bill_utr_id,
+                       (SELECT b.payment_status FROM bills b
+                        WHERE b.table_id = o.table_id AND b.session_id = o.session_id
+                        ORDER BY b.created_at DESC LIMIT 1) as bill_payment_status,
+                       (SELECT br.id FROM bill_requests br
+                        WHERE br.table_id = o.table_id AND br.session_id = o.session_id
+                        ORDER BY br.created_at DESC LIMIT 1) as bill_request_id,
+                       (SELECT br.status FROM bill_requests br
+                        WHERE br.table_id = o.table_id AND br.session_id = o.session_id
+                        ORDER BY br.created_at DESC LIMIT 1) as bill_request_status,
+                       (SELECT COALESCE(b.final_total, b.total_amount) FROM bills b
+                        WHERE b.table_id = o.table_id AND b.session_id = o.session_id
+                        AND b.payment_status = 'PAID'
+                        ORDER BY b.created_at DESC LIMIT 1) as bill_frozen_total,
+                       (SELECT COALESCE(b.final_total, b.grand_total, b.total_amount) FROM bills b
+                        WHERE b.table_id = o.table_id AND b.session_id = o.session_id
+                        ORDER BY b.created_at DESC LIMIT 1) as bill_running_total,
+                       (SELECT COALESCE(b.charges, 0) FROM bills b
+                        WHERE b.table_id = o.table_id AND b.session_id = o.session_id
+                        ORDER BY b.created_at DESC LIMIT 1) as bill_charges,
+                       (SELECT COUNT(*) FROM bills b
+                        WHERE b.table_id = o.table_id AND b.session_id = o.session_id
+                        LIMIT 1) as bill_exists
+                FROM table_orders o
+                JOIN tables t ON o.table_id = t.id
+                {where_clause}
+                ORDER BY o.created_at DESC
+            """
+
+            cursor.execute(query, tuple(params))
             
             orders = cursor.fetchall()
             
@@ -822,12 +847,39 @@ class Bill:
 
     @staticmethod
     def normalize_bill_totals(bill):
-        """Ensure all bill totals are derived from persisted bill values, not live recalculation."""
+        """Normalize bill totals while honoring live digital fee toggle for open bills."""
         if not bill:
             return bill
 
         subtotal = round(float(bill.get('subtotal') or 0.0), 2)
         tax_amount = round(float(bill.get('tax_amount') or 0.0), 2)
+        payment_status = str(bill.get('payment_status') or '').upper()
+        bill_status = str(bill.get('bill_status') or '').upper()
+        is_open_bill = bill_status == 'OPEN' and payment_status != 'PAID'
+
+        discount_percent = round(float(bill.get('discount_percent') or 0.0), 2)
+        discount_amount = round(float(bill.get('discount_amount') or 0.0), 2)
+
+        if is_open_bill:
+            # Always use latest DB toggle for open bills.
+            charges = Bill.get_digital_convenience_fee(bill.get('hotel_id'))
+            charges = round(float(charges or 0.0), 2)
+            grand_total = round(subtotal + tax_amount + charges, 2)
+            has_discount = discount_amount > 0 or discount_percent > 0
+            final_total = round(max(grand_total - discount_amount, 0.0), 2) if has_discount else None
+            total_amount = final_total if final_total is not None else grand_total
+
+            bill['charges'] = charges
+            bill['convenience_fee'] = charges
+            bill['per_order_charge'] = charges
+            bill['total_convenience_fee'] = charges
+            bill['grand_total'] = grand_total
+            bill['final_total'] = final_total
+            bill['total_amount'] = total_amount
+            bill['discount_percent'] = discount_percent
+            bill['discount_amount'] = discount_amount
+            return bill
+
         stored_total = bill.get('total_amount')
         stored_grand = bill.get('grand_total')
         grand_total = float(stored_grand) if stored_grand is not None else (float(stored_total) if stored_total is not None else 0.0)
@@ -840,12 +892,97 @@ class Bill:
             derived_charges = grand_total - subtotal - tax_amount
             charges = round(derived_charges if derived_charges > 0 else 0.0, 2)
 
+        raw_final_total = bill.get('final_total')
+        final_total = round(float(raw_final_total), 2) if raw_final_total is not None else None
+
         bill['charges'] = charges
         bill['per_order_charge'] = charges
         bill['total_convenience_fee'] = charges
         bill['grand_total'] = grand_total
-        bill['total_amount'] = grand_total
+        bill['final_total'] = final_total
+        bill['total_amount'] = final_total if final_total is not None else grand_total
+        bill['discount_percent'] = discount_percent
+        bill['discount_amount'] = discount_amount
         return bill
+
+    @staticmethod
+    def apply_discount(bill_id, discount_percent=None, discount_amount=None):
+        """Apply bill-level discount and persist discount values plus final_total."""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+
+            cursor.execute(
+                """
+                SELECT id, bill_status, payment_status, total_amount, grand_total
+                FROM bills
+                WHERE id = %s
+                """,
+                (bill_id,)
+            )
+            bill = cursor.fetchone()
+
+            if not bill:
+                cursor.close()
+                connection.close()
+                return {"success": False, "message": "Bill not found"}
+
+            if bill.get('payment_status') == 'PAID' or bill.get('bill_status') == 'COMPLETED':
+                cursor.close()
+                connection.close()
+                return {"success": False, "message": "Cannot apply discount to a paid bill"}
+
+            base_total = bill.get('grand_total') if bill.get('grand_total') is not None else bill.get('total_amount')
+            base_total = round(float(base_total or 0.0), 2)
+
+            discount_percent_value = None if discount_percent is None else float(discount_percent)
+            discount_amount_value = None if discount_amount is None else float(discount_amount)
+
+            if discount_percent_value is not None:
+                if discount_percent_value < 0 or discount_percent_value > 100:
+                    cursor.close()
+                    connection.close()
+                    return {"success": False, "message": "Discount percentage must be between 0 and 100"}
+                resolved_discount_percent = round(discount_percent_value, 2)
+                resolved_discount_amount = round(base_total * resolved_discount_percent / 100.0, 2)
+            else:
+                if discount_amount_value is None:
+                    discount_amount_value = 0.0
+                if discount_amount_value < 0 or discount_amount_value > base_total:
+                    cursor.close()
+                    connection.close()
+                    return {"success": False, "message": "Discount amount must be between 0 and bill total"}
+                resolved_discount_amount = round(discount_amount_value, 2)
+                resolved_discount_percent = None
+
+            final_total = round(max(base_total - resolved_discount_amount, 0.0), 2)
+
+            cursor.execute(
+                """
+                UPDATE bills
+                SET discount_percent = %s,
+                    discount_amount = %s,
+                    final_total = %s
+                WHERE id = %s
+                """,
+                (resolved_discount_percent, resolved_discount_amount, final_total, bill_id)
+            )
+
+            connection.commit()
+            cursor.close()
+            connection.close()
+
+            return {
+                "success": True,
+                "bill_id": bill_id,
+                "subtotal": base_total,
+                "discount_percent": resolved_discount_percent,
+                "discount_amount": resolved_discount_amount,
+                "final_total": final_total,
+            }
+        except Exception as e:
+            print(f"Error applying bill discount: {e}")
+            return {"success": False, "message": "Server error"}
     
     @staticmethod
     def apply_frozen_values(bill):
@@ -1146,11 +1283,12 @@ class Bill:
                 UPDATE bills 
                 SET items = %s, subtotal = %s, tax_rate = %s, tax_amount = %s, 
                     cgst_amount = %s, sgst_amount = %s, tax_breakdown = %s,
-                    charges = %s, grand_total = %s, total_amount = %s
+                    charges = %s, convenience_fee = %s, grand_total = %s, total_amount = %s,
+                    discount_percent = 0.00, discount_amount = 0.00, final_total = NULL
                 WHERE id = %s
             """, (json.dumps(enriched_items), subtotal, tax_rate, tax_amount, 
                   cgst_amount, sgst_amount, json.dumps(tax_breakdown),
-                  charges, grand_total, grand_total, bill_id))
+                  charges, charges, grand_total, grand_total, bill_id))
 
             # Keep order-to-bill linkage so all orders on the table point to the same running bill
             if new_order_id:
@@ -1247,11 +1385,11 @@ class Bill:
                 INSERT INTO bills 
                 (bill_number, order_id, hotel_id, table_id, session_id, guest_name, hotel_name, hotel_address, 
                                  table_number, items, subtotal, tax_rate, tax_amount, cgst_amount, sgst_amount, tax_breakdown,
-                                 charges, grand_total, total_amount, bill_status, waiter_id)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'OPEN', %s)
+                                 charges, convenience_fee, grand_total, total_amount, bill_status, waiter_id, bill_date)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'OPEN', %s, NOW())
             """, (bill_number, order_id, hotel_id, table_id, session_id, guest_name, hotel_name, hotel_address,
                                     table_number, items_json, subtotal, tax_rate, tax_amount, cgst_amount, sgst_amount, tax_breakdown_json,
-                                    charges, grand_total, grand_total, waiter_id))
+                                    charges, charges, grand_total, grand_total, waiter_id))
             
             bill_id = cursor.lastrowid
 
@@ -1471,7 +1609,8 @@ class Bill:
             # Get payment status and payment_method from bills table
             cursor.execute("""
                 SELECT payment_status, payment_method, bill_number, cgst_amount, sgst_amount,
-                       tax_breakdown, charges, grand_total, total_amount, utr_id
+                       tax_breakdown, charges, grand_total, total_amount, final_total,
+                       discount_percent, discount_amount, utr_id
                 FROM bills 
                 WHERE table_id = %s AND session_id = %s
                 ORDER BY created_at DESC LIMIT 1
@@ -1510,15 +1649,35 @@ class Bill:
             
             # Use persisted bill totals when available
             total_convenience_fee = 0.0
+            discount_percent = 0.0
+            discount_amount = 0.0
+            final_total = None
             if bill_info:
-                persisted_total = bill_info.get('grand_total') if bill_info.get('grand_total') is not None else bill_info.get('total_amount')
-                if persisted_total is not None:
-                    total_amount = float(persisted_total)
-                persisted_charges = bill_info.get('charges')
-                if persisted_charges is not None:
-                    total_convenience_fee = float(persisted_charges)
+                discount_percent = float(bill_info.get('discount_percent') or 0.0)
+                discount_amount = float(bill_info.get('discount_amount') or 0.0)
+                payment_status = str(bill_info.get('payment_status') or '').upper()
+
+                if payment_status == 'PAID':
+                    persisted_total = (
+                        bill_info.get('final_total')
+                        if bill_info.get('final_total') is not None
+                        else (bill_info.get('grand_total') if bill_info.get('grand_total') is not None else bill_info.get('total_amount'))
+                    )
+                    if persisted_total is not None:
+                        total_amount = float(persisted_total)
+                    final_total = bill_info.get('final_total')
+                    persisted_charges = bill_info.get('charges')
+                    if persisted_charges is not None:
+                        total_convenience_fee = float(persisted_charges)
+                    else:
+                        total_convenience_fee = max(0.0, total_amount - subtotal - tax_amount)
                 else:
-                    total_convenience_fee = max(0.0, total_amount - subtotal - tax_amount)
+                    live_fee = Bill.get_digital_convenience_fee(first_order.get('hotel_id'))
+                    total_convenience_fee = round(float(live_fee or 0.0), 2)
+                    base_total = round(subtotal + tax_amount + total_convenience_fee, 2)
+                    has_discount = discount_amount > 0 or discount_percent > 0
+                    final_total = round(max(base_total - discount_amount, 0.0), 2) if has_discount else None
+                    total_amount = final_total if final_total is not None else base_total
             per_order_charge = total_convenience_fee
 
             cursor.close()
@@ -1542,6 +1701,9 @@ class Bill:
                 'charges': total_convenience_fee,
                 'grand_total': total_amount,
                 'total_amount': total_amount,
+                'discount_percent': discount_percent,
+                'discount_amount': discount_amount,
+                'final_total': final_total,
                 'payment_status': payment_status,
                 'payment_method': payment_method,
                 'utr_id': utr_id,
@@ -1623,7 +1785,7 @@ class Bill:
             # Lock and verify bill is OPEN - also get waiter_id for tip assignment
             cursor.execute("""
                 SELECT id, bill_status, table_id, session_id, guest_name, subtotal, tax_amount,
-                       total_amount, grand_total, charges, waiter_id, hotel_id
+                       total_amount, grand_total, final_total, charges, waiter_id, hotel_id, discount_amount
                 FROM bills 
                 WHERE id = %s AND bill_status = 'OPEN'
                 FOR UPDATE
@@ -1643,7 +1805,7 @@ class Bill:
             
             paid_at = datetime.datetime.now()
             
-            # Calculate new total with tip from persisted bill total
+            # Calculate new total with tip from latest open-bill totals (live fee toggle).
             subtotal = float(bill.get('subtotal', 0))
             tax_amount = float(bill.get('tax_amount', 0))
             tip = float(tip_amount) if tip_amount else 0.00
@@ -1652,9 +1814,12 @@ class Bill:
             if tip < 0:
                 tip = 0.00
             
-            base_grand_total = bill.get('grand_total') if bill.get('grand_total') is not None else bill.get('total_amount')
-            base_grand_total = round(float(base_grand_total or 0), 2)
-            new_total = round(base_grand_total + tip, 2)
+            live_fee = Bill.get_digital_convenience_fee(bill.get('hotel_id'))
+            base_digital_fee = round(float(live_fee or 0.0), 2)
+            discount_amount = round(float(bill.get('discount_amount') or 0), 2)
+            pre_discount_total = round(subtotal + tax_amount + base_digital_fee, 2)
+            base_payable = round(max(pre_discount_total - discount_amount, 0.0), 2)
+            new_total = round(base_payable + tip, 2)
             
             print(f"[PAYMENT ATOMIC] Calculated totals: subtotal={subtotal}, tax={tax_amount}, tip={tip}, new_total={new_total}")
             
@@ -1742,11 +1907,11 @@ class Bill:
                     print(f"[PAYMENT ATOMIC WARNING] Payment will continue, but tips not distributed")
             
             # Mark bill as PAID and COMPLETED with tip — freeze persisted values
-            digital_fee_at_payment = float(bill.get('charges') or 0)
+            digital_fee_at_payment = base_digital_fee
             final_subtotal = round(subtotal, 2)
             final_tax = round(tax_amount, 2)
             final_digital_fee = round(digital_fee_at_payment, 2)
-            final_total = round(final_subtotal + final_tax + final_digital_fee + tip, 2)
+            final_total = round(max(final_subtotal + final_tax + final_digital_fee - discount_amount + tip, 0.0), 2)
             new_total = final_total
 
             cursor.execute("""
@@ -1758,6 +1923,7 @@ class Bill:
                     bill_status = 'COMPLETED',
                     tip_amount = %s,
                     charges = %s,
+                    convenience_fee = %s,
                     grand_total = %s,
                     total_amount = %s,
                     final_subtotal = %s,
@@ -1765,7 +1931,7 @@ class Bill:
                     final_digital_fee = %s,
                     final_total = %s
                 WHERE id = %s
-            """, (payment_method, utr_id, paid_at, tip, final_digital_fee, final_total, new_total,
+            """, (payment_method, utr_id, paid_at, tip, final_digital_fee, final_digital_fee, final_total, new_total,
                   final_subtotal, final_tax, final_digital_fee, final_total,
                   bill_id))
             
@@ -1921,7 +2087,7 @@ class Bill:
             cursor.execute("""
                   SELECT b.table_id, b.guest_name, b.subtotal, b.tax_amount, b.hotel_id,
                       b.total_amount, b.grand_total, b.charges,
-                       b.final_subtotal, b.final_total
+                       b.final_subtotal, b.final_total, b.discount_amount
                 FROM bills b WHERE b.id = %s
             """, (bill_id,))
             bill = cursor.fetchone()
@@ -1936,9 +2102,15 @@ class Bill:
             
             final_subtotal = round(float(bill.get('subtotal', 0)), 2)
             final_tax = round(float(bill.get('tax_amount', 0)), 2)
-            final_digital_fee = round(float(bill.get('charges') or 0), 2)
-            persisted_total = bill.get('grand_total') if bill.get('grand_total') is not None else bill.get('total_amount')
-            final_total = round(float(persisted_total or (final_subtotal + final_tax + final_digital_fee)), 2)
+            is_paid = str(bill.get('payment_status') or '').upper() == 'PAID'
+            is_completed = str(bill.get('bill_status') or '').upper() == 'COMPLETED'
+            if is_paid or is_completed:
+                final_digital_fee = round(float(bill.get('charges') or 0), 2)
+            else:
+                final_digital_fee = round(float(Bill.get_digital_convenience_fee(bill.get('hotel_id')) or 0), 2)
+            discount_amount = round(float(bill.get('discount_amount') or 0), 2)
+            derived_total = final_subtotal + final_tax + final_digital_fee - discount_amount
+            final_total = round(float(derived_total), 2)
 
             # Mark bill as COMPLETED and PAID with timestamp + frozen values
             import datetime
@@ -1950,6 +2122,7 @@ class Bill:
                     payment_status = 'PAID',
                     paid_at = %s,
                     charges = %s,
+                    convenience_fee = %s,
                     grand_total = %s,
                     final_subtotal = %s,
                     final_tax = %s,
@@ -1957,7 +2130,7 @@ class Bill:
                     final_total = %s,
                     total_amount = %s
                 WHERE id = %s
-            """, (paid_at, final_digital_fee, final_total, final_subtotal, final_tax, final_digital_fee, final_total, final_total, bill_id))
+            """, (paid_at, final_digital_fee, final_digital_fee, final_total, final_subtotal, final_tax, final_digital_fee, final_total, final_total, bill_id))
             
             print(f"[COMPLETE_BILL] Updated bill {bill_id} to COMPLETED/PAID, frozen total=₹{final_total}")
             
@@ -2157,12 +2330,82 @@ class Bill:
                     if items:  # Always enrich with current tax rates
                         items = Bill.enrich_items_with_tax(items, cursor)
                     bill['items'] = items
+                Bill.normalize_bill_totals(bill)
             
             cursor.close()
             connection.close()
             return bills
         except Exception as e:
             print(f"Error getting all bills: {e}")
+            return []
+
+    @staticmethod
+    def get_filtered_bills_for_manager(hotel_id, date_from=None, date_to=None, payment_method=None,
+                                       payment_status=None, table_number=None):
+        """Get filtered bills for manager dashboard bill management table."""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+
+            query = """
+                SELECT
+                    b.id,
+                    b.bill_number,
+                    b.order_id,
+                    b.table_number,
+                    b.guest_name,
+                    ROUND(COALESCE(b.grand_total, b.total_amount, 0), 2) AS total_amount,
+                    ROUND(COALESCE(b.cgst_amount, 0), 2) AS cgst_amount,
+                    ROUND(COALESCE(b.sgst_amount, 0), 2) AS sgst_amount,
+                    ROUND(
+                        COALESCE(
+                            b.convenience_fee,
+                            b.charges,
+                            (COALESCE(b.grand_total, b.total_amount, 0) - COALESCE(b.subtotal, 0) - COALESCE(b.tax_amount, 0)),
+                            0
+                        ),
+                        2
+                    ) AS convenience_fee,
+                    UPPER(COALESCE(b.payment_method, '')) AS payment_method,
+                    UPPER(COALESCE(b.payment_status, 'PENDING')) AS payment_status,
+                    COALESCE(b.bill_date, b.created_at) AS bill_date,
+                    b.created_at
+                FROM bills b
+                WHERE b.hotel_id = %s
+            """
+
+            params = [hotel_id]
+
+            if date_from:
+                query += " AND DATE(COALESCE(b.bill_date, b.created_at)) >= %s"
+                params.append(date_from)
+
+            if date_to:
+                query += " AND DATE(COALESCE(b.bill_date, b.created_at)) <= %s"
+                params.append(date_to)
+
+            if payment_method:
+                query += " AND UPPER(COALESCE(b.payment_method, '')) = %s"
+                params.append(str(payment_method).upper())
+
+            if payment_status:
+                query += " AND UPPER(COALESCE(b.payment_status, 'PENDING')) = %s"
+                params.append(str(payment_status).upper())
+
+            if table_number:
+                query += " AND b.table_number = %s"
+                params.append(str(table_number).strip())
+
+            query += " ORDER BY COALESCE(b.bill_date, b.created_at) DESC, b.id DESC"
+
+            cursor.execute(query, tuple(params))
+            bills = cursor.fetchall()
+
+            cursor.close()
+            connection.close()
+            return bills
+        except Exception as e:
+            print(f"Error getting filtered manager bills: {e}")
             return []
     
     @staticmethod

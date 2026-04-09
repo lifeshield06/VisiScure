@@ -256,6 +256,29 @@ def dashboard():
                          stats=stats,
                          total_menu_items=total_menu_items)
 
+@hotel_manager_bp.route('/live-orders')
+def live_orders_dashboard():
+    """Manager dashboard for live table order tracking"""
+    # Check session-based auth
+    manager_id = session.get('manager_id')
+    if not manager_id:
+        return redirect('/hotel-manager/login-page')
+    
+    manager_name = session.get('manager_name', 'Manager')
+    hotel_id = session.get('hotel_id')
+    hotel_name = session.get('hotel_name', 'Hotel')
+    
+    # Check if food module is enabled
+    food_enabled = session.get('food_enabled', False)
+    if not food_enabled:
+        return render_template('404.html', message='Food ordering module is not enabled for this hotel'), 404
+    
+    return render_template('manager/live_orders_dashboard.html',
+                         manager_id=manager_id,
+                         manager_name=manager_name,
+                         hotel_id=hotel_id,
+                         hotel_name=hotel_name)
+
 @hotel_manager_bp.route('/waiters')
 def waiters_section():
     """Serve the waiters section page"""

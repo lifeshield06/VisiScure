@@ -13,9 +13,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jspdf.umd.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jspdf.plugin.autotable.min.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/table_menu.css') }}">
 </head>
 <body>
@@ -162,7 +164,7 @@
             </div>
             <div class="bill-totals">
                 <div class="bill-total-row">
-                    <span>Subtotal</span>
+                    <span>Original Total (Before Discount)</span>
                     <span id="bill-subtotal">₹0.00</span>
                 </div>
                 <div class="bill-total-row" style="border-top: 1px dashed #e5e7eb; padding-top: 0.5rem; margin-top: 0.25rem;">
@@ -181,8 +183,12 @@
                     <span style="color: #6366f1;"><i class="fas fa-bolt" style="margin-right:0.3rem;font-size:0.8rem;"></i>Digital Convenience Fee</span>
                     <span id="bill-convenience-fee" style="color: #6366f1;">₹0.00</span>
                 </div>
+                <div class="bill-total-row" id="bill-discount-row" style="display:none; color:#dc2626;">
+                    <span id="bill-discount-label">Discount</span>
+                    <span id="bill-discount-amount">-₹0.00</span>
+                </div>
                 <div class="bill-total-row grand-total" style="border-top: 1px solid #d1d5db; padding-top: 0.5rem; margin-top: 0.25rem;">
-                    <span>Grand Total</span>
+                    <span id="bill-total-label">Final Payable</span>
                     <span id="bill-grand-total">₹0.00</span>
                 </div>
             </div>
@@ -286,41 +292,86 @@
 
     <!-- Payment Success Modal -->
     <div class="payment-success-modal" id="payment-success-modal">
-        <div class="payment-success-content" style="max-width: 430px; width: calc(100% - 2rem); background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%); border-radius: 28px; padding: 1.5rem 1.35rem 1.25rem; box-shadow: 0 28px 80px rgba(15, 23, 42, 0.2); text-align: center;">
-            <div style="width: 92px; height: 92px; margin: 0 auto 1rem; border-radius: 28px; background: linear-gradient(135deg, #d1fae5 0%, #86efac 100%); display:flex; align-items:center; justify-content:center; box-shadow: 0 16px 30px rgba(16, 185, 129, 0.22);">
-                <i class="fas fa-check-circle" style="font-size: 3rem; color: #059669;"></i>
+        <div class="payment-success-content" style="max-width: 760px; width: calc(100% - 1.4rem); max-height: calc(100vh - 1.4rem); overflow-y: auto; background: linear-gradient(180deg, #ffffff 0%, #ecfdf5 100%); border-radius: 24px; padding: 1.1rem; box-shadow: 0 28px 80px rgba(15, 23, 42, 0.2); text-align: center;">
+            <div style="width: 84px; height: 84px; margin: 0 auto 0.75rem; border-radius: 24px; background: linear-gradient(135deg, #d1fae5 0%, #86efac 100%); display:flex; align-items:center; justify-content:center; box-shadow: 0 14px 24px rgba(16, 185, 129, 0.22);">
+                <i class="fas fa-check-circle" style="font-size: 2.7rem; color: #059669;"></i>
             </div>
-            <div id="payment-success-brand" style="margin-bottom: 1rem;">
-                <div id="payment-success-logo" style="display:none; margin-bottom: 0.85rem;"></div>
-                <h2 id="payment-success-title" style="margin: 0; font-size: 1.55rem; line-height: 1.15; color: #064e3b; font-weight: 800; letter-spacing: -0.02em;">Payment Successful</h2>
-                <p style="margin: 0.5rem 0 0; color: #0f766e; font-size: 0.98rem; font-weight: 500;">Thank you for dining with us!</p>
-                <p style="margin: 0.55rem 0 0; color: #047857; font-size: 0.92rem; line-height: 1.5;">Your bill is ready. You can view or download it below.</p>
-            </div>
-            <div style="background: rgba(255,255,255,0.78); border: 1px solid rgba(34,197,94,0.18); border-radius: 18px; padding: 1rem; margin-bottom: 1rem; text-align: left;">
-                <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem; margin-bottom: 0.55rem; color:#065f46; font-weight:700; font-size: 0.92rem;">
-                    <span>Bill Summary</span>
-                    <span id="payment-success-grand-total" style="color:#059669; font-size:1rem;">₹0.00</span>
+            <h2 id="payment-success-title" style="margin: 0 0 0.75rem; font-size: 1.5rem; line-height: 1.2; color: #064e3b; font-weight: 800;">Payment Completed</h2>
+
+            <div class="card border-0 shadow-sm" style="text-align:left; border-radius: 18px; overflow: hidden;">
+                <div class="card-header" style="background: linear-gradient(135deg, #065f46 0%, #059669 100%); color: white; border: none;">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <div id="payment-success-logo" style="display:none;"></div>
+                            <div>
+                                <div id="payment-success-hotel-name" style="font-size:1.05rem;font-weight:800;line-height:1.2;">Hotel</div>
+                                <small id="payment-success-hotel-address" style="opacity:0.9;">-</small>
+                            </div>
+                        </div>
+                        <div style="font-weight:700;background:rgba(255,255,255,0.18);padding:0.35rem 0.7rem;border-radius:999px;">
+                            <i class="fas fa-star" style="margin-right:0.35rem;"></i> Paid
+                        </div>
+                    </div>
                 </div>
-                <div style="display:grid; gap:0.4rem; color:#374151; font-size:0.88rem;">
-                    <div style="display:flex; justify-content:space-between; gap:1rem;"><span>Table</span><span id="payment-success-table">-</span></div>
-                    <div style="display:flex; justify-content:space-between; gap:1rem;"><span>Guest</span><span id="payment-success-guest">-</span></div>
-                    <div style="display:flex; justify-content:space-between; gap:1rem;"><span>Payment</span><span id="payment-success-method">-</span></div>
-                    <div id="payment-success-utr-row" style="display:none; justify-content:space-between; gap:1rem;"><span>UTR</span><span id="payment-success-utr">-</span></div>
+                <div class="card-body" style="background:#ffffff;">
+                    <div class="row g-2 mb-2" style="font-size:0.9rem;color:#374151;">
+                        <div class="col-12 col-md-6"><strong>Bill Number:</strong> <span id="payment-success-bill-no">-</span></div>
+                        <div class="col-12 col-md-6"><strong>Date:</strong> <span id="payment-success-bill-date">-</span></div>
+                        <div class="col-12 col-md-6"><strong>Table No:</strong> <span id="payment-success-table">-</span></div>
+                        <div class="col-12 col-md-6"><strong>Guest Name:</strong> <span id="payment-success-guest">-</span></div>
+                    </div>
+
+                    <div style="overflow:auto; border:1px solid #e5e7eb; border-radius:12px;">
+                        <table class="table table-sm align-middle mb-0" style="min-width:520px;">
+                            <thead style="background:#f8fafc;">
+                                <tr>
+                                    <th>Item</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end">Price</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payment-success-items"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-3" style="font-size:0.92rem;">
+                        <div class="d-flex justify-content-between py-1"><span>Subtotal</span><strong id="payment-success-subtotal">₹0.00</strong></div>
+                        <div class="d-flex justify-content-between py-1"><span>CGST</span><strong id="payment-success-cgst">₹0.00</strong></div>
+                        <div class="d-flex justify-content-between py-1"><span>SGST</span><strong id="payment-success-sgst">₹0.00</strong></div>
+                        <div class="d-flex justify-content-between py-1"><span>Convenience Fee</span><strong id="payment-success-convenience">₹0.00</strong></div>
+                        <div class="d-flex justify-content-between py-1" id="payment-success-discount-row" style="display:none;color:#dc2626;"><span id="payment-success-discount-label">Discount</span><strong id="payment-success-discount">-₹0.00</strong></div>
+                        <div class="d-flex justify-content-between py-1"><span>Payment Method</span><strong id="payment-success-method">-</strong></div>
+                        <div class="d-flex justify-content-between py-1"><span>Payment Status</span><strong id="payment-success-status" style="color:#059669;">Paid</strong></div>
+                        <div class="d-flex justify-content-between align-items-center mt-2" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);padding:0.6rem 0.8rem;border-radius:10px;">
+                            <span style="font-weight:800;">Amount Paid</span>
+                            <span id="payment-success-grand-total" style="font-size:1.1rem;font-weight:900;color:#065f46;">₹0.00</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div style="display:flex; flex-direction:column; gap:0.75rem;">
-                <button class="btn" id="payment-success-view-bill-btn" onclick="viewLastBillFromSuccess()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color:white; border:none; border-radius:16px; padding:0.95rem 1rem; font-weight:800; font-size:0.98rem; display:inline-flex; align-items:center; justify-content:center; gap:0.55rem; box-shadow:0 12px 20px rgba(5,150,105,0.22);">
-                    <i class="fas fa-receipt"></i> View Bill
-                </button>
-                <button class="btn" id="payment-success-download-bill-btn" onclick="downloadLastBillPdf()" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color:white; border:none; border-radius:16px; padding:0.95rem 1rem; font-weight:800; font-size:0.98rem; display:inline-flex; align-items:center; justify-content:center; gap:0.55rem; box-shadow:0 12px 20px rgba(14,165,233,0.22);">
-                    <i class="fas fa-download"></i> Download Bill (PDF)
-                </button>
-                <button class="btn" onclick="closePaymentSuccess()" style="background: rgba(255,255,255,0.9); color:#065f46; border:1px solid rgba(5,150,105,0.18); border-radius:16px; padding:0.9rem 1rem; font-weight:800; font-size:0.98rem; display:inline-flex; align-items:center; justify-content:center; gap:0.55rem;">
-                    <i class="fas fa-seedling"></i> Visit Again
-                </button>
-            </div>
-            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed rgba(5,150,105,0.18); color:#047857; font-size:0.88rem; line-height:1.45;">
-                🙏 We hope to serve you again!
+
+            <div class="card border-0 shadow-sm mt-3" style="border-radius:18px;background:#f0fdf4;">
+                <div class="card-body text-center">
+                    <h5 style="color:#065f46;font-weight:800;">Thank you for dining with us!</h5>
+                    <p style="margin:0;color:#047857;font-size:0.95rem;">We look forward to serving you again 😊</p>
+                    <p style="margin:0.5rem 0 0.75rem;color:#166534;font-weight:700;"><i class="fas fa-gift"></i> Get 10% off on your next visit</p>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <button type="button" class="btn" onclick="visitAgainFromSuccess()" style="background:linear-gradient(135deg,#16a34a,#15803d);color:white;border:none;border-radius:12px;padding:0.65rem 1rem;font-weight:700;">
+                            <i class="fas fa-seedling"></i> Visit Again
+                        </button>
+                        <button type="button" class="btn" onclick="shareWithFriendsFromSuccess()" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;border:none;border-radius:12px;padding:0.65rem 1rem;font-weight:700;">
+                            <i class="fas fa-share-alt"></i> Share with Friends
+                        </button>
+                        <button type="button" class="btn" onclick="downloadLastBillPdf()" style="background:linear-gradient(135deg,#059669,#047857);color:white;border:none;border-radius:12px;padding:0.65rem 1rem;font-weight:700;">
+                            <i class="fas fa-download"></i> Download Bill
+                        </button>
+                    </div>
+                    <div class="mt-3 d-flex flex-column align-items-center">
+                        <img id="payment-success-reorder-qr" src="" alt="Quick reorder QR" style="width:108px;height:108px;border-radius:10px;border:1px solid #86efac;padding:0.35rem;background:#fff;">
+                        <small style="margin-top:0.45rem;color:#166534;">Scan for quick re-order</small>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -333,12 +384,18 @@
             </div>
             <h2 style="color:#064e3b; font-size:1.5rem; margin-bottom:0.75rem; font-weight:800;">Payment Completed</h2>
             <p style="color:#047857; font-size:1rem; margin-bottom:0.5rem;">Thank you for dining with us!</p>
-            <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:16px; padding:1rem; margin-top:1.5rem; box-shadow:0 8px 18px rgba(249,115,22,0.08);">
-                <i class="fas fa-circle-info" style="color:#f97316; font-size:1.25rem; margin-bottom:0.5rem; display:block;"></i>
-                <p style="color:#9a3412; font-weight:700; margin:0;">This table session is now closed</p>
-                <p style="color:#9a3412; opacity:0.8; font-size:0.85rem; margin-top:0.25rem;">You can visit again for a new order when seated next time.</p>
+            <div style="background:#ecfdf3; border:1px solid #86efac; border-radius:16px; padding:1rem; margin-top:1rem; box-shadow:0 8px 18px rgba(5,150,105,0.12);">
+                <p style="color:#166534; font-weight:700; margin:0;">We look forward to serving you again 😊</p>
+                <p style="color:#15803d; opacity:0.9; font-size:0.9rem; margin-top:0.35rem;">Get 10% off on your next visit</p>
             </div>
-            <p style="color:#6b7280; font-size:0.8rem; margin-top:1.5rem;">Please contact staff if you need assistance</p>
+            <div style="display:flex;flex-direction:column;gap:0.6rem;margin-top:1rem;">
+                <button type="button" onclick="visitAgainFromSuccess()" style="border:none;border-radius:12px;padding:0.75rem 1rem;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-weight:700;">
+                    <i class="fas fa-seedling"></i> Visit Again
+                </button>
+                <button type="button" onclick="shareWithFriendsFromSuccess()" style="border:none;border-radius:12px;padding:0.75rem 1rem;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;font-weight:700;">
+                    <i class="fas fa-share-alt"></i> Share with Friends
+                </button>
+            </div>
         </div>
     </div>
 
@@ -595,7 +652,10 @@
     </style>
 
     <script>
-        const tableId = {{ table.id }};
+        const tableId = {{ table.id | tojson }};
+        const hotelId = {{ table.hotel_id | tojson }};
+        const visitAgainUrl = {{ visit_again_url | tojson }};
+        const shareRestaurantUrl = {{ share_restaurant_url | tojson }};
         const sessionStorageKey = `table_session_${tableId}`;
         const guestNameStorageKey = `guest_name_${tableId}`;
         
@@ -603,6 +663,10 @@
         const hotelUPIId = "{{ upi_id or '' }}";
         const hotelUPIQRImage = "{{ upi_qr_image or '' }}";
         const hotelName = "{{ hotel_name or 'Restaurant' }}";
+        const urlParams = new URLSearchParams(window.location.search);
+        const isManagerAddOrderMode = urlParams.get('manager_mode') === '1';
+        const managerSessionId = urlParams.get('manager_session_id') || '';
+        const managerGuestName = urlParams.get('manager_guest_name') || '';
         let cart = [];
         let currentOrderId = null;
         let sessionId = localStorage.getItem(sessionStorageKey);
@@ -615,6 +679,17 @@
         let paymentSuccessAutoCloseTimer = null;
         let menuData = [];
         let viewOnlyMode = false; // Track if guest is in view-only mode
+
+        if (isManagerAddOrderMode) {
+            if (managerSessionId) {
+                sessionId = managerSessionId;
+                localStorage.setItem(sessionStorageKey, sessionId);
+            }
+            if (managerGuestName) {
+                guestName = managerGuestName;
+                localStorage.setItem(guestNameStorageKey, guestName);
+            }
+        }
         
         // Consistent date/time formatting utility
         function formatDateTime(dateString) {
@@ -634,6 +709,13 @@
         
         // ALWAYS require name entry on page load (strict rule)
         function checkGuestName() {
+            if (isManagerAddOrderMode && sessionId && guestName) {
+                document.body.classList.remove('view-only-mode');
+                enableOrderingUI();
+                updateGuestNameDisplay();
+                return;
+            }
+
             // Always show modal to verify/enter name on every QR scan
             showGuestNameModal();
             
@@ -1304,7 +1386,16 @@
                     }
                     
                     // Show success modal
-                    showOrderModal(currentOrderId);
+                    if (isManagerAddOrderMode && window.parent && window.parent !== window) {
+                        window.parent.postMessage({
+                            type: 'manager-order-added',
+                            tableId: tableId,
+                            sessionId: sessionId,
+                            orderId: currentOrderId
+                        }, '*');
+                    } else {
+                        showOrderModal(currentOrderId);
+                    }
                     
                     // Reset cart
                     cart = [];
@@ -1437,7 +1528,11 @@
                 bill.payment_status || '',
                 bill.payment_method || '',
                 bill.guest_name || '',
-                bill.grand_total != null ? bill.grand_total : (bill.total_amount || 0)
+                bill.final_total != null
+                    ? bill.final_total
+                    : (bill.grand_total != null ? bill.grand_total : (bill.total_amount || 0)),
+                bill.discount_amount || 0,
+                bill.discount_percent || 0
             ].join('|');
         }
 
@@ -1469,6 +1564,14 @@
                     }
 
                     const bill = data.bill;
+                    lastBillSnapshot = JSON.parse(JSON.stringify(bill));
+
+                    // Keep customer bill modal in sync with manager discount updates.
+                    const billModal = document.getElementById('bill-modal');
+                    if (billModal && billModal.classList.contains('show')) {
+                        displayBill(bill, { autoCloseAfterPaid: false });
+                    }
+
                     const method = String(bill.payment_method || '').toUpperCase();
                     const status = String(bill.payment_status || '').toUpperCase();
                     const billKey = getBillSuccessKey(bill);
@@ -2037,7 +2140,7 @@
         }
         
         function displayBill(bill, options = {}) {
-            const shouldAutoClosePaidBill = options.autoCloseAfterPaid !== false;
+            const shouldAutoClosePaidBill = options.autoCloseAfterPaid === true;
             // Update bill header
             document.getElementById('bill-hotel-name').textContent = bill.hotel_name || 'Restaurant';
             document.getElementById('bill-hotel-address').textContent = bill.hotel_address || '';
@@ -2126,9 +2229,33 @@
                 convRow.style.display = 'none';
             }
 
-            document.getElementById('bill-grand-total').textContent = `₹${parseFloat(bill.total_amount).toFixed(2)}`;
+            const discountAmount = parseFloat(bill.discount_amount || 0);
+            const hasPercentDiscount = bill.discount_percent !== null && bill.discount_percent !== undefined && !Number.isNaN(Number(bill.discount_percent));
+            const discountPercent = hasPercentDiscount ? parseFloat(bill.discount_percent || 0) : 0;
+            const discountLabelText = hasPercentDiscount && discountPercent > 0
+                ? `Discount (${discountPercent.toFixed(2)}%)`
+                : 'Discount';
+            const discountRow = document.getElementById('bill-discount-row');
+            if (discountAmount > 0) {
+                document.getElementById('bill-discount-label').textContent = discountLabelText;
+                document.getElementById('bill-discount-amount').textContent = `-₹${discountAmount.toFixed(2)}`;
+                discountRow.style.display = 'flex';
+            } else {
+                discountRow.style.display = 'none';
+            }
+
+            const finalTotal = bill.final_total !== null && bill.final_total !== undefined
+                ? parseFloat(bill.final_total)
+                : parseFloat(bill.total_amount);
+
+            const totalLabel = document.getElementById('bill-total-label');
+            if (totalLabel) {
+                totalLabel.textContent = bill.payment_status === 'PAID' ? 'Amount Paid' : 'Final Payable';
+            }
+
+            document.getElementById('bill-grand-total').textContent = `₹${finalTotal.toFixed(2)}`;
             
-            currentBillTotal = bill.total_amount;
+            currentBillTotal = finalTotal;
             
             // Update payment status
             const paymentStatus = document.getElementById('payment-status');
@@ -2161,11 +2288,10 @@
                     paymentUtrValue.textContent = '';
                 }
 
-                // Auto-show table closed screen after a short delay
+                // Keep bill visible unless explicitly requested.
                 if (shouldAutoClosePaidBill) {
                     setTimeout(() => {
                         closeBillModal();
-                        showTableClosedScreen();
                     }, 2000);
                 }
             } else {
@@ -2209,8 +2335,9 @@
                         billCharges = parseFloat((bill.charges != null ? bill.charges : bill.total_convenience_fee) || 0);
                         const billTaxRate = parseFloat(bill.tax_rate || 5.0);
                         const persistedGrand = bill.grand_total != null ? bill.grand_total : bill.total_amount;
-                        billBaseGrandTotal = persistedGrand != null
-                            ? parseFloat(persistedGrand)
+                        const persistedFinal = bill.final_total != null ? bill.final_total : persistedGrand;
+                        billBaseGrandTotal = persistedFinal != null
+                            ? parseFloat(persistedFinal)
                             : (billSubtotal + billTaxAmount + billCharges);
 
                         lastBillSnapshot = JSON.parse(JSON.stringify(bill));
@@ -2283,21 +2410,76 @@
             document.getElementById('payment-modal').classList.remove('show');
         }
 
+        function getRestaurantShareUrl() {
+            return shareRestaurantUrl || visitAgainUrl || window.location.href;
+        }
+
+        function visitAgainFromSuccess() {
+            window.location.href = visitAgainUrl || `/orders/menu/${hotelId || tableId}`;
+        }
+
+        async function shareWithFriendsFromSuccess() {
+            const shareUrl = getRestaurantShareUrl();
+            const shareText = `Try this restaurant on VisiScure Order: ${shareUrl}`;
+
+            try {
+                if (navigator.share) {
+                    await navigator.share({
+                        title: hotelName || 'Restaurant Menu',
+                        text: 'Join me for a great dining experience!',
+                        url: shareUrl
+                    });
+                    return;
+                }
+            } catch (error) {
+                // Continue to fallback below.
+            }
+
+            const waLink = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+            window.open(waLink, '_blank');
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(shareUrl)
+                    .then(() => showToast('Restaurant link copied to clipboard', 'success'))
+                    .catch(() => {});
+            }
+        }
+
+        function renderSuccessBillItems(items) {
+            const tbody = document.getElementById('payment-success-items');
+            if (!tbody) return;
+
+            const rows = (items || []).map(item => {
+                const qty = Number(item.quantity || 0);
+                const price = Number(item.price || 0);
+                const lineTotal = Number(item.total_with_tax || ((qty * price) + Number(item.cgst_amount || 0) + Number(item.sgst_amount || 0)));
+                return `
+                    <tr>
+                        <td>${item.name || '-'}</td>
+                        <td class="text-center">${qty}</td>
+                        <td class="text-end">${formatPdfCurrency(price)}</td>
+                        <td class="text-end fw-semibold">${formatPdfCurrency(lineTotal)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            tbody.innerHTML = rows || '<tr><td colspan="4" class="text-center text-muted py-3">No items found</td></tr>';
+        }
+
         function showPaymentSuccess() {
             const modal = document.getElementById('payment-success-modal');
             if (!modal) {
-                showTableClosedScreen();
                 return;
             }
 
             const bill = lastBillSnapshot || {};
             const paymentMeta = lastPaymentMeta || {};
-            const hotelLogo = bill.hotel_logo ? `/static/uploads/hotel_logos/${bill.hotel_logo}` : '';
             const logoContainer = document.getElementById('payment-success-logo');
+            const hotelLogo = bill.hotel_logo ? `/static/uploads/hotel_logos/${bill.hotel_logo}` : '';
 
             if (logoContainer) {
                 if (hotelLogo) {
-                    logoContainer.innerHTML = `<img src="${hotelLogo}" alt="${bill.hotel_name || hotelName}" style="max-width:84px; max-height:84px; object-fit:contain; display:block; margin:0 auto; border-radius:18px; background:#fff; padding:10px; box-shadow:0 8px 20px rgba(15,23,42,0.08);">`;
+                    logoContainer.innerHTML = `<img src="${hotelLogo}" alt="${bill.hotel_name || hotelName}" style="max-width:52px; max-height:52px; object-fit:contain; border-radius:10px; background:#fff; padding:6px;">`;
                     logoContainer.style.display = 'block';
                 } else {
                     logoContainer.innerHTML = '';
@@ -2305,27 +2487,46 @@
                 }
             }
 
-            const grandTotal = paymentMeta.grand_total != null
+            const grandTotal = Number(paymentMeta.grand_total != null
                 ? paymentMeta.grand_total
-                : (bill.grand_total != null ? bill.grand_total : bill.total_amount);
-            document.getElementById('payment-success-grand-total').textContent = formatPdfCurrency(grandTotal || 0);
+                : (bill.final_total != null ? bill.final_total : (bill.grand_total != null ? bill.grand_total : bill.total_amount || 0)));
+            const paymentMethodRaw = String(paymentMeta.payment_method || bill.payment_method || 'UPI').toUpperCase();
+            const paymentMethod = paymentMethodRaw === 'UPI' ? 'UPI' : (paymentMethodRaw === 'CASH' ? 'Cash' : paymentMethodRaw);
+
+            document.getElementById('payment-success-hotel-name').textContent = bill.hotel_name || hotelName || 'Restaurant';
+            document.getElementById('payment-success-hotel-address').textContent = bill.hotel_address || '-';
+            document.getElementById('payment-success-bill-no').textContent = bill.bill_number || '-';
+            document.getElementById('payment-success-bill-date').textContent = formatDateTime(bill.created_at || bill.paid_at);
             document.getElementById('payment-success-table').textContent = bill.table_number ? `Table ${bill.table_number}` : `Table ${tableId}`;
             document.getElementById('payment-success-guest').textContent = bill.guest_name || guestName || 'Guest';
-            const rawMethod = String(paymentMeta.payment_method || bill.payment_method || 'UPI').toUpperCase();
-            const paymentLabel = rawMethod === 'CASH' ? 'Cash' : (rawMethod === 'UPI' ? 'UPI' : rawMethod);
-            document.getElementById('payment-success-method').textContent = paymentLabel;
+            document.getElementById('payment-success-subtotal').textContent = formatPdfCurrency(bill.subtotal || 0);
+            document.getElementById('payment-success-cgst').textContent = formatPdfCurrency(bill.cgst_amount || 0);
+            document.getElementById('payment-success-sgst').textContent = formatPdfCurrency(bill.sgst_amount || 0);
+            document.getElementById('payment-success-convenience').textContent = formatPdfCurrency(bill.total_convenience_fee || bill.charges || 0);
+            const successDiscountAmount = Number(bill.discount_amount || 0);
+            const successHasPercent = bill.discount_percent !== null && bill.discount_percent !== undefined && !Number.isNaN(Number(bill.discount_percent));
+            const successDiscountPercent = successHasPercent ? Number(bill.discount_percent || 0) : 0;
+            const successDiscountLabel = successHasPercent && successDiscountPercent > 0
+                ? `Discount (${successDiscountPercent.toFixed(2)}%)`
+                : 'Discount';
+            const successDiscountRow = document.getElementById('payment-success-discount-row');
+            if (successDiscountAmount > 0) {
+                document.getElementById('payment-success-discount-label').textContent = successDiscountLabel;
+                document.getElementById('payment-success-discount').textContent = `-${formatPdfCurrency(successDiscountAmount)}`;
+                successDiscountRow.style.display = 'flex';
+            } else {
+                successDiscountRow.style.display = 'none';
+            }
+            document.getElementById('payment-success-method').textContent = paymentMethod;
+            document.getElementById('payment-success-status').textContent = 'Paid';
+            document.getElementById('payment-success-grand-total').textContent = formatPdfCurrency(grandTotal);
 
-            const utrRow = document.getElementById('payment-success-utr-row');
-            const utrValue = document.getElementById('payment-success-utr');
-            const utrId = paymentMeta.utr_id || bill.utr_id || '';
-            if (utrRow && utrValue) {
-                if (rawMethod === 'UPI' && utrId) {
-                    utrRow.style.display = 'flex';
-                    utrValue.textContent = utrId;
-                } else {
-                    utrRow.style.display = 'none';
-                    utrValue.textContent = '';
-                }
+            renderSuccessBillItems(bill.items || []);
+
+            const quickReorderUrl = getRestaurantShareUrl();
+            const qrImg = document.getElementById('payment-success-reorder-qr');
+            if (qrImg) {
+                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(quickReorderUrl)}`;
             }
 
             modal.classList.add('show');
@@ -2569,13 +2770,16 @@
             localStorage.removeItem(guestNameStorageKey);
             stopPaymentStatusPolling();
 
+            viewOnlyMode = true;
+            document.body.classList.add('view-only-mode');
+            const cartBar = document.getElementById('cart-bar');
+            if (cartBar) cartBar.style.display = 'none';
+
             if (!skipClosedScreen) {
-                showTableClosedScreen();
-            } else {
-                viewOnlyMode = true;
-                document.body.classList.add('view-only-mode');
-                const cartBar = document.getElementById('cart-bar');
-                if (cartBar) cartBar.style.display = 'none';
+                const closedScreen = document.getElementById('table-closed-screen');
+                if (closedScreen) {
+                    closedScreen.style.display = 'flex';
+                }
             }
         }
 
@@ -2585,7 +2789,6 @@
                 return;
             }
 
-            showClosedScreenAfterBill = true;
             closePaymentSuccess(true);
             displayBill(lastBillSnapshot, { autoCloseAfterPaid: false });
         }
@@ -2754,8 +2957,15 @@
                 const subtotal = Number(bill.subtotal || 0);
                 const cgstAmount = Number(bill.cgst_amount || 0);
                 const sgstAmount = Number(bill.sgst_amount || 0);
+                const discountAmount = Number(bill.discount_amount || 0);
+                const hasPercentDiscount = bill.discount_percent !== null && bill.discount_percent !== undefined && !Number.isNaN(Number(bill.discount_percent));
+                const discountPercent = hasPercentDiscount ? Number(bill.discount_percent || 0) : 0;
+                const discountLabel = hasPercentDiscount && discountPercent > 0
+                    ? `Discount (${discountPercent.toFixed(2)}%)`
+                    : 'Discount';
                 const tipAmount = Number(bill.tip_amount || 0);
-                const totalAmount = Number(bill.grand_total || bill.total_amount || 0);
+                const totalAmount = Number(bill.final_total != null ? bill.final_total : (bill.grand_total || bill.total_amount || 0));
+                const totalLabel = bill.payment_status === 'PAID' ? 'Amount Paid' : 'Final Payable';
 
                 doc.setDrawColor(203, 213, 225);
                 doc.line(margin, sectionY, pageWidth - margin, sectionY);
@@ -2764,9 +2974,12 @@
                 const summaryRows = [
                     ['Subtotal', formatPdfCurrency(subtotal)],
                     ['CGST', formatPdfCurrency(cgstAmount)],
-                    ['SGST', formatPdfCurrency(sgstAmount)],
-                    ['Tip', formatPdfCurrency(tipAmount)]
+                    ['SGST', formatPdfCurrency(sgstAmount)]
                 ];
+                if (discountAmount > 0) {
+                    summaryRows.push([discountLabel, `-${formatPdfCurrency(discountAmount)}`]);
+                }
+                summaryRows.push(['Tip', formatPdfCurrency(tipAmount)]);
 
                 summaryRows.forEach((row, index) => {
                     const rowY = sectionY + (index * 16);
@@ -2784,7 +2997,7 @@
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(12);
                 doc.text('Visit Again 🙏', pageWidth / 2, sectionY, { align: 'center' });
-                doc.text('Grand Total:', margin + 4, sectionY);
+                doc.text(`${totalLabel}:`, margin + 4, sectionY);
                 doc.text(formatPdfCurrency(totalAmount), pageWidth - margin - 4, sectionY, { align: 'right' });
 
                 sectionY += 26;
