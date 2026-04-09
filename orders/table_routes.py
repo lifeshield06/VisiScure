@@ -113,6 +113,61 @@ def reprint_kot_ticket(ticket_id):
         print(f"[KOT_REPRINT ERROR] {e}")
         return jsonify({"success": False, "message": "Server error"}), 500
 
+
+@orders_bp.route('/api/printer/status', methods=['GET'])
+def get_printer_status():
+    """Get current printer connection status."""
+    try:
+        hotel_id = session.get('hotel_id')
+        section = request.args.get('section', '').strip() or None
+        
+        if section:
+            result = KOTService.check_printer_status(section)
+        else:
+            result = KOTService.get_all_printer_status(hotel_id=hotel_id)
+        
+        return jsonify({"success": True, "data": result}), 200
+    except Exception as e:
+        print(f"[PRINTER_STATUS ERROR] {e}")
+        return jsonify({"success": False, "message": "Error checking printer status"}), 500
+
+
+@orders_bp.route('/api/printer/test', methods=['POST'])
+def test_printer():
+    """Test printer by sending a test print job."""
+    try:
+        hotel_id = session.get('hotel_id')
+        if not hotel_id:
+            return jsonify({"success": False, "message": "Hotel ID required"}), 401
+        
+        section = request.get_json().get('section', '').strip() or 'GENERAL'
+        printer_name = KOTService._get_printer_name(section)
+        
+        if not printer_name:
+            return jsonify({"success": False, "message": "Printer not configured"}), 400
+        
+        # Send a simple test print
+        test_text = """
+╔════════════════════════════════╗
+║       PRINTER TEST PAGE        ║
+║     Kitchen Order Ticket       ║
+║                                ║
+║   Printer Connected & Ready    ║
+║   Status: OK                   ║
+╚════════════════════════════════╝
+        """.strip()
+        
+        ok, message = KOTService._print_escpos(printer_name, test_text)
+        
+        return jsonify({
+            "success": ok,
+            "message": message,
+            "printer": printer_name
+        }), (200 if ok else 400)
+    except Exception as e:
+        print(f"[PRINTER_TEST ERROR] {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
 @orders_bp.route('/api/tables', methods=['GET'])
 def get_tables():
     """Get all tables for current hotel"""

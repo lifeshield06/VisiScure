@@ -109,14 +109,18 @@ def get_kitchen_orders():
                 oi.item_status,
                 oi.category_id,
                 oi.created_at,
+                oi.kot_ticket_id,
                 o.table_id,
                 o.guest_name,
                 t.table_number,
-                mc.name as category_name
+                mc.name as category_name,
+                kt.id as ticket_id,
+                kt.print_status as kot_status
             FROM order_items oi
             JOIN table_orders o ON oi.order_id = o.id
             JOIN tables t ON o.table_id = t.id
             LEFT JOIN menu_categories mc ON oi.category_id = mc.id
+            LEFT JOIN kitchen_kot_tickets kt ON oi.kot_ticket_id = kt.id
             WHERE oi.kitchen_section_id = %s
               AND oi.item_status != 'COMPLETED'
                             AND (o.payment_status IS NULL OR o.payment_status != 'PAID')
@@ -158,7 +162,9 @@ def get_kitchen_orders():
                 'item_name': item['item_name'],
                 'quantity': item['quantity'],
                 'order_status': item['item_status'],
-                'created_at': item['created_at'].strftime('%Y-%m-%d %H:%M:%S') if item['created_at'] else None
+                'created_at': item['created_at'].strftime('%Y-%m-%d %H:%M:%S') if item['created_at'] else None,
+                'kot_status': item.get('kot_status') or 'PENDING',
+                'ticket_id': item.get('ticket_id')
             })
         
         return jsonify({

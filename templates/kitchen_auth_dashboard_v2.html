@@ -137,6 +137,139 @@
             min-width: 0;
         }
         
+        /* Printer Status Card */
+        .printer-status-card {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+            border-radius: 20px;
+            padding: 1.5rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .printer-status-card.connected {
+            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+        }
+        
+        .printer-status-card.offline {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+        }
+        
+        .printer-status-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .printer-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            flex-shrink: 0;
+        }
+        
+        .printer-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            min-width: 0;
+        }
+        
+        .printer-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .printer-name {
+            font-size: 1rem;
+            font-weight: 600;
+            word-break: break-word;
+        }
+        
+        .printer-status-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .printer-status-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            animation: printerPulse 2s infinite;
+        }
+        
+        .printer-status-card.offline .printer-status-dot {
+            animation: none;
+            background: #fca5a5;
+        }
+        
+        @keyframes printerPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        
+        .printer-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-shrink: 0;
+        }
+        
+        .btn-test-printer {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            border: 2px solid white;
+            padding: 0.625rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-test-printer:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-2px);
+        }
+        
+        .btn-test-printer:active {
+            transform: scale(0.98);
+        }
+        
+        .failed-kot-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.375rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
         .kitchen-card {
             position: relative;
             border-radius: 20px;
@@ -949,6 +1082,32 @@
                 </div>
             </div>
             
+            <!-- Printer Status Card -->
+            <div class="printer-status-card" id="printer-status-card">
+                <div class="printer-status-content">
+                    <div class="printer-icon">
+                        <i class="fas fa-print"></i>
+                    </div>
+                    <div class="printer-info">
+                        <div class="printer-label">Printer Status</div>
+                        <div class="printer-name" id="printer-name">Loading...</div>
+                    </div>
+                </div>
+                <div class="printer-status-text" id="printer-status-text">
+                    <span class="printer-status-dot"></span>
+                    <span id="printer-status-label">Checking...</span>
+                </div>
+                <div class="failed-kot-badge" id="failed-kot-count" style="display:none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="failed-count">0</span> Failed
+                </div>
+                <div class="printer-actions">
+                    <button class="btn-test-printer" onclick="testPrinter()" title="Send test print">
+                        <i class="fas fa-vial"></i> Test
+                    </button>
+                </div>
+            </div>
+            
             <div class="kitchen-cards-container">
                 <div class="kitchen-card kitchen-card-active">
                     <div class="kitchen-card-bg">
@@ -1140,6 +1299,38 @@
                                 </div>
                             </div>
                             
+                            <!-- KOT Status Row -->
+                            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                                ${order.kot_status ? `
+                                    <div style="flex: 1; display: flex; align-items: center; gap: 0.35rem; padding: 0.375rem 0.75rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;" 
+                                         class="${order.kot_status.toLowerCase() === 'printed' ? 'badge-printed' : order.kot_status.toLowerCase() === 'failed' ? 'badge-failed' : 'badge-pending'}">
+                                        ${order.kot_status === 'PRINTED' ? '<i class="fas fa-check-circle" style="color: #10b981;"></i> Printed' : 
+                                          order.kot_status === 'FAILED' ? '<i class="fas fa-times-circle" style="color: #ef4444;"></i> Failed' : 
+                                          '<i class="fas fa-hourglass-half" style="color: #f59e0b;"></i> Pending'}
+                                    </div>
+                                    ${order.kot_status === 'FAILED' && order.ticket_id ? `
+                                        <button onclick="reprintKOT(${order.ticket_id})" style="flex: 1; padding: 0.375rem 0.75rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; background: #dc2626; color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                                            <i class="fas fa-sync-alt"></i> Retry Print
+                                        </button>
+                                    ` : ''}
+                                ` : ''}
+                            </div>
+                            
+                            <style>
+                                .badge-printed {
+                                    background: #d1fae5;
+                                    color: #065f46;
+                                }
+                                .badge-failed {
+                                    background: #fee2e2;
+                                    color: #991b1b;
+                                }
+                                .badge-pending {
+                                    background: #fef3c7;
+                                    color: #92400e;
+                                }
+                            </style>
+                            
                             <div class="order-actions">
                                 ${order.order_status === 'ACTIVE' ? `
                                     <button class="btn-action btn-start" onclick="updateStatus(${order.item_id}, 'PREPARING')">
@@ -1196,8 +1387,120 @@
             });
         }
         
+        // ===== PRINTER STATUS FUNCTIONS =====
+        function checkPrinterStatus() {
+            fetch('/api/printer/status')
+                .then(r => r.json())
+                .then(response => {
+                    if (response.success && response.data.printers) {
+                        const data = response.data;
+                        const defaultStatus = data.printers['DEFAULT'];
+                        const card = document.getElementById('printer-status-card');
+                        const statusLabel = document.getElementById('printer-status-label');
+                        const printerName = document.getElementById('printer-name');
+                        const failedBadge = document.getElementById('failed-kot-count');
+                        const failedCount = document.getElementById('failed-count');
+                        
+                        if (!card) return;
+                        
+                        // Update card styling based on status
+                        card.classList.remove('connected', 'offline');
+                        if (defaultStatus.connected) {
+                            card.classList.add('connected');
+                            statusLabel.innerHTML = '<span class="printer-status-dot"></span> Ready to Print';
+                        } else {
+                            card.classList.add('offline');
+                            statusLabel.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + defaultStatus.status;
+                        }
+                        
+                        printerName.textContent = defaultStatus.printer_name || 'Not Configured';
+                        
+                        // Show failed KOT count if any
+                        if (data.failed_kot_count > 0) {
+                            failedBadge.style.display = 'flex';
+                            failedCount.textContent = data.failed_kot_count;
+                        } else {
+                            failedBadge.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Printer status check failed:', err);
+                    const card = document.getElementById('printer-status-card');
+                    if (card) {
+                        card.classList.add('offline');
+                        document.getElementById('printer-status-label').textContent = 'Error checking status';
+                    }
+                });
+        }
+        
+        function testPrinter() {
+            const btn = event.target.closest('.btn-test-printer');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+            
+            fetch('/api/printer/test', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({section: 'GENERAL'})
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-vial"></i> Test';
+                
+                if (data.success) {
+                    alert('✅ Test print sent successfully!');
+                    checkPrinterStatus();
+                } else {
+                    alert('❌ Test print failed: ' + data.message);
+                    checkPrinterStatus();
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-vial"></i> Test';
+                alert('❌ Error: ' + err.message);
+            });
+        }
+        
+        function reprintKOT(ticketId) {
+            if (!confirm('Retry printing this KOT?')) return;
+            
+            const btn = event.target.closest('button');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Retrying...';
+            
+            fetch(`/api/kot/reprint/${ticketId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({})
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Retry Print';
+                
+                if (data.success) {
+                    alert('✅ KOT reprinted successfully!');
+                    loadOrders();
+                } else {
+                    alert('❌ Reprint failed: ' + data.message);
+                    loadOrders();
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Retry Print';
+                alert('❌ Error: ' + err.message);
+            });
+        }
+        
         loadOrders();
+        checkPrinterStatus();
+        
         setInterval(loadOrders, 5000);
+        setInterval(checkPrinterStatus, 10000);  // Check printer every 10 seconds
     </script>
 </body>
 </html>

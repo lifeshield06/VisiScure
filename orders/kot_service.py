@@ -353,6 +353,105 @@ class KOTService:
             connection.close()
 
     @staticmethod
+    def check_printer_status(section_name: str = None) -> Dict:
+        """Check printer connectivity by attempting a test connection.
+        Returns: {
+            'connected': bool,
+            'status': 'Connected' | 'Offline' | 'Not Configured',
+            'printer_name': str,
+            'message': str
+        }
+        """
+        printer_name = KOTService._get_printer_name(section_name or 'GENERAL')
+        
+        if not printer_name:
+            return {
+                'connected': False,
+                'status': 'Not Configured',
+                'printer_name': 'N/A',
+                'message': 'Printer not configured. Set environment variables.'
+            }
+
+        try:
+            import win32print  # type: ignore
+            
+            # Attempt to open printer connection (lightweight connectivity test)
+            try:
+                hprinter = win32print.OpenPrinter(printer_name)
+                win32print.ClosePrinter(hprinter)
+                
+                return {
+                    'connected': True,
+                    'status': 'Connected',
+                    'printer_name': printer_name,
+                    'message': 'Ready to Print'
+                }
+            except Exception as conn_error:
+                # Printer not found or offline
+                return {
+                    'connected': False,
+                    'status': 'Offline',
+                    'printer_name': printer_name,
+                    'message': f'Printer offline or not found: {str(conn_error)[:100]}'
+                }
+        except ImportError:
+            return {
+                'connected': False,
+                'status': 'Offline',
+                'printer_name': printer_name,
+                'message': 'pywin32 library not installed'
+            }
+        except Exception as e:
+            return {
+                'connected': False,
+                'status': 'Offline',
+                'printer_name': printer_name,
+                'message': f'Error checking printer: {str(e)[:100]}'
+            }
+
+    @staticmethod
+    def get_all_printer_status(hotel_id: int = None) -> Dict:
+        """Get printer status for default printer and all section-specific printers."""
+        sections = ['GENERAL', 'VEG', 'NON_VEG', 'BAR']
+        printers = {}
+        
+        # Check default printer
+        printers['DEFAULT'] = KOTService.check_printer_status('GENERAL')
+        
+        # Check section-specific printers
+        for section in sections:
+            status = KOTService.check_printer_status(section)
+            # Only add if different from default
+            if status.get('printer_name') != printers['DEFAULT'].get('printer_name'):
+                printers[section] = status
+        
+        # Get failed KOT count
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            
+            query = "SELECT COUNT(*) as count FROM kitchen_kot_tickets WHERE print_status = 'FAILED'"
+            params = []
+            if hotel_id:
+                query += " AND hotel_id = %s"
+                params.append(hotel_id)
+            query += " AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+            
+            cursor.execute(query, tuple(params))
+            result = cursor.fetchone()
+            failed_count = result.get('count', 0) if result else 0
+            cursor.close()
+            connection.close()
+        except:
+            failed_count = 0
+
+        return {
+            'printers': printers,
+            'failed_kot_count': failed_count,
+            'timestamp': datetime.now().isoformat()
+        }
+
+    @staticmethod
     def reprint_ticket(ticket_id: int, hotel_id: int = None) -> Dict:
         KOTService.ensure_schema()
         connection = get_db_connection()
