@@ -23,20 +23,65 @@
 <body>
     <!-- Header -->
     <header class="header">
-        {% if hotel_logo and logo_file_exists(hotel_logo) %}
-        <div class="hotel-logo-header">
-            <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel_logo) }}" 
-                 alt="{{ hotel_name }} Logo" 
-                 class="hotel-logo">
-            <h1>{{ hotel_name or 'Restaurant' }}</h1>
+        <div class="header-brand-row">
+            {% if hotel_logo and logo_file_exists(hotel_logo) %}
+            <div class="hotel-logo-header">
+                <img src="{{ url_for('static', filename='uploads/hotel_logos/' + hotel_logo) }}" 
+                     alt="{{ hotel_name }} Logo" 
+                     class="hotel-logo">
+                <div class="hotel-name-wrap">
+                    <h1 class="hotel-title" title="{{ hotel_name or 'Restaurant' }}">{{ hotel_name or 'Restaurant' }}</h1>
+                </div>
+            </div>
+            {% else %}
+            <div class="hotel-logo-header no-logo">
+                <div class="hotel-logo hotel-logo-fallback"><i class="fas fa-utensils"></i></div>
+                <div class="hotel-name-wrap">
+                    <h1 class="hotel-title" title="{{ hotel_name or 'Restaurant' }}">{{ hotel_name or 'Restaurant' }}</h1>
+                </div>
+            </div>
+            {% endif %}
         </div>
-        {% else %}
-        <h1><i class="fas fa-utensils"></i> Restaurant Menu</h1>
-        {% endif %}
-        <div class="table-info">
-            <i class="fas fa-chair"></i> Table {{ table.table_number }}
+        <div class="header-meta-row">
+            <div class="table-info">
+                <i class="fas fa-chair"></i> Table {{ table.table_number }}
+            </div>
         </div>
     </header>
+
+    <section class="menu-search-wrap" aria-label="Search dishes">
+        <div class="menu-search-inner">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input
+                id="menu-search-input"
+                class="menu-search-input"
+                type="search"
+                placeholder="Search for dishes..."
+                autocomplete="off"
+            >
+        </div>
+    </section>
+
+    <!-- Today's Special Top Banner -->
+    <section class="today-special-banner" id="today-special-banner" style="display: none;">
+        <div class="today-special-banner-shell">
+            <div class="today-special-banner-header">
+                <div class="today-special-banner-title">
+                    <i class="fas fa-fire"></i>
+                    <span>Chef's Special</span>
+                </div>
+                <div class="today-special-banner-meta">
+                    <span class="today-special-banner-count" id="today-special-banner-count">1 of 1</span>
+                </div>
+            </div>
+            <div class="today-special-banner-row">
+                <div class="today-special-banner-viewport" id="today-special-banner-viewport">
+                    <div class="today-special-banner-track" id="today-special-banner-track"></div>
+                </div>
+            </div>
+            <div class="today-special-dots" id="today-special-dots"></div>
+        </div>
+    </section>
 
     <!-- Category Navigation -->
     <nav class="category-nav" id="category-nav" style="display: none;">
@@ -47,16 +92,6 @@
 
     <!-- Main Content -->
     <main class="menu-container" id="menu-container">
-        {% if table_busy %}
-        <div class="table-busy-notice">
-            <i class="fas fa-info-circle"></i>
-            <div>
-                <h3>Table is currently busy</h3>
-                <p>If you already placed an order on this visit, you can still add more items. Otherwise, please wait for the current order to finish.</p>
-            </div>
-        </div>
-        {% endif %}
-        
         <div class="loading" id="loading-state">
             <i class="fas fa-spinner fa-spin"></i>
             <p>Loading menu...</p>
@@ -109,6 +144,28 @@
     <div class="call-waiter-btn" id="call-waiter-btn" onclick="callWaiter()">
         <i class="fas fa-bell"></i>
         <span>Call Waiter</span>
+    </div>
+
+    <!-- Dish Detail Modal -->
+    <div class="dish-detail-modal" id="dish-detail-modal" onclick="closeDishDetailOnBackdrop(event)">
+        <div class="dish-detail-sheet">
+            <button class="dish-detail-close" onclick="closeDishDetailModal()" aria-label="Close">&times;</button>
+            <div class="dish-detail-image-wrap" id="ddm-image-wrap">
+                <img id="ddm-image" src="" alt="" class="dish-detail-img">
+            </div>
+            <div class="dish-detail-body">
+                <div class="dish-detail-toprow">
+                    <span id="ddm-veg-icon"></span>
+                </div>
+                <h2 class="dish-detail-name" id="ddm-name"></h2>
+                <p class="dish-detail-desc" id="ddm-desc"></p>
+                <p class="dish-detail-qty" id="ddm-qty"></p>
+                <div class="dish-detail-footer">
+                    <span class="dish-detail-price" id="ddm-price"></span>
+                    <div id="ddm-action"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Order Success Modal -->
@@ -647,7 +704,7 @@
     </style>
 
     <script>
-        const tableId = {{ table.id | tojson }};
+        const tableId = parseInt("{{ table.id }}", 10);
         const hotelId = {{ table.hotel_id | tojson }};
         const visitAgainUrl = {{ visit_again_url | tojson }};
         const shareRestaurantUrl = {{ share_restaurant_url | tojson }};
@@ -662,6 +719,15 @@
         const isManagerAddOrderMode = urlParams.get('manager_mode') === '1';
         const managerSessionId = urlParams.get('manager_session_id') || '';
         const managerGuestName = urlParams.get('manager_guest_name') || '';
+        console.log('[MENU_DEBUG] URL path:', window.location.pathname);
+        console.log('[MENU_DEBUG] tableId:', tableId, 'hotelId:', hotelId);
+
+        function updateSpecialStickyOffset() {
+            // Banner is no longer sticky, category nav sticks at top: 0
+            document.documentElement.style.setProperty('--today-special-sticky-offset', '0px');
+        }
+
+        window.addEventListener('resize', updateSpecialStickyOffset);
         let cart = [];
         let currentOrderId = null;
         let sessionId = localStorage.getItem(sessionStorageKey);
@@ -673,6 +739,8 @@
         let lastSuccessModalBillKey = null;
         let paymentSuccessAutoCloseTimer = null;
         let menuData = [];
+        let filteredMenuData = [];
+        let menuSearchQuery = '';
         let viewOnlyMode = false; // Track if guest is in view-only mode
         let walletGateBlocked = false;
         let walletGateToastShown = false;
@@ -864,6 +932,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     table_id: tableId,
+                    hotel_id: hotelId,
                     guest_name: name
                 })
             })
@@ -982,27 +1051,7 @@
         }
         
         function showViewOnlyNotice(message) {
-            // Remove existing notice
-            let notice = document.querySelector('.view-only-notice');
-            if (notice) notice.remove();
-            
-            notice = document.createElement('div');
-            notice.className = 'view-only-notice';
-            notice.innerHTML = `
-                <div class="view-only-content">
-                    <i class="fas fa-eye"></i>
-                    <span>View Only Mode</span>
-                </div>
-                <p>${message || 'This table is occupied. You can browse the menu but cannot place orders.'}</p>
-            `;
-            
-            // Insert after header
-            const header = document.querySelector('.header');
-            if (header) {
-                header.after(notice);
-            } else {
-                document.body.prepend(notice);
-            }
+            // View only notice hidden
         }
         
         function showWelcomeBackModal(message, existingBill) {
@@ -1076,13 +1125,14 @@
         function updateGuestNameDisplay() {
             // Add guest name to header if exists
             const tableInfo = document.querySelector('.table-info');
+            const headerMetaRow = document.querySelector('.header-meta-row');
             if (tableInfo && guestName) {
                 // Check if guest name badge already exists
                 let guestBadge = document.querySelector('.guest-name-badge');
                 if (!guestBadge) {
                     guestBadge = document.createElement('div');
                     guestBadge.className = 'guest-name-badge';
-                    tableInfo.parentElement.appendChild(guestBadge);
+                    (headerMetaRow || tableInfo.parentElement).appendChild(guestBadge);
                 }
                 guestBadge.innerHTML = `<i class="fas fa-user"></i> ${guestName}`;
             }
@@ -1094,8 +1144,9 @@
                 .then(data => {
                     if (data.success) {
                         menuData = data.menu;
-                        renderCategoryNav(data.menu);
-                        renderMenu(data.menu);
+                        filteredMenuData = data.menu;
+                        renderCategoryNav(filteredMenuData);
+                        renderMenu(filteredMenuData);
                     } else {
                         showError(data.message || 'Error loading menu');
                     }
@@ -1104,6 +1155,40 @@
                     console.error('Error loading menu:', error);
                     showError('Failed to load menu. Please try again.');
                 });
+        }
+
+        function normalizeSearchText(value) {
+            return (value || '').toString().trim().toLowerCase();
+        }
+
+        function getFilteredMenu(menu, query) {
+            const q = normalizeSearchText(query);
+            if (!q) return menu;
+
+            return (menu || [])
+                .map(category => {
+                    const dishes = (category.dishes || []).filter(dish => {
+                        const haystack = [
+                            dish.name,
+                            dish.description,
+                            dish.quantity,
+                            dish.prep_time,
+                            dish.preparation_time,
+                            dish.category_name,
+                            dish.tags
+                        ].map(normalizeSearchText).join(' ');
+                        return haystack.includes(q);
+                    });
+                    return { ...category, dishes };
+                })
+                .filter(category => category.dishes && category.dishes.length > 0);
+        }
+
+        function handleMenuSearch(event) {
+            menuSearchQuery = normalizeSearchText(event.target.value || '');
+            filteredMenuData = getFilteredMenu(menuData, menuSearchQuery);
+            renderCategoryNav(filteredMenuData);
+            renderMenu(filteredMenuData);
         }
         
         function showError(message) {
@@ -1120,7 +1205,11 @@
             const nav = document.getElementById('category-nav');
             const tabs = document.getElementById('category-tabs');
             
-            if (menu.length === 0) return;
+            if (menu.length === 0) {
+                if (tabs) tabs.innerHTML = '';
+                if (nav) nav.style.display = 'none';
+                return;
+            }
             
             let tabsHTML = '';
             menu.forEach((category, index) => {
@@ -1168,8 +1257,8 @@
                 container.innerHTML += `
                     <div class="empty-state">
                         <i class="fas fa-utensils"></i>
-                        <h3>No menu items available</h3>
-                        <p>Please check back later</p>
+                        <h3>${menuSearchQuery ? 'No dishes found' : 'No menu items available'}</h3>
+                        <p>${menuSearchQuery ? 'Try another search term' : 'Please check back later'}</p>
                     </div>
                 `;
                 return;
@@ -1204,12 +1293,46 @@
             container.innerHTML = (notice ? notice.outerHTML : '') + menuHTML;
         }
         
+        function normalizeDishImageUrl(rawUrl) {
+            if (!rawUrl) return '';
+            const value = String(rawUrl).trim();
+            if (!value) return '';
+            if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:') || value.startsWith('blob:')) {
+                return value;
+            }
+            if (value.startsWith('/')) {
+                return value;
+            }
+            if (value.startsWith('static/')) {
+                return '/' + value;
+            }
+            if (value.startsWith('uploads/')) {
+                return '/static/' + value;
+            }
+            return '/static/uploads/menu/' + value;
+        }
+
         function renderDishCard(dish, quantity) {
-            const imageHTML = dish.image_urls && dish.image_urls.length > 0 
-                ? `<img src="${dish.image_urls[0]}" alt="${dish.name}" loading="lazy">`
+            const rawImage = dish.image_urls && dish.image_urls.length > 0 ? dish.image_urls[0] : '';
+            const imageUrl = normalizeDishImageUrl(rawImage);
+            const imageAlt = (dish.name || 'Menu item').replace(/"/g, '&quot;');
+            const imageHTML = imageUrl
+                ? `<img src="${imageUrl}" alt="${imageAlt}" loading="lazy" decoding="async" onerror="this.onerror=null;this.closest('.item-image').innerHTML='<div class=&quot;no-image&quot;><i class=&quot;fas fa-image&quot;></i></div>';">`
                 : '<div class="no-image"><i class="fas fa-image"></i></div>';
             
             const escapedName = dish.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+            const isVeg = dish.is_veg === true || dish.is_veg === 1 || String(dish.food_type || '').toLowerCase() === 'veg';
+            const isNonVeg = dish.is_non_veg === true || dish.is_non_veg === 1 || String(dish.food_type || '').toLowerCase() === 'non-veg';
+            const isBestseller = !!(dish.is_bestseller || dish.bestseller || dish.popular || dish.most_ordered);
+            const prepTime = dish.prep_time || dish.preparation_time || '';
+            const fewLeft = Number.isFinite(Number(dish.stock)) && Number(dish.stock) > 0 && Number(dish.stock) <= 5;
+            const tags = [];
+            if (isBestseller) tags.push('<span class="item-tag bestseller">⭐ Bestseller</span>');
+            if (isVeg) tags.push('<span class="item-tag veg">🟢 Veg</span>');
+            if (isNonVeg) tags.push('<span class="item-tag non-veg">🔴 Non-veg</span>');
+            if (prepTime) tags.push(`<span class="item-tag prep">⏱️ ${prepTime}</span>`);
+            if (fewLeft) tags.push('<span class="item-tag low-stock">Only few left</span>');
+            const tagsHTML = tags.length ? `<div class="item-tags">${tags.join('')}</div>` : '';
             
             const actionHTML = quantity > 0 
                 ? `
@@ -1225,13 +1348,16 @@
                     </button>
                 `;
             
+            const dishDataAttr = `data-dish-id="${dish.id}" data-dish-name="${escapedName}" data-dish-price="${dish.price}" data-dish-desc="${(dish.description||'').replace(/"/g,'&quot;')}" data-dish-qty="${dish.quantity||''}" data-dish-img="${imageUrl}" data-dish-isveg="${isVeg}" data-dish-isnonveg="${isNonVeg}"`;
+
             return `
-                <div class="menu-item" data-dish="${escapedName}">
+                <div class="menu-item" data-dish="${escapedName}" ${dishDataAttr} onclick="openDishDetailModal(this)">
                     <div class="item-image">
                         ${imageHTML}
                     </div>
                     <div class="item-details">
                         <div class="item-name">${dish.name}</div>
+                        ${tagsHTML}
                         ${dish.description ? `<div class="item-description">${dish.description}</div>` : ''}
                         <div class="item-quantity-info">${dish.quantity}</div>
                         <div class="item-footer">
@@ -1334,6 +1460,13 @@
                 ${actionHTML}
             `;
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('menu-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', handleMenuSearch);
+            }
+        });
         
         function updateCartUI() {
             const cartBar = document.getElementById('cart-bar');
@@ -1385,6 +1518,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     table_id: tableId,
+                    hotel_id: hotelId,
                     items: cart,
                     session_id: sessionId,
                     guest_name: guestName
@@ -1618,60 +1752,291 @@
         }
 
         // ============== Daily Special Popup Functions ==============
-        let dailySpecialShown = false;
-        let currentDailySpecial = null; // Store the current special data for adding to cart
-        let allDailySpecials = []; // Store all specials for carousel
-        let currentSpecialIndex = 0; // Track current special in carousel
+        const DAILY_SPECIAL_CONFIG = {
+            autoPopupEnabled: true,
+            autoSlideEnabled: true,
+            initialDelayMs: 2000,
+            autoSlideMs: 3000,
+            defaultReopenDelayMs: 5000
+        };
+
+        let currentDailySpecial = null;
+        let allDailySpecials = [];
+        let currentSpecialIndex = 0;
+        let dailySpecialAutoSlideTimer = null;
+        let dailySpecialBannerTimer = null;
+        let dailySpecialBannerIndex = 0;
+        let dailySpecialReopenTimer = null;
+        let hasFetchedDailySpecials = false;
+        let hasScheduledInitialDailySpecialShow = false;
+
+        function applyDailySpecialSettings(settings) {
+            if (!settings || typeof settings !== 'object') return;
+
+            DAILY_SPECIAL_CONFIG.autoPopupEnabled = settings.popup_enabled !== false;
+            DAILY_SPECIAL_CONFIG.autoSlideEnabled = settings.auto_slide_enabled !== false;
+
+            const reopenSeconds = parseInt(settings.reopen_timer_seconds, 10);
+            if (!Number.isNaN(reopenSeconds) && reopenSeconds > 0) {
+                DAILY_SPECIAL_CONFIG.defaultReopenDelayMs = reopenSeconds * 1000;
+            }
+
+            const slideSeconds = parseInt(settings.slide_interval_seconds, 10);
+            if (!Number.isNaN(slideSeconds) && slideSeconds > 0) {
+                DAILY_SPECIAL_CONFIG.autoSlideMs = slideSeconds * 1000;
+            }
+
+            const initialDelaySeconds = parseInt(settings.initial_delay_seconds, 10);
+            if (!Number.isNaN(initialDelaySeconds) && initialDelaySeconds >= 0) {
+                DAILY_SPECIAL_CONFIG.initialDelayMs = initialDelaySeconds * 1000;
+            }
+
+            if (!DAILY_SPECIAL_CONFIG.autoPopupEnabled) {
+                closeDailySpecialModal(false);
+            }
+        }
+
+        function getDailySpecialReopenDelayMs() {
+            return DAILY_SPECIAL_CONFIG.defaultReopenDelayMs;
+        }
 
         function loadDailySpecial() {
-            // Only show popup once per page load
-            if (dailySpecialShown) return;
+            if (hasFetchedDailySpecials) {
+                if (allDailySpecials.length > 0 && DAILY_SPECIAL_CONFIG.autoPopupEnabled) {
+                    showDailySpecialPopup();
+                }
+                renderDailySpecialBanner();
+                return;
+            }
 
             fetch('/api/public-daily-special/' + tableId)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success && data.specials && data.specials.length > 0) {
+                    hasFetchedDailySpecials = true;
+                    applyDailySpecialSettings(data.settings);
+
+                    if (data.success && Array.isArray(data.specials) && data.specials.length > 0) {
                         allDailySpecials = data.specials;
+                    } else if (data.success && data.special) {
+                        allDailySpecials = [data.special];
+                    } else {
+                        allDailySpecials = [];
+                    }
+
+                    if (allDailySpecials.length > 0) {
                         currentSpecialIndex = 0;
                         currentDailySpecial = allDailySpecials[0];
+                        dailySpecialBannerIndex = 0;
                         setupCarouselIndicators();
-                        showDailySpecialPopup(currentDailySpecial);
-                    } else if (data.success && data.special) {
-                        // Backward compatibility for single special
-                        allDailySpecials = [data.special];
-                        currentSpecialIndex = 0;
-                        currentDailySpecial = data.special;
-                        showDailySpecialPopup(data.special);
+                        renderDailySpecialBanner();
+
+                        if (DAILY_SPECIAL_CONFIG.autoPopupEnabled) {
+                            if (!hasScheduledInitialDailySpecialShow) {
+                                hasScheduledInitialDailySpecialShow = true;
+                                setTimeout(() => {
+                                    if (DAILY_SPECIAL_CONFIG.autoPopupEnabled) {
+                                        showDailySpecialPopup();
+                                    }
+                                }, DAILY_SPECIAL_CONFIG.initialDelayMs);
+                            } else {
+                                showDailySpecialPopup();
+                            }
+                        }
                     }
                 })
                 .catch(error => {
+                    hasFetchedDailySpecials = true;
                     console.error('Error loading daily special:', error);
+                    renderDailySpecialBanner();
                 });
+        }
+
+        function renderDailySpecialBanner() {
+            const banner = document.getElementById('today-special-banner');
+            const track = document.getElementById('today-special-banner-track');
+            const count = document.getElementById('today-special-banner-count');
+            const dotsEl = document.getElementById('today-special-dots');
+
+            if (!banner || !track || !count) return;
+
+            if (!allDailySpecials.length) {
+                banner.style.display = 'none';
+                stopDailySpecialBannerAutoSlide();
+                return;
+            }
+
+            banner.style.display = 'block';
+
+            // Render ALL cards into the track as a horizontal slider
+            track.innerHTML = allDailySpecials.map((special, idx) => {
+                const title = special.dish_name || special.menu_name || "Today's Special";
+                const price = parseFloat(special.price || 0).toFixed(2);
+                const chefBadge = special.chef_pick ? '<span class="today-special-banner-badge"><i class="fas fa-award"></i> Chef\'s Pick</span>' : '';
+                const imageMarkup = special.image_path
+                    ? '<img src="' + special.image_path + '" alt="' + title + '" loading="eager" decoding="async">'
+                    : '<div class="today-special-banner-thumb-placeholder"><i class="fas fa-utensils"></i></div>';
+                return '<article class="today-special-banner-item" data-index="' + idx + '">'
+                    + '<div class="today-special-banner-thumb">' + imageMarkup + '</div>'
+                    + '<div class="today-special-banner-content">'
+                    + (chefBadge ? '<div class="today-special-banner-topline">' + chefBadge + '</div>' : '')
+                    + '<div class="today-special-banner-footer">'
+                    + '<div class="today-special-banner-info">'
+                    + '<h4 class="today-special-banner-name">' + title + '</h4>'
+                    + '<div class="today-special-banner-price">'
+                    + '<span class="today-special-banner-price-label">Special Price</span>'
+                    + '<span class="today-special-banner-price-value">\u20b9' + price + '</span>'
+                    + '</div></div>'
+                    + '<button type="button" class="today-special-banner-action" onclick="addBannerSpecialToCart(' + idx + ')">'
+                    + '<i class="fas fa-plus"></i> Add</button>'
+                    + '</div></div>'
+                    + '</article>';
+            }).join('');
+
+            // Render dots
+            if (dotsEl) {
+                if (allDailySpecials.length > 1) {
+                    dotsEl.innerHTML = allDailySpecials.map((_, idx) =>
+                        '<button class="today-special-dot' + (idx === 0 ? ' active' : '') + '" data-idx="' + idx + '" aria-label="Item ' + (idx+1) + '"></button>'
+                    ).join('');
+                    dotsEl.style.display = 'flex';
+                    dotsEl.querySelectorAll('.today-special-dot').forEach(function(dot) {
+                        dot.addEventListener('click', function() {
+                            scrollBannerToIndex(parseInt(dot.dataset.idx));
+                        });
+                    });
+                } else {
+                    dotsEl.style.display = 'none';
+                }
+            }
+
+            // Scroll listener for count + dots (on viewport, not track)
+            var viewport = document.getElementById('today-special-banner-viewport');
+            if (viewport) {
+                viewport.removeEventListener('scroll', onBannerScroll);
+                viewport.addEventListener('scroll', onBannerScroll, { passive: true });
+            }
+
+            // Touch swipe on viewport
+            if (viewport) setupBannerSwipe(viewport);
+
+            count.textContent = '1 of ' + allDailySpecials.length;
+            dailySpecialBannerIndex = 0;
+            startDailySpecialBannerAutoSlide();
+            updateSpecialStickyOffset();
+        }
+
+        function onBannerScroll() {
+            var viewport = document.getElementById('today-special-banner-viewport');
+            var track = document.getElementById('today-special-banner-track');
+            var count = document.getElementById('today-special-banner-count');
+            var dotsEl = document.getElementById('today-special-dots');
+            if (!viewport || !track) return;
+            var firstCard = track.firstElementChild;
+            var cardWidth = firstCard ? (firstCard.offsetWidth + 12) : viewport.offsetWidth;
+            var idx = Math.round(viewport.scrollLeft / cardWidth);
+            var clampedIdx = Math.max(0, Math.min(idx, allDailySpecials.length - 1));
+            dailySpecialBannerIndex = clampedIdx;
+            currentSpecialIndex = clampedIdx;
+            if (count) count.textContent = (clampedIdx + 1) + ' of ' + allDailySpecials.length;
+            if (dotsEl) {
+                dotsEl.querySelectorAll('.today-special-dot').forEach(function(d, i) {
+                    d.classList.toggle('active', i === clampedIdx);
+                });
+            }
+        }
+
+        function scrollBannerToIndex(idx) {
+            var viewport = document.getElementById('today-special-banner-viewport');
+            var track = document.getElementById('today-special-banner-track');
+            if (!viewport || !track) return;
+            var firstCard = track.firstElementChild;
+            var cardWidth = firstCard ? (firstCard.offsetWidth + 12) : viewport.offsetWidth;
+            viewport.scrollTo({ left: idx * cardWidth, behavior: 'smooth' });
+            dailySpecialBannerIndex = idx;
+            currentSpecialIndex = idx;
+        }
+
+        function setupBannerSwipe(track) {
+            var startX = 0;
+            track.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; }, { passive: true });
+            track.addEventListener('touchend', function(e) {
+                var diff = startX - e.changedTouches[0].clientX;
+                if (Math.abs(diff) > 40) {
+                    var next = diff > 0
+                        ? Math.min(dailySpecialBannerIndex + 1, allDailySpecials.length - 1)
+                        : Math.max(dailySpecialBannerIndex - 1, 0);
+                    scrollBannerToIndex(next);
+                }
+            }, { passive: true });
+        }
+
+        function syncDailySpecialBannerScroll() {
+            scrollBannerToIndex(currentSpecialIndex);
+            updateSpecialStickyOffset();
+        }
+
+        function startDailySpecialBannerAutoSlide() {
+            stopDailySpecialBannerAutoSlide();
+            if (!DAILY_SPECIAL_CONFIG.autoSlideEnabled || allDailySpecials.length <= 1) return;
+
+            dailySpecialBannerTimer = setInterval(() => {
+                if (allDailySpecials.length <= 1) return;
+                showNextSpecial(false);
+                syncDailySpecialBannerScroll();
+            }, DAILY_SPECIAL_CONFIG.autoSlideMs);
+        }
+
+        function stopDailySpecialBannerAutoSlide() {
+            if (dailySpecialBannerTimer) {
+                clearInterval(dailySpecialBannerTimer);
+                dailySpecialBannerTimer = null;
+            }
+        }
+
+        function goToBannerSpecial(index) {
+            if (index < 0 || index >= allDailySpecials.length) return;
+            goToSpecial(index, true);
+        }
+
+        function stepBannerSpecial(direction) {
+            if (allDailySpecials.length <= 1) return;
+            goToSpecial((currentSpecialIndex + direction + allDailySpecials.length) % allDailySpecials.length, true);
+        }
+
+        function addBannerSpecialToCart(index) {
+            if (index < 0 || index >= allDailySpecials.length) return;
+            const special = allDailySpecials[index];
+            if (!special) return;
+
+            currentDailySpecial = special;
+            currentSpecialIndex = index;
+            addSpecialItemToCart(special);
         }
 
         function setupCarouselIndicators() {
             const indicatorsContainer = document.getElementById('carousel-indicators');
             const prevBtn = document.getElementById('special-prev');
             const nextBtn = document.getElementById('special-next');
-            
+
             if (allDailySpecials.length > 1) {
-                // Show navigation buttons
                 prevBtn.style.display = 'flex';
                 nextBtn.style.display = 'flex';
                 indicatorsContainer.style.display = 'flex';
-                
-                // Create dots
+
                 indicatorsContainer.innerHTML = '';
                 allDailySpecials.forEach((_, index) => {
-                    const dot = document.createElement('span');
+                    const dot = document.createElement('button');
+                    dot.type = 'button';
                     dot.className = 'carousel-dot' + (index === 0 ? ' active' : '');
-                    dot.onclick = () => goToSpecial(index);
+                    dot.setAttribute('aria-label', `Show special ${index + 1}`);
+                    dot.onclick = () => goToSpecial(index, true);
                     indicatorsContainer.appendChild(dot);
                 });
             } else {
                 prevBtn.style.display = 'none';
                 nextBtn.style.display = 'none';
                 indicatorsContainer.style.display = 'none';
+                indicatorsContainer.innerHTML = '';
             }
         }
 
@@ -1682,41 +2047,86 @@
             });
         }
 
-        function showPreviousSpecial() {
+        function applySpecialSlideAnimation(updateFn) {
+            const pamphlet = document.querySelector('.daily-special-pamphlet');
+            if (!pamphlet) {
+                updateFn();
+                return;
+            }
+
+            pamphlet.classList.add('is-switching');
+
+            setTimeout(() => {
+                updateFn();
+                requestAnimationFrame(() => {
+                    pamphlet.classList.remove('is-switching');
+                });
+            }, 160);
+        }
+
+        function showPreviousSpecial(fromUserAction = true) {
             if (allDailySpecials.length <= 1) return;
+
             currentSpecialIndex = (currentSpecialIndex - 1 + allDailySpecials.length) % allDailySpecials.length;
             currentDailySpecial = allDailySpecials[currentSpecialIndex];
-            updateSpecialDisplay(currentDailySpecial);
-            updateCarouselIndicators();
+
+            applySpecialSlideAnimation(() => {
+                updateSpecialDisplay(currentDailySpecial);
+                updateCarouselIndicators();
+                syncDailySpecialBannerScroll();
+            });
+
+            if (fromUserAction) {
+                restartDailySpecialAutoSlide();
+            }
         }
 
-        function showNextSpecial() {
+        function showNextSpecial(fromUserAction = false) {
             if (allDailySpecials.length <= 1) return;
+
             currentSpecialIndex = (currentSpecialIndex + 1) % allDailySpecials.length;
             currentDailySpecial = allDailySpecials[currentSpecialIndex];
-            updateSpecialDisplay(currentDailySpecial);
-            updateCarouselIndicators();
+
+            applySpecialSlideAnimation(() => {
+                updateSpecialDisplay(currentDailySpecial);
+                updateCarouselIndicators();
+                syncDailySpecialBannerScroll();
+            });
+
+            if (fromUserAction) {
+                restartDailySpecialAutoSlide();
+            }
         }
 
-        function goToSpecial(index) {
+        function goToSpecial(index, fromUserAction = false) {
             if (index < 0 || index >= allDailySpecials.length) return;
+
             currentSpecialIndex = index;
             currentDailySpecial = allDailySpecials[index];
-            updateSpecialDisplay(currentDailySpecial);
-            updateCarouselIndicators();
+
+            applySpecialSlideAnimation(() => {
+                updateSpecialDisplay(currentDailySpecial);
+                updateCarouselIndicators();
+                syncDailySpecialBannerScroll();
+            });
+
+            if (fromUserAction) {
+                restartDailySpecialAutoSlide();
+            }
         }
 
         function updateSpecialDisplay(special) {
             document.getElementById('special-popup-name').textContent = special.dish_name || special.menu_name;
             document.getElementById('special-popup-description').textContent = special.description || 'A specially curated dish made with the finest ingredients for today!';
-            document.getElementById('special-popup-price').textContent = '₹' + parseFloat(special.price).toFixed(2);
-            
+            document.getElementById('special-popup-price').textContent = '₹' + parseFloat(special.price || 0).toFixed(2);
+
             const heroSection = document.getElementById('pamphlet-hero');
             const noImageSection = document.getElementById('pamphlet-no-image');
             const popupImage = document.getElementById('special-popup-image');
-            
+
             if (special.image_path) {
                 popupImage.src = special.image_path;
+                popupImage.alt = special.dish_name || special.menu_name || "Today's Special";
                 heroSection.style.display = 'block';
                 noImageSection.style.display = 'none';
             } else {
@@ -1725,31 +2135,101 @@
             }
         }
 
-        function showDailySpecialPopup(special) {
-            if (dailySpecialShown) return;
-            
-            updateSpecialDisplay(special);
-            
-            const modal = document.getElementById('daily-special-modal');
-            modal.classList.add('show');
-            dailySpecialShown = true;
-            
-            // Prevent body scroll when modal is open
-            document.body.style.overflow = 'hidden';
+        function startDailySpecialAutoSlide() {
+            stopDailySpecialAutoSlide();
+
+            if (!DAILY_SPECIAL_CONFIG.autoSlideEnabled || allDailySpecials.length <= 1) return;
+
+            dailySpecialAutoSlideTimer = setInterval(() => {
+                const modal = document.getElementById('daily-special-modal');
+                if (modal && modal.classList.contains('show')) {
+                    showNextSpecial(false);
+                }
+            }, DAILY_SPECIAL_CONFIG.autoSlideMs);
         }
 
-        function closeDailySpecialModal() {
+        function stopDailySpecialAutoSlide() {
+            if (dailySpecialAutoSlideTimer) {
+                clearInterval(dailySpecialAutoSlideTimer);
+                dailySpecialAutoSlideTimer = null;
+            }
+        }
+
+        function restartDailySpecialAutoSlide() {
+            startDailySpecialAutoSlide();
+        }
+
+        function scheduleDailySpecialReopen() {
+            if (!DAILY_SPECIAL_CONFIG.autoPopupEnabled) {
+                return;
+            }
+
+            if (dailySpecialReopenTimer) {
+                clearTimeout(dailySpecialReopenTimer);
+            }
+
+            dailySpecialReopenTimer = setTimeout(() => {
+                const modal = document.getElementById('daily-special-modal');
+                if (modal && !modal.classList.contains('show') && allDailySpecials.length > 0) {
+                    showDailySpecialPopup();
+                }
+            }, getDailySpecialReopenDelayMs());
+        }
+
+        function showDailySpecialPopup() {
+            if (!currentDailySpecial && allDailySpecials.length > 0) {
+                currentDailySpecial = allDailySpecials[currentSpecialIndex] || allDailySpecials[0];
+            }
+
+            if (!currentDailySpecial) return;
+
+            if (!DAILY_SPECIAL_CONFIG.autoPopupEnabled) return;
+
+            if (dailySpecialReopenTimer) {
+                clearTimeout(dailySpecialReopenTimer);
+                dailySpecialReopenTimer = null;
+            }
+
+            updateSpecialDisplay(currentDailySpecial);
+            updateCarouselIndicators();
+            syncDailySpecialBannerScroll();
+
+            const modal = document.getElementById('daily-special-modal');
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            startDailySpecialAutoSlide();
+        }
+
+        function closeDailySpecialModal(shouldAutoReopen = true) {
             const modal = document.getElementById('daily-special-modal');
             modal.classList.remove('show');
             document.body.style.overflow = '';
+
+            stopDailySpecialAutoSlide();
+
+            if (shouldAutoReopen && DAILY_SPECIAL_CONFIG.autoPopupEnabled) {
+                scheduleDailySpecialReopen();
+            }
         }
 
         function goToMainMenu() {
-            closeDailySpecialModal();
-            // Scroll to menu section smoothly
-            const menuSection = document.querySelector('.categories-nav') || document.querySelector('.menu-container');
+            closeDailySpecialModal(false);
+            const menuSection = document.querySelector('.category-nav') || document.querySelector('.menu-container');
             if (menuSection) {
                 menuSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function handleDailySpecialKeydown(event) {
+            const modal = document.getElementById('daily-special-modal');
+            if (!modal || !modal.classList.contains('show')) return;
+
+            if (event.key === 'Escape') {
+                closeDailySpecialModal(true);
+            } else if (event.key === 'ArrowLeft') {
+                showPreviousSpecial(true);
+            } else if (event.key === 'ArrowRight') {
+                showNextSpecial(true);
             }
         }
 
@@ -1758,14 +2238,34 @@
                 console.error('No daily special data available');
                 return;
             }
+
+            addSpecialItemToCart(currentDailySpecial);
+
+            const addBtn = document.getElementById('add-special-btn');
+            if (!addBtn) {
+                return;
+            }
             
-            const specialName = currentDailySpecial.dish_name || currentDailySpecial.menu_name;
-            const specialPrice = parseFloat(currentDailySpecial.price);
-            const specialId = currentDailySpecial.id || currentDailySpecial.menu_id;
+            const originalHTML = addBtn.innerHTML;
+            addBtn.innerHTML = '<i class="fas fa-check"></i> <span>Added to Cart!</span>';
+            addBtn.classList.add('added');
             
-            // Add to cart using existing addToCart logic
+            // Close modal after short delay to show feedback
+            setTimeout(() => {
+                closeDailySpecialModal(false);
+                // Reset button state
+                addBtn.innerHTML = originalHTML;
+                addBtn.classList.remove('added');
+            }, 800);
+        }
+
+        function addSpecialItemToCart(special) {
+            const specialName = special.dish_name || special.menu_name;
+            const specialPrice = parseFloat(special.price);
+            const specialId = special.id || special.menu_id;
+
             const existingItem = cart.find(item => item.name === specialName);
-            
+
             if (existingItem) {
                 existingItem.quantity += 1;
             } else {
@@ -1776,30 +2276,15 @@
                     quantity: 1
                 });
             }
-            
+
             updateCartUI();
-            
-            // Try to update dish button if it exists in menu
             updateDishButton(specialName);
-            
-            // Pulse animation on cart
+
             const cartBar = document.getElementById('cart-bar');
-            cartBar.classList.add('pulse');
-            setTimeout(() => cartBar.classList.remove('pulse'), 500);
-            
-            // Show success feedback on button
-            const addBtn = document.getElementById('add-special-btn');
-            const originalHTML = addBtn.innerHTML;
-            addBtn.innerHTML = '<i class="fas fa-check"></i> <span>Added to Cart!</span>';
-            addBtn.classList.add('added');
-            
-            // Close modal after short delay to show feedback
-            setTimeout(() => {
-                closeDailySpecialModal();
-                // Reset button state
-                addBtn.innerHTML = originalHTML;
-                addBtn.classList.remove('added');
-            }, 800);
+            if (cartBar) {
+                cartBar.classList.add('pulse');
+                setTimeout(() => cartBar.classList.remove('pulse'), 500);
+            }
         }
 
         // ============== Cart Review Functions ==============
@@ -2005,8 +2490,9 @@
             checkGuestName();
             // Update guest name display if exists
             updateGuestNameDisplay();
-            // Load daily special popup after a short delay to not interfere with menu loading
-            setTimeout(loadDailySpecial, 500);
+            // Load specials and settings; initial popup delay is applied after settings are fetched.
+            loadDailySpecial();
+            document.addEventListener('keydown', handleDailySpecialKeydown);
 
             if (sessionId && !viewOnlyMode) {
                 startPaymentStatusPolling();
@@ -3220,6 +3706,111 @@
         
         // No need to check existing waiter call on page load
         // Button is always available (with cooldown protection)
+
+        // ── Dish Detail Modal ──────────────────────────────────────────
+        function openDishDetailModal(card) {
+            const id      = card.dataset.dishId;
+            const name    = card.dataset.dishName;
+            const price   = parseFloat(card.dataset.dishPrice);
+            const desc    = card.dataset.dishDesc;
+            const qty     = card.dataset.dishQty;
+            const img     = card.dataset.dishImg;
+            const isVeg   = card.dataset.dishIsveg === 'true';
+            const isNonVeg= card.dataset.dishIsnonveg === 'true';
+
+            document.getElementById('ddm-name').textContent  = name;
+            document.getElementById('ddm-desc').textContent  = desc || '';
+            document.getElementById('ddm-desc').style.display = desc ? '' : 'none';
+            document.getElementById('ddm-qty').textContent   = qty || '';
+            document.getElementById('ddm-qty').style.display = qty ? '' : 'none';
+            document.getElementById('ddm-price').textContent = '₹' + price.toFixed(2);
+
+            const imgWrap = document.getElementById('ddm-image-wrap');
+            // Reset wrap to original state (in case previous onerror replaced it)
+            if (!document.getElementById('ddm-image')) {
+                imgWrap.innerHTML = '<img id="ddm-image" src="" alt="" class="dish-detail-img">';
+            }
+            const imgEl = document.getElementById('ddm-image');
+            if (img) {
+                imgEl.src = img;
+                imgEl.alt = name;
+                imgEl.onerror = function() {
+                    imgWrap.innerHTML = '<div class="dish-detail-img-placeholder"><i class="fas fa-image"></i></div>';
+                };
+                imgWrap.style.display = '';
+            } else {
+                imgWrap.style.display = 'none';
+            }
+
+            const vegIcon = document.getElementById('ddm-veg-icon');
+            if (isVeg)    vegIcon.innerHTML = '<span class="item-tag veg">🟢 Veg</span>';
+            else if (isNonVeg) vegIcon.innerHTML = '<span class="item-tag non-veg">🔴 Non-veg</span>';
+            else          vegIcon.innerHTML = '';
+
+            // Build action button (add or qty controls)
+            const cartItem = cart.find(c => c.name === name);
+            const cartQty  = cartItem ? cartItem.quantity : 0;
+            const escapedName = name.replace(/'/g, "\\'");
+            const actionEl = document.getElementById('ddm-action');
+            if (cartQty > 0) {
+                actionEl.innerHTML = `
+                    <div class="quantity-controls">
+                        <button class="qty-btn minus" onclick="updateQuantity('${escapedName}', -1); refreshDDMAction('${escapedName}')">−</button>
+                        <span class="qty-value">${cartQty}</span>
+                        <button class="qty-btn plus" onclick="updateQuantity('${escapedName}', 1); refreshDDMAction('${escapedName}')">+</button>
+                    </div>`;
+            } else {
+                actionEl.innerHTML = `
+                    <button class="add-btn ddm-add-btn" onclick="addToCart(${id}, '${escapedName}', ${price}); refreshDDMAction('${escapedName}')">
+                        <i class="fas fa-plus"></i> Add
+                    </button>`;
+            }
+
+            const modal = document.getElementById('dish-detail-modal');
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function refreshDDMAction(name) {
+            const cartItem = cart.find(c => c.name === name);
+            const cartQty  = cartItem ? cartItem.quantity : 0;
+            const escapedName = name.replace(/'/g, "\\'");
+            const actionEl = document.getElementById('ddm-action');
+            // find dish id & price from menuData
+            let dishId = 0, dishPrice = 0;
+            if (menuData) {
+                for (const cat of menuData) {
+                    const d = cat.dishes.find(x => x.name === name);
+                    if (d) { dishId = d.id; dishPrice = d.price; break; }
+                }
+            }
+            if (cartQty > 0) {
+                actionEl.innerHTML = `
+                    <div class="quantity-controls">
+                        <button class="qty-btn minus" onclick="updateQuantity('${escapedName}', -1); refreshDDMAction('${escapedName}')">−</button>
+                        <span class="qty-value">${cartQty}</span>
+                        <button class="qty-btn plus" onclick="updateQuantity('${escapedName}', 1); refreshDDMAction('${escapedName}')">+</button>
+                    </div>`;
+            } else {
+                actionEl.innerHTML = `
+                    <button class="add-btn ddm-add-btn" onclick="addToCart(${dishId}, '${escapedName}', ${dishPrice}); refreshDDMAction('${escapedName}')">
+                        <i class="fas fa-plus"></i> Add
+                    </button>`;
+            }
+        }
+
+        function closeDishDetailModal() {
+            document.getElementById('dish-detail-modal').classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        function closeDishDetailOnBackdrop(e) {
+            if (e.target === document.getElementById('dish-detail-modal')) {
+                closeDishDetailModal();
+            }
+        }
+        // ── End Dish Detail Modal ──────────────────────────────────────
+
     </script>
 </body>
 </html>

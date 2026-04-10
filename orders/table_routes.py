@@ -369,10 +369,12 @@ def table_menu(table_id):
             return "Table not found", 404
         table = hotel_tables[0]
     
+    resolved_table_id = table.get('id') if isinstance(table, dict) else None
+
     # Check for any open bill with a guest_name to determine initial busy state
     # Bills with NULL/empty guest_name are treated as available (orphaned bills)
     # Note: The actual access logic is handled by check-guest-access API after guest enters name
-    open_bill = Bill.get_any_open_bill_for_table(table_id)
+    open_bill = Bill.get_any_open_bill_for_table(resolved_table_id or table_id)
     
     # Only show busy if there's an open bill WITH a guest name assigned
     table_busy = False
@@ -381,6 +383,8 @@ def table_menu(table_id):
     
     # Fetch hotel logo, name, and UPI payment info
     hotel_id = table.get('hotel_id')
+    session['guest_menu_hotel_id'] = hotel_id
+    print(f"[TABLE_MENU] url_table_id={table_id}, resolved_table_id={resolved_table_id}, hotel_id={hotel_id}")
     hotel_name = None
     hotel_logo = None
     upi_id = None
@@ -428,14 +432,32 @@ def table_menu(table_id):
 def check_guest_access():
     """Check if a guest can access a table based on existing OPEN bills"""
     try:
-        data = request.get_json()
-        table_id = data.get('table_id')
+        data = request.get_json(silent=True) or {}
+        raw_table_id = data.get('table_id')
         guest_name = data.get('guest_name')
+        request_hotel_id = data.get('hotel_id')
+        session_hotel_id = session.get('guest_menu_hotel_id') or session.get('hotel_id')
+
+        try:
+            table_id = int(raw_table_id)
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "message": "Invalid table ID", "can_order": False, "view_only_mode": False}), 400
+
+        try:
+            current_hotel_id = int(request_hotel_id) if request_hotel_id is not None else int(session_hotel_id) if session_hotel_id is not None else None
+        except (TypeError, ValueError):
+            current_hotel_id = None
+
+        print(f"[CHECK_GUEST_ACCESS] request_table_id={table_id}, request_hotel_id={request_hotel_id}, session_hotel_id={session_hotel_id}, current_hotel_id={current_hotel_id}")
         
         if not table_id:
             return jsonify({"success": False, "message": "Table ID required", "can_order": False})
 
-        table = Table.get_table_by_id(table_id)
+        table = Table.get_table_by_id_and_hotel(table_id, current_hotel_id) if current_hotel_id else Table.get_table_by_id(table_id)
+        if not table:
+            print(f"[CHECK_GUEST_ACCESS] Table not found for table_id={table_id}, hotel_id={current_hotel_id}")
+            return jsonify({"success": False, "message": "Table not found", "can_order": False, "view_only_mode": False})
+
         hotel_id = table.get('hotel_id') if table else None
         blocked, _wallet = _is_order_wallet_blocked(hotel_id)
         if blocked:
@@ -449,7 +471,7 @@ def check_guest_access():
         if not guest_name or not guest_name.strip():
             return jsonify({"success": False, "message": "Guest name is required", "can_order": False})
         
-        result = OrderService.check_guest_access(table_id, guest_name)
+        result = OrderService.check_guest_access(table_id, guest_name, hotel_id)
         return jsonify(result)
     except Exception as e:
         print(f"Error in check_guest_access: {e}")
@@ -459,12 +481,26 @@ def check_guest_access():
 def create_order():
     """Create new ACTIVE order with guest name"""
     try:
-        data = request.get_json()
-        table_id = data.get('table_id')
+        data = request.get_json(silent=True) or {}
+        raw_table_id = data.get('table_id')
         items = data.get('items', [])
         session_id = data.get('session_id')
         guest_name = data.get('guest_name')
         kot_note = (data.get('kot_note') or data.get('note') or '').strip() or None
+
+        try:
+            table_id = int(raw_table_id)
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "message": "Invalid table ID"}), 400
+
+        request_hotel_id = data.get('hotel_id')
+        session_hotel_id = session.get('guest_menu_hotel_id') or session.get('hotel_id')
+        try:
+            current_hotel_id = int(request_hotel_id) if request_hotel_id is not None else int(session_hotel_id) if session_hotel_id is not None else None
+        except (TypeError, ValueError):
+            current_hotel_id = None
+
+        print(f"[CREATE_ORDER] request_table_id={table_id}, request_hotel_id={request_hotel_id}, session_hotel_id={session_hotel_id}, current_hotel_id={current_hotel_id}")
         
         if not table_id or not items:
             return jsonify({"success": False, "message": "Table ID and items required"})
@@ -472,7 +508,11 @@ def create_order():
         if not guest_name or not guest_name.strip():
             return jsonify({"success": False, "message": "Guest name is required"})
 
-        table = Table.get_table_by_id(table_id)
+        table = Table.get_table_by_id_and_hotel(table_id, current_hotel_id) if current_hotel_id else Table.get_table_by_id(table_id)
+        if not table:
+            print(f"[CREATE_ORDER] Table not found for table_id={table_id}, hotel_id={current_hotel_id}")
+            return jsonify({"success": False, "message": "Table not found"}), 404
+
         hotel_id = table.get('hotel_id') if table else None
         blocked, _wallet = _is_order_wallet_blocked(hotel_id)
         if blocked:

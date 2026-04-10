@@ -1047,6 +1047,13 @@ class RevenueReports:
 
 class DailySpecialMenu:
     """Model for managing daily special menu items - supports multiple specials per day"""
+
+    SCHEDULE_DEFAULTS = {
+        'start_datetime': None,
+        'end_datetime': None,
+        'daily_start_time': None,
+        'daily_end_time': None,
+    }
     
     @staticmethod
     def create_table():
@@ -1064,6 +1071,10 @@ class DailySpecialMenu:
                     description TEXT,
                     price DECIMAL(10, 2) NOT NULL,
                     image_path VARCHAR(500) DEFAULT NULL,
+                    start_datetime DATETIME DEFAULT NULL,
+                    end_datetime DATETIME DEFAULT NULL,
+                    daily_start_time TIME DEFAULT NULL,
+                    daily_end_time TIME DEFAULT NULL,
                     special_date DATE NOT NULL,
                     is_active BOOLEAN DEFAULT TRUE,
                     display_order INT DEFAULT 0,
@@ -1073,6 +1084,17 @@ class DailySpecialMenu:
                 )
             """)
             connection.commit()
+
+            for column_name, column_definition in [
+                ('start_datetime', 'DATETIME DEFAULT NULL'),
+                ('end_datetime', 'DATETIME DEFAULT NULL'),
+                ('daily_start_time', 'TIME DEFAULT NULL'),
+                ('daily_end_time', 'TIME DEFAULT NULL'),
+            ]:
+                cursor.execute(f"SHOW COLUMNS FROM today_specials LIKE '{column_name}'")
+                if not cursor.fetchone():
+                    cursor.execute(f"ALTER TABLE today_specials ADD COLUMN {column_name} {column_definition}")
+                    connection.commit()
             
             # Also ensure old table exists for backwards compatibility
             cursor.execute("""
@@ -1102,14 +1124,29 @@ class DailySpecialMenu:
     
     @staticmethod
     def get_today_specials(hotel_id):
-        """Get all today's specials for a hotel"""
+        """Get all active today's specials for a hotel"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             cursor.execute("""
-                SELECT id, hotel_id, dish_name, description, price, image_path, special_date, is_active, display_order
+                SELECT id, hotel_id, dish_name, description, price, image_path,
+                       start_datetime, end_datetime, daily_start_time, daily_end_time,
+                       special_date, is_active, display_order
                 FROM today_specials 
-                WHERE hotel_id = %s AND special_date = CURDATE() AND is_active = TRUE
+                                WHERE hotel_id = %s AND is_active = TRUE
+                  AND (start_datetime IS NULL OR start_datetime <= NOW())
+                  AND (end_datetime IS NULL OR end_datetime >= NOW())
+                  AND (
+                        daily_start_time IS NULL OR daily_end_time IS NULL
+                        OR (
+                            daily_start_time <= daily_end_time
+                            AND CURTIME() BETWEEN daily_start_time AND daily_end_time
+                        )
+                        OR (
+                            daily_start_time > daily_end_time
+                            AND (CURTIME() >= daily_start_time OR CURTIME() <= daily_end_time)
+                        )
+                  )
                 ORDER BY display_order ASC, created_at ASC
             """, (hotel_id,))
             specials = cursor.fetchall()
@@ -1118,6 +1155,31 @@ class DailySpecialMenu:
             return specials
         except Error as e:
             print(f"Error getting today's specials: {e}")
+            return []
+
+    @staticmethod
+    def get_all_specials_for_manager(hotel_id):
+        """Get today's active specials for the manager dashboard."""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            print(f"[DAILY_SPECIAL_MODEL] Querying today_specials for hotel_id={hotel_id}")
+            cursor.execute("""
+                SELECT id, hotel_id, dish_name, description, price, image_path,
+                       start_datetime, end_datetime, daily_start_time, daily_end_time,
+                       special_date, is_active, display_order
+                FROM today_specials
+                WHERE hotel_id = %s AND is_active = TRUE
+                  AND (special_date = CURDATE() OR special_date IS NULL)
+                ORDER BY display_order ASC, created_at ASC
+            """, (hotel_id,))
+            specials = cursor.fetchall()
+            print(f"[DAILY_SPECIAL_MODEL] Found {len(specials)} rows for hotel_id={hotel_id}")
+            cursor.close()
+            connection.close()
+            return specials
+        except Error as e:
+            print(f"Error getting manager specials: {e}")
             return []
     
     @staticmethod
@@ -1151,7 +1213,9 @@ class DailySpecialMenu:
             return None
     
     @staticmethod
-    def add_special(hotel_id, dish_name, description, price, image_path=None):
+    def add_special(hotel_id, dish_name, description, price, image_path=None,
+                    start_datetime=None, end_datetime=None,
+                    daily_start_time=None, daily_end_time=None):
         """Add a new today's special"""
         try:
             connection = get_db_connection()
@@ -1168,9 +1232,14 @@ class DailySpecialMenu:
             
             cursor.execute("""
                 INSERT INTO today_specials 
-                (hotel_id, dish_name, description, price, image_path, special_date, is_active, display_order)
-                VALUES (%s, %s, %s, %s, %s, CURDATE(), TRUE, %s)
-            """, (hotel_id, dish_name, description, price, image_path, next_order))
+                (hotel_id, dish_name, description, price, image_path,
+                 start_datetime, end_datetime, daily_start_time, daily_end_time,
+                 special_date, is_active, display_order)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, CURDATE(), TRUE, %s)
+            """, (
+                hotel_id, dish_name, description, price, image_path,
+                start_datetime, end_datetime, daily_start_time, daily_end_time, next_order
+            ))
             
             special_id = cursor.lastrowid
             connection.commit()
@@ -1183,7 +1252,9 @@ class DailySpecialMenu:
             return {'success': False, 'message': f'Database error: {str(e)}'}
     
     @staticmethod
-    def update_special(special_id, hotel_id, dish_name, description, price, image_path=None):
+    def update_special(special_id, hotel_id, dish_name, description, price, image_path=None,
+                       start_datetime=None, end_datetime=None,
+                       daily_start_time=None, daily_end_time=None):
         """Update an existing special"""
         try:
             connection = get_db_connection()
@@ -1192,17 +1263,29 @@ class DailySpecialMenu:
             if image_path:
                 cursor.execute("""
                     UPDATE today_specials 
-                    SET dish_name = %s, description = %s, price = %s, image_path = %s, 
+                    SET dish_name = %s, description = %s, price = %s, image_path = %s,
+                        start_datetime = %s, end_datetime = %s,
+                        daily_start_time = %s, daily_end_time = %s,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s AND hotel_id = %s
-                """, (dish_name, description, price, image_path, special_id, hotel_id))
+                """, (
+                    dish_name, description, price, image_path,
+                    start_datetime, end_datetime, daily_start_time, daily_end_time,
+                    special_id, hotel_id
+                ))
             else:
                 cursor.execute("""
                     UPDATE today_specials 
-                    SET dish_name = %s, description = %s, price = %s, 
+                    SET dish_name = %s, description = %s, price = %s,
+                        start_datetime = %s, end_datetime = %s,
+                        daily_start_time = %s, daily_end_time = %s,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s AND hotel_id = %s
-                """, (dish_name, description, price, special_id, hotel_id))
+                """, (
+                    dish_name, description, price,
+                    start_datetime, end_datetime, daily_start_time, daily_end_time,
+                    special_id, hotel_id
+                ))
             
             connection.commit()
             affected = cursor.rowcount
@@ -1217,9 +1300,14 @@ class DailySpecialMenu:
             return {'success': False, 'message': f'Database error: {str(e)}'}
     
     @staticmethod
-    def add_or_update_special(hotel_id, menu_name, description, price, image_path=None):
+    def add_or_update_special(hotel_id, menu_name, description, price, image_path=None,
+                              start_datetime=None, end_datetime=None,
+                              daily_start_time=None, daily_end_time=None):
         """Add or update - for backward compatibility, adds a new special"""
-        return DailySpecialMenu.add_special(hotel_id, menu_name, description, price, image_path)
+        return DailySpecialMenu.add_special(
+            hotel_id, menu_name, description, price, image_path,
+            start_datetime, end_datetime, daily_start_time, daily_end_time
+        )
     
     @staticmethod
     def update_special_image(hotel_id, image_path):
@@ -1285,4 +1373,134 @@ class DailySpecialMenu:
             return {'success': True, 'message': "All today's specials removed!"}
         except Error as e:
             print(f"Error deleting specials: {e}")
+            return {'success': False, 'message': f'Database error: {str(e)}'}
+
+
+class DailySpecialSettings:
+    """Per-hotel settings that control public Today's Special popup behavior."""
+
+    DEFAULTS = {
+        'popup_enabled': True,
+        'reopen_timer_seconds': 5,
+        'auto_slide_enabled': True,
+        'slide_interval_seconds': 3,
+        'initial_delay_seconds': 2,
+    }
+
+    @staticmethod
+    def create_table():
+        """Create today_special_settings table if missing."""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS today_special_settings (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    hotel_id INT NOT NULL,
+                    popup_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+                    reopen_timer_seconds INT NOT NULL DEFAULT 5,
+                    auto_slide_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+                    slide_interval_seconds INT NOT NULL DEFAULT 3,
+                    initial_delay_seconds INT NOT NULL DEFAULT 2,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY unique_hotel_settings (hotel_id),
+                    INDEX idx_hotel_settings (hotel_id)
+                )
+            """)
+            connection.commit()
+            cursor.close()
+            connection.close()
+            return True
+        except Error as e:
+            print(f"Error creating today_special_settings table: {e}")
+            return False
+
+    @staticmethod
+    def _normalize_value(key, value):
+        if key in ('popup_enabled', 'auto_slide_enabled'):
+            return bool(value)
+
+        int_value = int(value)
+        if key == 'reopen_timer_seconds':
+            return max(5, min(30, int_value))
+        if key == 'slide_interval_seconds':
+            return max(1, min(30, int_value))
+        if key == 'initial_delay_seconds':
+            return max(0, min(30, int_value))
+        return int_value
+
+    @staticmethod
+    def get_settings(hotel_id):
+        """Get settings for hotel with defaults fallback."""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute("""
+                SELECT popup_enabled, reopen_timer_seconds, auto_slide_enabled,
+                       slide_interval_seconds, initial_delay_seconds
+                FROM today_special_settings
+                WHERE hotel_id = %s
+                LIMIT 1
+            """, (hotel_id,))
+            row = cursor.fetchone()
+            cursor.close()
+            connection.close()
+
+            if not row:
+                return dict(DailySpecialSettings.DEFAULTS)
+
+            settings = dict(DailySpecialSettings.DEFAULTS)
+            settings.update({
+                'popup_enabled': bool(row.get('popup_enabled')),
+                'reopen_timer_seconds': int(row.get('reopen_timer_seconds') or DailySpecialSettings.DEFAULTS['reopen_timer_seconds']),
+                'auto_slide_enabled': bool(row.get('auto_slide_enabled')),
+                'slide_interval_seconds': int(row.get('slide_interval_seconds') or DailySpecialSettings.DEFAULTS['slide_interval_seconds']),
+                'initial_delay_seconds': int(row.get('initial_delay_seconds') or DailySpecialSettings.DEFAULTS['initial_delay_seconds']),
+            })
+            return settings
+        except Error as e:
+            print(f"Error getting today special settings: {e}")
+            return dict(DailySpecialSettings.DEFAULTS)
+
+    @staticmethod
+    def upsert_settings(hotel_id, payload):
+        """Insert or update settings for a hotel."""
+        try:
+            normalized = dict(DailySpecialSettings.DEFAULTS)
+            for key in normalized:
+                if key in payload:
+                    normalized[key] = DailySpecialSettings._normalize_value(key, payload[key])
+
+            connection = get_db_connection()
+            cursor = connection.cursor()
+            cursor.execute("""
+                INSERT INTO today_special_settings
+                    (hotel_id, popup_enabled, reopen_timer_seconds, auto_slide_enabled,
+                     slide_interval_seconds, initial_delay_seconds)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    popup_enabled = VALUES(popup_enabled),
+                    reopen_timer_seconds = VALUES(reopen_timer_seconds),
+                    auto_slide_enabled = VALUES(auto_slide_enabled),
+                    slide_interval_seconds = VALUES(slide_interval_seconds),
+                    initial_delay_seconds = VALUES(initial_delay_seconds),
+                    updated_at = CURRENT_TIMESTAMP
+            """, (
+                hotel_id,
+                normalized['popup_enabled'],
+                normalized['reopen_timer_seconds'],
+                normalized['auto_slide_enabled'],
+                normalized['slide_interval_seconds'],
+                normalized['initial_delay_seconds']
+            ))
+            connection.commit()
+            cursor.close()
+            connection.close()
+
+            return {'success': True, 'settings': normalized}
+        except (ValueError, TypeError):
+            return {'success': False, 'message': 'Invalid settings values'}
+        except Error as e:
+            print(f"Error saving today special settings: {e}")
             return {'success': False, 'message': f'Database error: {str(e)}'}

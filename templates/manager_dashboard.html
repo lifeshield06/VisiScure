@@ -313,6 +313,102 @@
             }
         }
 
+        .special-settings-card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+            position: sticky;
+            top: 100px;
+        }
+
+        .settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #ffffff;
+            gap: 0.75rem;
+        }
+
+        .settings-header h3 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .settings-badge {
+            background: rgba(255,255,255,0.14);
+            padding: 0.3rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .settings-body {
+            padding: 1.15rem;
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.8rem 0.9rem;
+            margin-bottom: 0.9rem;
+        }
+
+        .settings-field {
+            margin-bottom: 0.9rem;
+        }
+
+        .settings-label {
+            display: block;
+            color: #1e293b;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+
+        .settings-hint {
+            margin: 0;
+            color: #64748b;
+            font-size: 0.78rem;
+        }
+
+        .settings-save-btn {
+            width: 100%;
+            margin-top: 0.35rem;
+            justify-content: center;
+        }
+
+        #special-settings-form .form-check-input {
+            width: 2.4rem;
+            height: 1.3rem;
+            cursor: pointer;
+        }
+
+        #special-settings-form .form-select,
+        #special-settings-form .form-control {
+            border-radius: 10px;
+            border-color: #cbd5e1;
+        }
+
+        #special-settings-form .form-select:focus,
+        #special-settings-form .form-control:focus {
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.2);
+        }
+
         /* Pamphlet Preview Card */
         .pamphlet-preview-card {
             background: white;
@@ -2408,9 +2504,9 @@
                 padding: 0 0.5rem;
             }
 
-            /* Hide the entire Live Preview section on mobile */
-            .pamphlet-preview-card {
-                display: none !important;
+            .special-settings-card {
+                position: static;
+                margin-top: 0.5rem;
             }
 
             .daily-special-card {
@@ -7508,17 +7604,48 @@
                                 <input type="hidden" id="editing-special-id" value="">
                                 <div class="form-group">
                                     <label for="special-name">Dish Name <span class="required">*</span></label>
-                                    <input type="text" id="special-name" required placeholder="e.g., Chef's Special Biryani" oninput="updatePamphletPreview()">
+                                    <input type="text" id="special-name" required placeholder="e.g., Chef's Special Biryani">
                                 </div>
                                 
                                 <div class="form-group">
                                     <label for="special-description">Description</label>
-                                    <textarea id="special-description" rows="3" placeholder="What makes this dish special? (e.g., Made with premium basmati rice and hand-picked spices...)" oninput="updatePamphletPreview()"></textarea>
+                                    <textarea id="special-description" rows="3" placeholder="What makes this dish special? (e.g., Made with premium basmati rice and hand-picked spices...)"></textarea>
                                 </div>
                                 
                                 <div class="form-group">
                                     <label for="special-price">Price (₹) <span class="required">*</span></label>
-                                    <input type="number" id="special-price" step="0.01" min="0.01" required placeholder="Enter price" oninput="updatePamphletPreview()">
+                                    <input type="number" id="special-price" step="0.01" min="0.01" required placeholder="Enter price">
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="special-start-datetime">Start Date & Time</label>
+                                            <input type="datetime-local" id="special-start-datetime" class="form-control">
+                                            <small class="text-muted">Special is hidden before this time.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="special-end-datetime">End Date & Time</label>
+                                            <input type="datetime-local" id="special-end-datetime" class="form-control">
+                                            <small class="text-muted">Special stops showing after this time.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="special-daily-start-time">Daily Start Time</label>
+                                            <input type="time" id="special-daily-start-time" class="form-control">
+                                            <small class="text-muted">Shown only from this time every day.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="special-daily-end-time">Daily End Time</label>
+                                            <input type="time" id="special-daily-end-time" class="form-control">
+                                            <small class="text-muted">Hidden after this time every day.</small>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <div class="form-group">
@@ -7562,73 +7689,58 @@
                         </div>
                     </div>
 
-                    <!-- Right Column - Live Preview -->
-                    <div class="pamphlet-preview-card">
-                        <div class="preview-header">
-                            <h3><i class="fas fa-eye"></i> Live Preview</h3>
-                            <span class="preview-badge">As seen by guests</span>
+                    <!-- Right Column - Today's Special Settings -->
+                    <div class="special-settings-card">
+                        <div class="settings-header">
+                            <h3><i class="fas fa-sliders-h"></i> Today's Special Settings</h3>
+                            <span class="settings-badge">Controls guest popup behavior</span>
                         </div>
-                        
-                        <div class="preview-container" id="pamphlet-preview-container">
-                            <!-- Mini Pamphlet Preview -->
-                            <div class="preview-pamphlet" id="preview-pamphlet">
-                                <!-- Ribbon -->
-                                <div class="preview-ribbon">
-                                    <span><i class="fas fa-star"></i> TODAY'S SPECIAL <i class="fas fa-star"></i></span>
+
+                        <div class="settings-body" id="special-settings-form">
+                            <div id="special-settings-message" class="message" style="display: none;"></div>
+
+                            <div class="settings-row">
+                                <div>
+                                    <label class="settings-label" for="settings-popup-enabled">Auto Popup</label>
+                                    <p class="settings-hint">Enable/Disable Today's Special popup for guests</p>
                                 </div>
-                                
-                                <!-- Image Section -->
-                                <div class="preview-hero" id="preview-hero-section">
-                                    <img id="preview-hero-img" src="" alt="Food Image">
-                                    <div class="preview-hero-gradient"></div>
-                                    <div class="preview-badge-tag">
-                                        <i class="fas fa-award"></i> Chef's Pick
-                                    </div>
-                                </div>
-                                
-                                <!-- No Image Placeholder -->
-                                <div class="preview-no-image" id="preview-no-image-section">
-                                    <div class="preview-no-image-icon">
-                                        <i class="fas fa-utensils"></i>
-                                    </div>
-                                    <span>Chef's Special</span>
-                                </div>
-                                
-                                <!-- Content -->
-                                <div class="preview-body">
-                                    <h4 class="preview-title" id="preview-title">Menu Name</h4>
-                                    <p class="preview-description" id="preview-description">Description will appear here...</p>
-                                    
-                                    <div class="preview-price-tag">
-                                        <span class="preview-price-label">Special Price</span>
-                                        <span class="preview-price-value" id="preview-price">₹0.00</span>
-                                    </div>
-                                    
-                                    <div class="preview-cart-btn">
-                                        <i class="fas fa-cart-plus"></i> Add to Cart
-                                    </div>
-                                    
-                                    <p class="preview-note">
-                                        <i class="fas fa-info-circle"></i> Review your cart before placing the order
-                                    </p>
-                                </div>
-                                
-                                <!-- Footer -->
-                                <div class="preview-footer">
-                                    <i class="fas fa-clock"></i> Limited time - Today only!
-                                </div>
-                                
-                                <!-- Carousel indicator (for multiple specials) -->
-                                <div class="preview-carousel-indicator" id="preview-carousel-indicator" style="display: none;">
-                                    <span id="preview-special-count">1 of 1</span>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="settings-popup-enabled">
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- Download Button -->
-                        <div class="preview-actions">
-                            <button type="button" class="btn-download" id="download-pamphlet-btn" onclick="downloadPamphlet()">
-                                <i class="fas fa-download"></i> Download Pamphlet
+
+                            <div class="settings-field">
+                                <label class="settings-label" for="settings-reopen-timer">Popup Reopen Timer</label>
+                                <select id="settings-reopen-timer" class="form-select">
+                                    <option value="5">5 sec</option>
+                                    <option value="10">10 sec</option>
+                                    <option value="15">15 sec</option>
+                                    <option value="30">30 sec</option>
+                                </select>
+                            </div>
+
+                            <div class="settings-row">
+                                <div>
+                                    <label class="settings-label" for="settings-auto-slide-enabled">Auto Slide</label>
+                                    <p class="settings-hint">Automatically switch between multiple specials</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="settings-auto-slide-enabled">
+                                </div>
+                            </div>
+
+                            <div class="settings-field">
+                                <label class="settings-label" for="settings-slide-interval">Slide Interval (seconds)</label>
+                                <input type="number" id="settings-slide-interval" class="form-control" min="1" max="30" step="1" placeholder="3">
+                            </div>
+
+                            <div class="settings-field">
+                                <label class="settings-label" for="settings-initial-delay">Initial Delay (seconds)</label>
+                                <input type="number" id="settings-initial-delay" class="form-control" min="0" max="30" step="1" placeholder="2">
+                            </div>
+
+                            <button type="button" class="btn-primary settings-save-btn" id="save-special-settings-btn" onclick="saveDailySpecialSettings()">
+                                <i class="fas fa-save"></i> Save Settings
                             </button>
                         </div>
                     </div>
@@ -8602,13 +8714,38 @@
             `;
         }
 
+        const managerActivitiesApiUrl = {{ url_for('hotel_manager.get_recent_activities') | tojson }};
+        const managerAllActivitiesApiUrl = {{ url_for('hotel_manager.get_all_activities') | tojson }};
+        let isFetchingManagerActivities = false;
+
+        async function fetchJsonSafe(url) {
+            const response = await fetch(url, {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            return response.json();
+        }
+
         // Fetch and update activities
         function fetchManagerActivities() {
+            if (document.visibilityState === 'hidden' || isFetchingManagerActivities) {
+                return;
+            }
+
             const refreshIcon = document.getElementById('activityRefreshIcon');
             if (refreshIcon) refreshIcon.classList.add('fa-spin');
+            isFetchingManagerActivities = true;
             
-            fetch('/hotel-manager/api/recent-activities')
-                .then(response => response.json())
+            fetchJsonSafe(managerActivitiesApiUrl)
                 .then(data => {
                     if (refreshIcon) setTimeout(() => refreshIcon.classList.remove('fa-spin'), 300);
                     const activityList = document.getElementById('managerActivityList');
@@ -8644,6 +8781,9 @@
                             </div>
                         </li>
                     `;
+                })
+                .finally(() => {
+                    isFetchingManagerActivities = false;
                 });
         }
 
@@ -8665,8 +8805,7 @@
                 </li>
             `;
             
-            fetch('/hotel-manager/api/all-activities')
-                .then(response => response.json())
+            fetchJsonSafe(managerAllActivitiesApiUrl)
                 .then(data => {
                     if (!data || data.length === 0 || data.error) {
                         allList.innerHTML = `
@@ -8707,6 +8846,12 @@
 
         // Initial load of activities
         fetchManagerActivities();
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                fetchManagerActivities();
+            }
+        });
 
         // Poll activities every 15 seconds
         setInterval(fetchManagerActivities, 15000);
@@ -12723,6 +12868,7 @@
                 }
                 if (sectionId === 'daily-special') {
                     loadDailySpecial();
+                    loadDailySpecialSettings();
                 }
             };
         })();
@@ -12731,6 +12877,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadWalletData();
             loadTipStatistics();
+            loadDailySpecialSettings();
 
             // Keep wallet figures near real-time as new orders are placed from guest devices.
             setInterval(function() {
@@ -12780,15 +12927,20 @@
             document.getElementById('special-today-date').textContent = today.toLocaleDateString('en-US', options);
 
             // Fetch all today's specials
-            fetch('/hotel-manager/api/daily-special')
+            const specialsUrl = '/hotel-manager/api/daily-special' + (hotelId ? '?hotel_id=' + hotelId : '');
+            fetch(specialsUrl)
                 .then(response => response.json())
                 .then(data => {
+                    console.log('[DAILY_SPECIAL] API response:', data);
                     if (data.success && data.specials && data.specials.length > 0) {
                         allSpecials = data.specials;
                         displaySpecialsGrid(data.specials);
                     } else {
                         allSpecials = [];
                         displayNoSpecials();
+                        if (!data.success) {
+                            console.warn('[DAILY_SPECIAL] API error:', data.message);
+                        }
                     }
                 })
                 .catch(error => {
@@ -12830,21 +12982,6 @@
                 `;
                 grid.appendChild(card);
             });
-            
-            // Update carousel indicator preview
-            const indicator = document.getElementById('preview-carousel-indicator');
-            const countSpan = document.getElementById('preview-special-count');
-            if (specials.length > 1) {
-                indicator.style.display = 'block';
-                countSpan.textContent = `1 of ${specials.length}`;
-            } else {
-                indicator.style.display = 'none';
-            }
-            
-            // Show first special in preview
-            if (specials.length > 0) {
-                updatePamphletPreviewFromData(specials[0]);
-            }
         }
 
         function displayNoSpecials() {
@@ -12853,8 +12990,6 @@
             
             grid.innerHTML = '';
             noMsg.style.display = 'flex';
-            document.getElementById('preview-carousel-indicator').style.display = 'none';
-            resetPamphletPreview();
         }
 
         function showAddSpecialForm() {
@@ -12865,7 +13000,6 @@
             document.getElementById('special-form-title').innerHTML = '<i class="fas fa-plus-circle"></i> Add New Special';
             document.getElementById('special-submit-btn').innerHTML = '<i class="fas fa-save"></i> Save Special';
             document.getElementById('add-special-btn').style.display = 'none';
-            resetPamphletPreview();
         }
 
         function editSpecial(specialId) {
@@ -12877,6 +13011,10 @@
             document.getElementById('special-name').value = special.dish_name || special.menu_name || '';
             document.getElementById('special-description').value = special.description || '';
             document.getElementById('special-price').value = special.price;
+            document.getElementById('special-start-datetime').value = formatDateTimeForInput(special.start_datetime);
+            document.getElementById('special-end-datetime').value = formatDateTimeForInput(special.end_datetime);
+            document.getElementById('special-daily-start-time').value = formatTimeForInput(special.daily_start_time);
+            document.getElementById('special-daily-end-time').value = formatTimeForInput(special.daily_end_time);
             
             // Show existing image preview if available
             if (special.image_path) {
@@ -12892,8 +13030,6 @@
             document.getElementById('special-form-title').innerHTML = '<i class="fas fa-edit"></i> Edit Special';
             document.getElementById('special-submit-btn').innerHTML = '<i class="fas fa-save"></i> Update Special';
             document.getElementById('add-special-btn').style.display = 'none';
-            
-            updatePamphletPreview();
         }
 
         function cancelSpecialForm() {
@@ -12902,18 +13038,16 @@
             document.getElementById('special-form-container').style.display = 'none';
             document.getElementById('add-special-btn').style.display = 'inline-flex';
             clearSpecialForm();
-            
-            if (allSpecials.length > 0) {
-                updatePamphletPreviewFromData(allSpecials[0]);
-            } else {
-                resetPamphletPreview();
-            }
         }
 
         function clearSpecialForm() {
             document.getElementById('special-name').value = '';
             document.getElementById('special-description').value = '';
             document.getElementById('special-price').value = '';
+            document.getElementById('special-start-datetime').value = '';
+            document.getElementById('special-end-datetime').value = '';
+            document.getElementById('special-daily-start-time').value = '';
+            document.getElementById('special-daily-end-time').value = '';
             document.getElementById('special-image').value = '';
             document.getElementById('special-message').innerHTML = '';
             document.getElementById('special-message').className = 'message';
@@ -12937,9 +13071,6 @@
                     document.getElementById('preview-img').src = e.target.result;
                     document.getElementById('special-image-preview').style.display = 'block';
                     document.getElementById('upload-placeholder').style.display = 'none';
-                    
-                    // Update pamphlet preview with new image
-                    updatePamphletPreview();
                 };
                 reader.readAsDataURL(file);
             }
@@ -12950,9 +13081,6 @@
             document.getElementById('preview-img').src = '';
             document.getElementById('special-image-preview').style.display = 'none';
             document.getElementById('upload-placeholder').style.display = 'block';
-            
-            // Update pamphlet preview without image
-            updatePamphletPreview();
         }
 
         function showSpecialMessage(message, type) {
@@ -12966,14 +13094,73 @@
             }, 3000);
         }
 
+        function formatDateTimeForInput(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '';
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        function formatTimeForInput(value) {
+            if (!value) return '';
+            if (typeof value === 'string' && value.length >= 5) {
+                return value.slice(0, 5);
+            }
+            return '';
+        }
+
+        function validateSpecialScheduleFields() {
+            const startDatetime = document.getElementById('special-start-datetime').value;
+            const endDatetime = document.getElementById('special-end-datetime').value;
+            const dailyStartTime = document.getElementById('special-daily-start-time').value;
+            const dailyEndTime = document.getElementById('special-daily-end-time').value;
+
+            const dateRangeProvided = Boolean(startDatetime || endDatetime);
+            if (dateRangeProvided && (!startDatetime || !endDatetime)) {
+                showSpecialMessage('Both Start Date & Time and End Date & Time are required together', 'error');
+                return false;
+            }
+
+            const dailyRangeProvided = Boolean(dailyStartTime || dailyEndTime);
+            if (dailyRangeProvided && (!dailyStartTime || !dailyEndTime)) {
+                showSpecialMessage('Both Daily Start Time and Daily End Time are required together', 'error');
+                return false;
+            }
+
+            if (startDatetime && endDatetime && new Date(startDatetime) > new Date(endDatetime)) {
+                showSpecialMessage('Start Date & Time must be earlier than End Date & Time', 'error');
+                return false;
+            }
+
+            if (dailyStartTime && dailyEndTime && dailyStartTime === dailyEndTime) {
+                showSpecialMessage('Daily Start Time and Daily End Time cannot be the same', 'error');
+                return false;
+            }
+
+            return true;
+        }
+
         function handleDailySpecialSubmit(event) {
             event.preventDefault();
+
+            if (!validateSpecialScheduleFields()) {
+                return;
+            }
             
             const specialId = document.getElementById('editing-special-id').value;
             const menuName = document.getElementById('special-name').value.trim();
             const description = document.getElementById('special-description').value.trim();
             const price = parseFloat(document.getElementById('special-price').value);
             const imageInput = document.getElementById('special-image');
+            const startDatetime = document.getElementById('special-start-datetime').value;
+            const endDatetime = document.getElementById('special-end-datetime').value;
+            const dailyStartTime = document.getElementById('special-daily-start-time').value;
+            const dailyEndTime = document.getElementById('special-daily-end-time').value;
             
             if (!menuName) {
                 showSpecialMessage('Please enter a dish name', 'error');
@@ -12997,12 +13184,16 @@
             formData.append('dish_name', menuName);
             formData.append('description', description);
             formData.append('price', price);
+            formData.append('start_datetime', startDatetime);
+            formData.append('end_datetime', endDatetime);
+            formData.append('daily_start_time', dailyStartTime);
+            formData.append('daily_end_time', dailyEndTime);
             
             if (imageInput.files && imageInput.files[0]) {
                 formData.append('image', imageInput.files[0]);
             }
             
-            fetch('/hotel-manager/api/daily-special', {
+            fetch('/hotel-manager/api/daily-special' + (hotelId ? '?hotel_id=' + hotelId : ''), {
                 method: 'POST',
                 body: formData
             })
@@ -13032,7 +13223,7 @@
                 return;
             }
             
-            fetch(`/hotel-manager/api/daily-special/${specialId}`, {
+            fetch(`/hotel-manager/api/daily-special/${specialId}` + (hotelId ? '?hotel_id=' + hotelId : ''), {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
             })
@@ -13051,300 +13242,97 @@
             });
         }
 
-        // ========== LIVE PREVIEW FUNCTIONS ==========
-        let previewImageDataUrl = null;
+        // ========== TODAY'S SPECIAL SETTINGS FUNCTIONS ==========
+        let dailySpecialSettings = {
+            popup_enabled: true,
+            reopen_timer_seconds: 5,
+            auto_slide_enabled: true,
+            slide_interval_seconds: 3,
+            initial_delay_seconds: 2
+        };
 
-        function updatePamphletPreview() {
-            const name = document.getElementById('special-name').value.trim() || 'Menu Name';
-            const description = document.getElementById('special-description').value.trim() || 'Description will appear here...';
-            const price = parseFloat(document.getElementById('special-price').value) || 0;
-            
-            // Update preview text
-            document.getElementById('preview-title').textContent = name;
-            document.getElementById('preview-description').textContent = description;
-            document.getElementById('preview-price').textContent = '₹' + price.toFixed(2);
-            
-            // Handle image preview
-            const previewImg = document.getElementById('preview-img');
-            const previewHeroSection = document.getElementById('preview-hero-section');
-            const previewNoImageSection = document.getElementById('preview-no-image-section');
-            const previewHeroImg = document.getElementById('preview-hero-img');
-            
-            if (previewImg && previewImg.src && document.getElementById('special-image-preview').style.display !== 'none') {
-                previewHeroImg.src = previewImg.src;
-                previewImageDataUrl = previewImg.src;
-                previewHeroSection.style.display = 'block';
-                previewNoImageSection.style.display = 'none';
-            } else {
-                previewImageDataUrl = null;
-                previewHeroSection.style.display = 'none';
-                previewNoImageSection.style.display = 'flex';
-            }
+        function renderDailySpecialSettings() {
+            document.getElementById('settings-popup-enabled').checked = !!dailySpecialSettings.popup_enabled;
+            document.getElementById('settings-reopen-timer').value = String(dailySpecialSettings.reopen_timer_seconds || 5);
+            document.getElementById('settings-auto-slide-enabled').checked = !!dailySpecialSettings.auto_slide_enabled;
+            document.getElementById('settings-slide-interval').value = String(dailySpecialSettings.slide_interval_seconds || 3);
+            document.getElementById('settings-initial-delay').value = String(dailySpecialSettings.initial_delay_seconds || 2);
         }
 
-        function updatePamphletPreviewFromData(special) {
-            document.getElementById('preview-title').textContent = special.dish_name || special.menu_name || 'Menu Name';
-            document.getElementById('preview-description').textContent = special.description || 'No description';
-            document.getElementById('preview-price').textContent = '₹' + parseFloat(special.price).toFixed(2);
-            
-            const previewHeroSection = document.getElementById('preview-hero-section');
-            const previewNoImageSection = document.getElementById('preview-no-image-section');
-            const previewHeroImg = document.getElementById('preview-hero-img');
-            
-            if (special.image_path) {
-                previewHeroImg.src = special.image_path;
-                previewImageDataUrl = special.image_path;
-                previewHeroSection.style.display = 'block';
-                previewNoImageSection.style.display = 'none';
-            } else {
-                previewImageDataUrl = null;
-                previewHeroSection.style.display = 'none';
-                previewNoImageSection.style.display = 'flex';
-            }
-        }
-
-        function resetPamphletPreview() {
-            document.getElementById('preview-title').textContent = 'Menu Name';
-            document.getElementById('preview-description').textContent = 'Description will appear here...';
-            document.getElementById('preview-price').textContent = '₹0.00';
-            
-            document.getElementById('preview-hero-section').style.display = 'none';
-            document.getElementById('preview-no-image-section').style.display = 'flex';
-            previewImageDataUrl = null;
-        }
-
-        // ========== DOWNLOAD PAMPHLET FUNCTION ==========
-        function downloadPamphlet() {
-            const downloadBtn = document.getElementById('download-pamphlet-btn');
-            downloadBtn.disabled = true;
-            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-            
-            // Get current preview data
-            const name = document.getElementById('preview-title').textContent;
-            const description = document.getElementById('preview-description').textContent;
-            const price = document.getElementById('preview-price').textContent;
-            
-            // Create a canvas-based image
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Set canvas size (2x for high resolution)
-            const scale = 2;
-            canvas.width = 400 * scale;
-            canvas.height = 600 * scale;
-            ctx.scale(scale, scale);
-            
-            // Background
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 400, 600);
-            
-            // Draw ribbon
-            ctx.fillStyle = '#dc2626';
-            ctx.fillRect(0, 0, 400, 40);
-            
-            // Ribbon text
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 11px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('★ TODAY\'S SPECIAL ★', 200, 26);
-            
-            const drawRestOfPamphlet = (imageY) => {
-                // Content area background
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, imageY, 400, 600 - imageY);
-                
-                // Title
-                ctx.fillStyle = '#1e293b';
-                ctx.font = 'bold 24px Arial';
-                ctx.textAlign = 'center';
-                const titleY = imageY + 35;
-                ctx.fillText(name.substring(0, 30), 200, titleY);
-                
-                // Description
-                ctx.fillStyle = '#64748b';
-                ctx.font = '14px Arial';
-                const descLines = wrapText(ctx, description, 340);
-                let descY = titleY + 30;
-                descLines.forEach((line, i) => {
-                    if (i < 2) {
-                        ctx.fillText(line, 200, descY);
-                        descY += 20;
+        function loadDailySpecialSettings() {
+            fetch('/hotel-manager/api/daily-special-settings')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success || !data.settings) {
+                        return;
                     }
+                    dailySpecialSettings = data.settings;
+                    renderDailySpecialSettings();
+                })
+                .catch(error => {
+                    console.error('Error loading daily special settings:', error);
                 });
-                
-                // Price box
-                const priceBoxY = descY + 15;
-                ctx.fillStyle = '#f0fdf4';
-                roundRect(ctx, 130, priceBoxY, 140, 50, 10, true, false);
-                ctx.strokeStyle = '#bbf7d0';
-                ctx.lineWidth = 1;
-                roundRect(ctx, 130, priceBoxY, 140, 50, 10, false, true);
-                
-                ctx.fillStyle = '#059669';
-                ctx.font = '10px Arial';
-                ctx.fillText('Special Price', 200, priceBoxY + 18);
-                ctx.font = 'bold 22px Arial';
-                ctx.fillText(price, 200, priceBoxY + 42);
-                
-                // Add to Cart button
-                const btnY = priceBoxY + 70;
-                ctx.fillStyle = '#0891b2';
-                roundRect(ctx, 50, btnY, 300, 45, 10, true, false);
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 15px Arial';
-                ctx.fillText('🛒 Add to Cart', 200, btnY + 29);
-                
-                // Note
-                ctx.fillStyle = '#94a3b8';
-                ctx.font = '11px Arial';
-                ctx.fillText('ℹ Review your cart before placing the order', 200, btnY + 70);
-                
-                // Footer
-                const footerY = 560;
-                ctx.fillStyle = '#fef3c7';
-                ctx.fillRect(0, footerY, 400, 40);
-                ctx.fillStyle = '#92400e';
-                ctx.font = 'bold 12px Arial';
-                ctx.fillText('⏰ Limited time - Today only!', 200, footerY + 25);
-                
-                // Convert to image and download
-                canvas.toBlob(function(blob) {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'daily-special-pamphlet.png';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    
-                    downloadBtn.disabled = false;
-                    downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Pamphlet';
-                }, 'image/png', 1.0);
+        }
+
+        function saveDailySpecialSettings() {
+            const saveBtn = document.getElementById('save-special-settings-btn');
+            const payload = {
+                popup_enabled: document.getElementById('settings-popup-enabled').checked,
+                reopen_timer_seconds: parseInt(document.getElementById('settings-reopen-timer').value, 10) || 5,
+                auto_slide_enabled: document.getElementById('settings-auto-slide-enabled').checked,
+                slide_interval_seconds: parseInt(document.getElementById('settings-slide-interval').value, 10) || 3,
+                initial_delay_seconds: parseInt(document.getElementById('settings-initial-delay').value, 10) || 2
             };
-            
-            // Check if there's an image
-            if (previewImageDataUrl) {
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = function() {
-                    // Draw image section
-                    const imgHeight = 200;
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.rect(0, 40, 400, imgHeight);
-                    ctx.clip();
-                    
-                    // Scale and center image
-                    const imgRatio = img.width / img.height;
-                    let drawWidth = 400;
-                    let drawHeight = drawWidth / imgRatio;
-                    if (drawHeight < imgHeight) {
-                        drawHeight = imgHeight;
-                        drawWidth = drawHeight * imgRatio;
-                    }
-                    const drawX = (400 - drawWidth) / 2;
-                    const drawY = 40 + (imgHeight - drawHeight) / 2;
-                    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-                    ctx.restore();
-                    
-                    // Add gradient fade
-                    const gradient = ctx.createLinearGradient(0, 40 + imgHeight - 60, 0, 40 + imgHeight);
-                    gradient.addColorStop(0, 'rgba(255,255,255,0)');
-                    gradient.addColorStop(1, 'rgba(255,255,255,1)');
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 40 + imgHeight - 60, 400, 60);
-                    
-                    // Chef's Pick badge
-                    ctx.fillStyle = 'rgba(255,255,255,0.95)';
-                    roundRect(ctx, 15, 55, 90, 24, 12, true, false);
-                    ctx.fillStyle = '#ea580c';
-                    ctx.font = 'bold 10px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('🏆 Chef\'s Pick', 60, 71);
-                    
-                    drawRestOfPamphlet(40 + imgHeight);
-                };
-                img.onerror = function() {
-                    // Draw placeholder if image fails
-                    drawPlaceholderAndContent();
-                };
-                img.src = previewImageDataUrl;
-            } else {
-                drawPlaceholderAndContent();
+
+            if (payload.slide_interval_seconds < 1 || payload.slide_interval_seconds > 30) {
+                showSpecialSettingsMessage('Slide interval must be between 1 and 30 seconds', 'error');
+                return;
             }
-            
-            function drawPlaceholderAndContent() {
-                // Draw no-image placeholder
-                const placeholderHeight = 140;
-                const gradient = ctx.createLinearGradient(0, 40, 0, 40 + placeholderHeight);
-                gradient.addColorStop(0, '#fef3c7');
-                gradient.addColorStop(0.5, '#fde68a');
-                gradient.addColorStop(1, '#fed7aa');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 40, 400, placeholderHeight);
-                
-                // Icon circle
-                ctx.fillStyle = '#ea580c';
-                ctx.beginPath();
-                ctx.arc(200, 40 + placeholderHeight/2 - 10, 35, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Icon text
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '24px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('🍽️', 200, 40 + placeholderHeight/2 - 2);
-                
-                // Chef's Special text
-                ctx.fillStyle = '#92400e';
-                ctx.font = 'bold 11px Arial';
-                ctx.fillText('CHEF\'S SPECIAL', 200, 40 + placeholderHeight - 15);
-                
-                drawRestOfPamphlet(40 + placeholderHeight);
+
+            if (payload.initial_delay_seconds < 0 || payload.initial_delay_seconds > 30) {
+                showSpecialSettingsMessage('Initial delay must be between 0 and 30 seconds', 'error');
+                return;
             }
-            
-            // Helper functions
-            function wrapText(ctx, text, maxWidth) {
-                const words = text.split(' ');
-                const lines = [];
-                let currentLine = '';
-                
-                words.forEach(word => {
-                    const testLine = currentLine + word + ' ';
-                    const metrics = ctx.measureText(testLine);
-                    if (metrics.width > maxWidth && currentLine !== '') {
-                        lines.push(currentLine.trim());
-                        currentLine = word + ' ';
-                    } else {
-                        currentLine = testLine;
-                    }
-                });
-                lines.push(currentLine.trim());
-                return lines;
-            }
-            
-            function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
-                ctx.beginPath();
-                ctx.moveTo(x + radius, y);
-                ctx.lineTo(x + width - radius, y);
-                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-                ctx.lineTo(x + width, y + height - radius);
-                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-                ctx.lineTo(x + radius, y + height);
-                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-                ctx.lineTo(x, y + radius);
-                ctx.quadraticCurveTo(x, y, x + radius, y);
-                ctx.closePath();
-                if (fill) ctx.fill();
-                if (stroke) ctx.stroke();
-            }
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            fetch('/hotel-manager/api/daily-special-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Settings';
+
+                if (data.success) {
+                    dailySpecialSettings = data.settings || payload;
+                    renderDailySpecialSettings();
+                    showSpecialSettingsMessage('Settings saved successfully', 'success');
+                } else {
+                    showSpecialSettingsMessage(data.message || 'Failed to save settings', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving daily special settings:', error);
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Settings';
+                showSpecialSettingsMessage('Error saving settings', 'error');
+            });
         }
 
-        // Initialize preview on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            resetPamphletPreview();
-        });
+        function showSpecialSettingsMessage(message, type) {
+            const msgEl = document.getElementById('special-settings-message');
+            msgEl.textContent = message;
+            msgEl.className = 'message ' + type;
+            msgEl.style.display = 'block';
+
+            setTimeout(() => {
+                msgEl.style.display = 'none';
+            }, 2800);
+        }
 
         // ============================================
         // KITCHEN MANAGEMENT FUNCTIONS

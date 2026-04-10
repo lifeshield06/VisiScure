@@ -1,6 +1,6 @@
 from flask import request, jsonify, session, render_template, send_file
 from . import hotel_manager_bp
-from .models import HotelManager, Waiter, DashboardStats, DailySpecialMenu
+from .models import HotelManager, Waiter, DashboardStats, DailySpecialMenu, DailySpecialSettings
 from wallet.models import HotelWallet
 from database.db import get_db_connection
 import qrcode
@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 
 # Initialize Daily Special Menu table
 DailySpecialMenu.create_table()
+DailySpecialSettings.create_table()
 
 # =========================
 # ACTIVITY LOGGING FOR MANAGERS
@@ -762,31 +763,121 @@ ALLOWED_SPECIAL_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 def allowed_special_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_SPECIAL_EXTENSIONS
 
+
+def _parse_special_datetime(value):
+    if not value:
+        return None
+    value = value.strip()
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        try:
+            parsed = datetime.strptime(value, '%Y-%m-%d %H:%M')
+        except ValueError:
+            return None
+    return parsed.strftime('%Y-%m-%d %H:%M:%S')
+
+
+def _parse_special_time(value):
+    if not value:
+        return None
+    value = value.strip()
+    try:
+        parsed = datetime.strptime(value, '%H:%M')
+    except ValueError:
+        try:
+            parsed = datetime.strptime(value, '%H:%M:%S')
+        except ValueError:
+            return None
+    return parsed.strftime('%H:%M:%S')
+
+
+def _format_special_datetime(value):
+    if not value:
+        return None
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace(' ', 'T'))
+        except ValueError:
+            return value
+    return value.strftime('%Y-%m-%dT%H:%M')
+
+
+def _format_special_time(value):
+    if not value:
+        return None
+    # MySQL TIME columns come back as timedelta objects
+    import datetime as dt
+    if isinstance(value, dt.timedelta):
+        total_seconds = int(value.total_seconds())
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        return f'{hours:02d}:{minutes:02d}'
+    if isinstance(value, str):
+        try:
+            value = datetime.strptime(value, '%H:%M:%S')
+        except ValueError:
+            return value[:5] if len(value) >= 5 else value
+    try:
+        return value.strftime('%H:%M')
+    except Exception:
+        return str(value)[:5]
+
 @hotel_manager_bp.route('/api/daily-special', methods=['GET'])
 def get_daily_special():
     """Get all today's specials for the manager's hotel"""
     hotel_id = session.get('hotel_id')
+
+    # Fallback: accept hotel_id as query param (for cases where session is stale)
     if not hotel_id:
+        hotel_id_param = request.args.get('hotel_id')
+        if hotel_id_param:
+            try:
+                hotel_id = int(hotel_id_param)
+                # Re-set in session so subsequent calls work
+                session['hotel_id'] = hotel_id
+            except (ValueError, TypeError):
+                pass
+
+    if not hotel_id:
+        print(f"[DAILY_SPECIAL] GET failed: no hotel_id in session. Session keys: {list(session.keys())}")
         return jsonify({'success': False, 'message': 'Not authorized'}), 403
-    
-    specials = DailySpecialMenu.get_today_specials(hotel_id)
-    # Convert Decimal to float for JSON serialization
-    for special in specials:
-        special['price'] = float(special['price'])
-        special['special_date'] = str(special['special_date'])
-        # Add menu_name for backward compatibility
-        special['menu_name'] = special.get('dish_name', '')
-    
-    # Also return single 'special' for backward compatibility
-    single_special = specials[0] if specials else None
-    
-    return jsonify({'success': True, 'specials': specials, 'special': single_special})
+
+    print(f"[DAILY_SPECIAL] GET hotel_id={hotel_id}")
+    try:
+        specials = DailySpecialMenu.get_all_specials_for_manager(hotel_id)
+        print(f"[DAILY_SPECIAL] Found {len(specials)} specials for hotel_id={hotel_id}")
+        # Convert Decimal to float for JSON serialization
+        for special in specials:
+            special['price'] = float(special['price'])
+            special['special_date'] = str(special['special_date'])
+            special['start_datetime'] = _format_special_datetime(special.get('start_datetime'))
+            special['end_datetime'] = _format_special_datetime(special.get('end_datetime'))
+            special['daily_start_time'] = _format_special_time(special.get('daily_start_time'))
+            special['daily_end_time'] = _format_special_time(special.get('daily_end_time'))
+            special['menu_name'] = special.get('dish_name', '')
+
+        single_special = specials[0] if specials else None
+        return jsonify({'success': True, 'specials': specials, 'special': single_special})
+    except Exception as e:
+        import traceback
+        print(f"[DAILY_SPECIAL] ERROR: {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Server error: {str(e)}'}), 500
 
 
 @hotel_manager_bp.route('/api/daily-special', methods=['POST'])
 def save_daily_special():
     """Add a new today's special or update existing one"""
     hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        # Try query param fallback
+        try:
+            hotel_id = int(request.args.get('hotel_id', 0)) or None
+            if hotel_id:
+                session['hotel_id'] = hotel_id
+        except (ValueError, TypeError):
+            hotel_id = None
     if not hotel_id:
         return jsonify({'success': False, 'message': 'Not authorized'}), 403
     
@@ -796,6 +887,10 @@ def save_daily_special():
         menu_name = request.form.get('menu_name', '').strip() or request.form.get('dish_name', '').strip()
         description = request.form.get('description', '').strip()
         price = request.form.get('price')
+        start_datetime = _parse_special_datetime(request.form.get('start_datetime'))
+        end_datetime = _parse_special_datetime(request.form.get('end_datetime'))
+        daily_start_time = _parse_special_time(request.form.get('daily_start_time'))
+        daily_end_time = _parse_special_time(request.form.get('daily_end_time'))
         image_file = request.files.get('image')
     else:
         data = request.json or {}
@@ -803,6 +898,10 @@ def save_daily_special():
         menu_name = data.get('menu_name', '').strip() or data.get('dish_name', '').strip()
         description = data.get('description', '').strip()
         price = data.get('price')
+        start_datetime = _parse_special_datetime(data.get('start_datetime'))
+        end_datetime = _parse_special_datetime(data.get('end_datetime'))
+        daily_start_time = _parse_special_time(data.get('daily_start_time'))
+        daily_end_time = _parse_special_time(data.get('daily_end_time'))
         image_file = None
     
     # Validation
@@ -810,6 +909,12 @@ def save_daily_special():
         return jsonify({'success': False, 'message': 'Dish name is required!'})
     if not price:
         return jsonify({'success': False, 'message': 'Price is required!'})
+
+    if bool(start_datetime) != bool(end_datetime):
+        return jsonify({'success': False, 'message': 'Start Date & Time and End Date & Time must be provided together!'})
+
+    if bool(daily_start_time) != bool(daily_end_time):
+        return jsonify({'success': False, 'message': 'Daily Start Time and Daily End Time must be provided together!'})
     
     try:
         price_float = float(price)
@@ -841,10 +946,16 @@ def save_daily_special():
     
     # Update existing or add new
     if special_id:
-        result = DailySpecialMenu.update_special(int(special_id), hotel_id, menu_name, description, price_float, image_path)
+        result = DailySpecialMenu.update_special(
+            int(special_id), hotel_id, menu_name, description, price_float, image_path,
+            start_datetime, end_datetime, daily_start_time, daily_end_time
+        )
         action = "updated"
     else:
-        result = DailySpecialMenu.add_special(hotel_id, menu_name, description, price_float, image_path)
+        result = DailySpecialMenu.add_special(
+            hotel_id, menu_name, description, price_float, image_path,
+            start_datetime, end_datetime, daily_start_time, daily_end_time
+        )
         action = "added"
     
     # Log activity on success
@@ -898,6 +1009,13 @@ def delete_specific_special(special_id):
     """Delete a specific today's special by ID"""
     hotel_id = session.get('hotel_id')
     if not hotel_id:
+        try:
+            hotel_id = int(request.args.get('hotel_id', 0)) or None
+            if hotel_id:
+                session['hotel_id'] = hotel_id
+        except (ValueError, TypeError):
+            hotel_id = None
+    if not hotel_id:
         return jsonify({'success': False, 'message': 'Not authorized'}), 403
     
     result = DailySpecialMenu.delete_special(special_id, hotel_id)
@@ -923,6 +1041,46 @@ def delete_daily_special():
         log_manager_activity('menu', "All Today's Specials were removed", hotel_id)
     
     return jsonify(result)
+
+
+@hotel_manager_bp.route('/api/daily-special-settings', methods=['GET'])
+def get_daily_special_settings():
+    """Get persisted daily special popup settings for current hotel."""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+
+    settings = DailySpecialSettings.get_settings(hotel_id)
+    return jsonify({'success': True, 'settings': settings})
+
+
+@hotel_manager_bp.route('/api/daily-special-settings', methods=['POST'])
+def save_daily_special_settings():
+    """Persist daily special popup settings for current hotel."""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+
+    payload = request.json or {}
+    result = DailySpecialSettings.upsert_settings(hotel_id, payload)
+
+    if result.get('success'):
+        settings = result.get('settings', {})
+        log_manager_activity(
+            'menu',
+            (
+                "Today's Special settings updated: "
+                f"popup={'on' if settings.get('popup_enabled') else 'off'}, "
+                f"reopen={settings.get('reopen_timer_seconds', 5)}s, "
+                f"auto_slide={'on' if settings.get('auto_slide_enabled') else 'off'}, "
+                f"slide_interval={settings.get('slide_interval_seconds', 3)}s, "
+                f"initial_delay={settings.get('initial_delay_seconds', 2)}s"
+            ),
+            hotel_id
+        )
+        return jsonify({'success': True, 'message': 'Settings saved successfully', 'settings': settings})
+
+    return jsonify(result), 400
 
 
 # ============== Revenue Reports Routes ==============

@@ -82,17 +82,15 @@ class HotelWallet:
     
     @staticmethod
     def create_wallet(hotel_id, per_verification_charge=0.00, per_order_charge=0.00):
-        """Create a wallet for a new hotel"""
+        """Create a wallet for a new hotel — only inserts, never overwrites existing charges"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor()
             
+            # INSERT IGNORE: if wallet already exists, do nothing (preserves existing charges)
             cursor.execute("""
-                INSERT INTO hotel_wallet (hotel_id, balance, per_verification_charge, per_order_charge)
+                INSERT IGNORE INTO hotel_wallet (hotel_id, balance, per_verification_charge, per_order_charge)
                 VALUES (%s, 0.00, %s, %s)
-                ON DUPLICATE KEY UPDATE
-                per_verification_charge = VALUES(per_verification_charge),
-                per_order_charge = VALUES(per_order_charge)
             """, (hotel_id, per_verification_charge, per_order_charge))
             
             connection.commit()

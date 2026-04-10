@@ -143,11 +143,11 @@ class TableService:
 
 class OrderService:
     @staticmethod
-    def check_guest_access(table_id, guest_name):
+    def check_guest_access(table_id, guest_name, hotel_id=None):
         """Check if a guest can access a table based on existing OPEN bills.
         Returns view_only_mode=True if another guest has an open bill."""
         try:
-            table = Table.get_table_by_id(table_id)
+            table = Table.get_table_by_id_and_hotel(table_id, hotel_id) if hotel_id else Table.get_table_by_id(table_id)
             if not table:
                 return {"success": False, "message": "Table not found", "can_order": False, "view_only_mode": False}
             

@@ -342,6 +342,26 @@ class Table:
         except Exception as e:
             print(f"Error getting table: {e}")
             return None
+
+    @staticmethod
+    def get_table_by_id_and_hotel(table_id, hotel_id):
+        """Get table by ID constrained to hotel context."""
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+
+            cursor.execute(
+                "SELECT * FROM tables WHERE id = %s AND hotel_id = %s",
+                (table_id, hotel_id)
+            )
+            table = cursor.fetchone()
+
+            cursor.close()
+            connection.close()
+            return table
+        except Exception as e:
+            print(f"Error getting table by id+hotel: {e}")
+            return None
     
     @staticmethod
     def start_table_session(table_id, session_id):

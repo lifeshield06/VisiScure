@@ -693,7 +693,7 @@ def get_public_daily_special(table_id):
     """Public API to get today's daily specials for a table - no login required"""
     try:
         from orders.table_models import Table
-        from hotel_manager.models import DailySpecialMenu
+        from hotel_manager.models import DailySpecialMenu, DailySpecialSettings
         
         # Get the table to find its hotel_id
         table = Table.get_table_by_id(table_id)
@@ -712,6 +712,7 @@ def get_public_daily_special(table_id):
         
         # Get all today's specials for this hotel
         specials = DailySpecialMenu.get_today_specials(hotel_id)
+        settings = DailySpecialSettings.get_settings(hotel_id)
         
         # Format specials for API response
         formatted_specials = []
@@ -722,7 +723,11 @@ def get_public_daily_special(table_id):
                 "menu_name": special['dish_name'],  # backward compatibility
                 "description": special['description'],
                 "price": float(special['price']),
-                "image_path": special.get('image_path')
+                "image_path": special.get('image_path'),
+                "start_datetime": special.get('start_datetime'),
+                "end_datetime": special.get('end_datetime'),
+                "daily_start_time": special.get('daily_start_time'),
+                "daily_end_time": special.get('daily_end_time')
             })
         
         # Also return single 'special' for backward compatibility
@@ -731,7 +736,8 @@ def get_public_daily_special(table_id):
         return jsonify({
             "success": True, 
             "specials": formatted_specials,
-            "special": single_special  # backward compatibility
+            "special": single_special,  # backward compatibility
+            "settings": settings
         })
     except Exception as e:
         return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
