@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from flask import jsonify, request, render_template, url_for, session
 from werkzeug.utils import secure_filename
 from . import menu_bp
@@ -60,6 +61,178 @@ def _public_order_wallet_available(hotel_id):
     result = HotelWallet.check_balance_for_order(hotel_id)
     return bool(result.get('sufficient', True))
 
+
+def _parse_offer_datetime(value):
+    if not value:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        return datetime.fromisoformat(text.replace(' ', 'T'))
+    except ValueError:
+        return None
+
+
+def _get_today_special_name_set(hotel_id):
+    names = set()
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT dish_name
+            FROM today_specials
+            WHERE hotel_id = %s AND special_date = CURDATE() AND is_active = TRUE
+            """,
+            (hotel_id,)
+        )
+        for row in cursor.fetchall() or []:
+            key = str(row.get('dish_name') or '').strip().lower()
+            if key:
+                names.add(key)
+    except Exception as exc:
+        print(f"[PUBLIC MENU] today special name map error: {exc}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+    return names
+
+
+def _get_active_menu_offer_map(hotel_id, names):
+    if not names:
+        return {}
+
+    conn = None
+    cursor = None
+    result = {}
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        placeholders = ','.join(['%s'] * len(names))
+        query = f"""
+            SELECT name, COALESCE(is_offer_active, 0) AS is_offer_active,
+                   offer_price, discount_percent, offer_start, offer_end
+            FROM menu_dishes
+            WHERE hotel_id = %s
+              AND COALESCE(is_active, 1) = 1
+              AND LOWER(name) IN ({placeholders})
+        """
+        cursor.execute(query, [hotel_id] + list(names))
+        now = datetime.now()
+        for row in cursor.fetchall() or []:
+            if not int(row.get('is_offer_active') or 0):
+                continue
+            start_dt = _parse_offer_datetime(row.get('offer_start'))
+            end_dt = _parse_offer_datetime(row.get('offer_end'))
+            if not start_dt or not end_dt or not (start_dt <= now <= end_dt):
+                continue
+
+            key = str(row.get('name') or '').strip().lower()
+            if not key:
+                continue
+
+            result[key] = {
+                'is_offer_active': 1,
+                'offer_price': float(row['offer_price']) if row.get('offer_price') is not None else None,
+                'discount_percent': float(row['discount_percent']) if row.get('discount_percent') is not None else None,
+                'offer_type': 'percentage' if row.get('discount_percent') is not None else ('flat' if row.get('offer_price') is not None else None),
+                'offer_source': 'menu'
+            }
+    except Exception as exc:
+        print(f"[PUBLIC MENU] active offer map error: {exc}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+    return result
+
+def _parse_dish_price_payload(form_data):
+    price_type = (form_data.get("price_type") or "single").strip().lower()
+    if price_type == "half_full":
+        half_price_str = (form_data.get("half_price") or "").strip()
+        full_price_str = (form_data.get("full_price") or "").strip()
+        try:
+            half_price = float(half_price_str) if half_price_str else 0
+        except ValueError:
+            return None, None, None, None, "Invalid half price format"
+        try:
+            full_price = float(full_price_str) if full_price_str else 0
+        except ValueError:
+            return None, None, None, None, "Invalid full price format"
+        if half_price <= 0 or full_price <= 0:
+            return None, None, None, None, "Half and full prices must be greater than 0"
+        return "half_full", half_price, full_price, full_price, None
+
+    price_str = (form_data.get("price") or "0").strip()
+    try:
+        price = float(price_str) if price_str else 0
+    except ValueError:
+        return None, None, None, None, "Invalid price format"
+    if price <= 0:
+        return None, None, None, None, "Price must be greater than 0"
+    return "single", None, None, price, None
+
+def _parse_offer_payload(form_data):
+    """Parse offer settings from form data"""
+    is_offer_active = form_data.get("is_offer_active") in ('true', '1', 'True', 'on')
+    offer_price = None
+    discount_percent = None
+    offer_start = None
+    offer_end = None
+    offer_applies_to = 'both'
+    
+    if is_offer_active:
+        # Parse offer price or discount percent
+        offer_price_str = (form_data.get("offer_price") or "").strip()
+        discount_str = (form_data.get("discount_percent") or "").strip()
+        offer_start_str = (form_data.get("offer_start") or "").strip()
+        offer_end_str = (form_data.get("offer_end") or "").strip()
+        
+        if offer_price_str:
+            try:
+                offer_price = float(offer_price_str)
+                if offer_price <= 0:
+                    return None, None, None, None, None, "Offer price must be greater than 0"
+            except ValueError:
+                return None, None, None, None, None, "Invalid offer price format"
+        
+        if discount_str:
+            try:
+                discount_percent = float(discount_str)
+                if discount_percent < 0 or discount_percent > 100:
+                    return None, None, None, None, None, "Discount percent must be between 0 and 100"
+            except ValueError:
+                return None, None, None, None, None, "Invalid discount percent format"
+        
+        if not offer_price and not discount_percent:
+            return None, None, None, None, None, "Either offer price or discount percent must be set"
+        
+        if not offer_start_str or not offer_end_str:
+            return None, None, None, None, None, "Offer start and end times are required"
+
+        offer_applies_to = (form_data.get("offer_applies_to") or "").strip().lower()
+        if offer_applies_to not in ('half', 'full', 'both'):
+            return None, None, None, None, None, "Apply Offer To is required"
+
+        try:
+            start_dt = datetime.fromisoformat(offer_start_str)
+            end_dt = datetime.fromisoformat(offer_end_str)
+        except ValueError:
+            return None, None, None, None, None, "Invalid offer date/time format"
+        if end_dt <= start_dt:
+            return None, None, None, None, None, "Offer end time must be after start time"
+        
+        offer_start = offer_start_str if offer_start_str else None
+        offer_end = offer_end_str if offer_end_str else None
+    
+    return is_offer_active, offer_price, discount_percent, offer_start, offer_end, offer_applies_to, None
+
 def build_image_urls(images):
     """Return only image URLs that actually exist on disk."""
     if not images:
@@ -81,6 +254,40 @@ def build_image_urls(images):
         if os.path.exists(upload_path):
             urls.append(url_for('static', filename=f'uploads/menu_images/{img}'))
     return urls
+
+
+def _serialize_datetime(value):
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value.isoformat(timespec='seconds')
+    value_str = str(value).strip()
+    if not value_str:
+        return None
+    return value_str.replace(' ', 'T')
+
+
+def _apply_runtime_offer_state(dish):
+    """Mark offer active only when current server time is inside offer window."""
+    is_enabled = bool(int(dish.get('is_offer_active') or 0))
+    start_raw = dish.get('offer_start')
+    end_raw = dish.get('offer_end')
+
+    start_dt = None
+    end_dt = None
+    try:
+        if start_raw:
+            start_dt = datetime.fromisoformat(str(start_raw).replace(' ', 'T'))
+        if end_raw:
+            end_dt = datetime.fromisoformat(str(end_raw).replace(' ', 'T'))
+    except ValueError:
+        start_dt = None
+        end_dt = None
+
+    now = datetime.now()
+    runtime_active = bool(is_enabled and start_dt and end_dt and start_dt <= now <= end_dt)
+    dish['is_offer_active'] = 1 if runtime_active else 0
+    return dish
 
 def format_dish(dish_row):
     """Format a dish database row into the expected dictionary format"""
@@ -119,7 +326,16 @@ def format_dish(dish_row):
     return {
         "id": dish_row['id'],
         "name": dish_row['name'],
-        "price": float(dish_row['price']),
+        "price": float(dish_row['price']) if dish_row.get('price') is not None else 0.00,
+        "price_type": (dish_row.get('price_type') or 'single').strip().lower(),
+        "half_price": float(dish_row['half_price']) if dish_row.get('half_price') is not None else None,
+        "full_price": float(dish_row['full_price']) if dish_row.get('full_price') is not None else None,
+        "is_offer_active": int(dish_row.get('is_offer_active', 0) or 0),
+        "offer_price": float(dish_row['offer_price']) if dish_row.get('offer_price') is not None else None,
+        "discount_percent": float(dish_row['discount_percent']) if dish_row.get('discount_percent') is not None else None,
+        "offer_start": _serialize_datetime(dish_row.get('offer_start')),
+        "offer_end": _serialize_datetime(dish_row.get('offer_end')),
+        "offer_applies_to": (dish_row.get('offer_applies_to') or 'both').strip().lower(),
         "quantity": dish_row['quantity'],
         "description": dish_row.get('description', ''),
         "images": images_list,
@@ -127,7 +343,8 @@ def format_dish(dish_row):
         "category_id": dish_row.get('category_id'),
         "kitchen_id": dish_row.get('kitchen_id'),
         "cgst": float(dish_row['cgst']) if dish_row.get('cgst') is not None else 0.00,
-        "sgst": float(dish_row['sgst']) if dish_row.get('sgst') is not None else 0.00
+        "sgst": float(dish_row['sgst']) if dish_row.get('sgst') is not None else 0.00,
+        "display_price": float(dish_row['full_price']) if dish_row.get('price_type') == 'half_full' and dish_row.get('full_price') is not None else float(dish_row['price']) if dish_row.get('price') is not None else 0.00
     }
 
 @menu_bp.route("/menu")
@@ -149,7 +366,15 @@ def get_categories():
     categories_list = MenuCategory.get_categories_by_hotel(hotel_id)
     # Convert to dict format {id: name} for frontend compatibility
     categories = {cat['id']: cat['name'] for cat in categories_list}
-    return jsonify({"success": True, "categories": categories})
+    category_meta = {
+        str(cat['id']): {
+            "id": cat['id'],
+            "name": cat['name'],
+            "food_type": str(cat.get('food_type') or 'veg').strip().lower()
+        }
+        for cat in categories_list
+    }
+    return jsonify({"success": True, "categories": categories, "category_meta": category_meta})
 
 @menu_bp.route("/api/kitchens")
 def get_kitchens_for_menu():
@@ -197,7 +422,6 @@ def add_dish():
         kitchen_id = request.form.get("kitchen_id", "").strip()
         kitchen_id = int(kitchen_id) if kitchen_id else None
         name = request.form.get("name", "").strip()
-        price_str = request.form.get("price", "0").strip()
         quantity_str = request.form.get("quantity", "").strip()
         description = request.form.get("description", "").strip()
         cgst_str = request.form.get("cgst", "0").strip()
@@ -212,21 +436,22 @@ def add_dish():
             sgst = float(sgst_str) if sgst_str.strip() != "" else 0.00
         except ValueError:
             sgst = 0.00
+
+        price_type, half_price, full_price, price, price_error = _parse_dish_price_payload(request.form)
+        if price_error:
+            return jsonify({"success": False, "message": price_error})
+        
+        # Parse offer settings
+        is_offer_active, offer_price, discount_percent, offer_start, offer_end, offer_applies_to, offer_error = _parse_offer_payload(request.form)
+        if offer_error:
+            return jsonify({"success": False, "message": offer_error})
         
         # Validation
         if not name:
             return jsonify({"success": False, "message": "Dish name is required"})
         
-        try:
-            price = float(price_str) if price_str else 0
-        except ValueError:
-            return jsonify({"success": False, "message": "Invalid price format"})
-            
         # Quantity is optional - use as-is or empty string
         quantity = quantity_str if quantity_str else ""
-        
-        if price <= 0:
-            return jsonify({"success": False, "message": "Price must be greater than 0"})
         
         # Verify category exists for this hotel
         categories = MenuCategory.get_categories_by_hotel(hotel_id)
@@ -253,7 +478,16 @@ def add_dish():
             images=[],  # Empty list initially
             kitchen_id=kitchen_id,
             cgst=cgst,
-            sgst=sgst
+            sgst=sgst,
+            price_type=price_type,
+            half_price=half_price,
+            full_price=full_price,
+            is_offer_active=is_offer_active,
+            offer_price=offer_price,
+            discount_percent=discount_percent,
+            offer_start=offer_start,
+            offer_end=offer_end,
+            offer_applies_to=offer_applies_to
         )
         
         if not result.get("success"):
@@ -279,7 +513,16 @@ def add_dish():
                 hotel_id=hotel_id,
                 kitchen_id=kitchen_id,
                 cgst=cgst,
-                sgst=sgst
+                sgst=sgst,
+                price_type=price_type,
+                half_price=half_price,
+                full_price=full_price,
+                is_offer_active=is_offer_active,
+                offer_price=offer_price,
+                discount_percent=discount_percent,
+                offer_start=offer_start,
+                offer_end=offer_end,
+                offer_applies_to=offer_applies_to
             )
         
         # Create response dish
@@ -287,10 +530,17 @@ def add_dish():
             "id": new_id,
             "name": name,
             "price": price,
+            "display_price": price,
+            "price_type": price_type,
+            "half_price": half_price,
+            "full_price": full_price,
             "quantity": quantity,
             "description": description,
             "images": images,
-            "image_urls": build_image_urls(images)
+            "image_urls": build_image_urls(images),
+            "cgst": cgst,
+            "sgst": sgst,
+            "kitchen_id": kitchen_id
         }
         
         log_menu_activity('menu', f"Dish '{name}' added to menu (₹{price})", hotel_id)
@@ -310,7 +560,6 @@ def edit_dish():
         kitchen_id = request.form.get("kitchen_id", "").strip()
         kitchen_id = int(kitchen_id) if kitchen_id else None
         name = request.form.get("name", "").strip()
-        price_str = request.form.get("price", "0").strip()
         quantity_str = request.form.get("quantity", "0").strip()
         description = request.form.get("description", "").strip()
         cgst_str = request.form.get("cgst", "0").strip()
@@ -325,20 +574,21 @@ def edit_dish():
             sgst = float(sgst_str) if sgst_str.strip() != "" else 0.00
         except ValueError:
             sgst = 0.00
+
+        price_type, half_price, full_price, price, price_error = _parse_dish_price_payload(request.form)
+        if price_error:
+            return jsonify({"success": False, "message": price_error})
+        
+        # Parse offer settings
+        is_offer_active, offer_price, discount_percent, offer_start, offer_end, offer_applies_to, offer_error = _parse_offer_payload(request.form)
+        if offer_error:
+            return jsonify({"success": False, "message": offer_error})
         
         # Validation
         if not name:
             return jsonify({"success": False, "message": "Dish name is required"})
             
-        try:
-            price = float(price_str) if price_str else 0
-        except ValueError:
-            return jsonify({"success": False, "message": "Invalid price format"})
-            
         quantity = quantity_str.strip() if quantity_str else "0"
-        
-        if price <= 0:
-            return jsonify({"success": False, "message": "Price must be greater than 0"})
         if not quantity:
             return jsonify({"success": False, "message": "Quantity is required"})
         
@@ -394,7 +644,16 @@ def edit_dish():
             hotel_id=hotel_id,
             kitchen_id=kitchen_id,
             cgst=cgst,
-            sgst=sgst
+            sgst=sgst,
+            price_type=price_type,
+            half_price=half_price,
+            full_price=full_price,
+            is_offer_active=is_offer_active,
+            offer_price=offer_price,
+            discount_percent=discount_percent,
+            offer_start=offer_start,
+            offer_end=offer_end,
+            offer_applies_to=offer_applies_to
         )
         
         if success:
@@ -407,6 +666,64 @@ def edit_dish():
         
     except Exception as e:
         return jsonify({"success": False, "message": f"Server error: {str(e)}"})
+
+@menu_bp.route("/api/toggle-dish-status", methods=["POST"])
+@menu_bp.route("/menu/api/toggle-dish-status", methods=["POST"])
+def toggle_dish_status():
+    """Toggle is_active status for a dish (manager only)"""
+    hotel_id = session.get('hotel_id')
+    if not hotel_id:
+        return jsonify({"success": False, "message": "Hotel not found"}), 400
+    try:
+        data = request.get_json(silent=True) or {}
+        dish_id = int(data.get("dish_id", 0))
+        is_active = int(data.get("is_active", 1))  # 1 = active, 0 = inactive
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, hotel_id, COALESCE(is_active, 1) as is_active FROM menu_dishes WHERE id = %s AND (hotel_id = %s OR hotel_id IS NULL) LIMIT 1",
+            (dish_id, hotel_id)
+        )
+        row = cursor.fetchone()
+        if not row:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "message": "Dish not found or update failed"}), 404
+
+        cursor.execute(
+            "UPDATE menu_dishes SET is_active = %s WHERE id = %s AND (hotel_id = %s OR hotel_id IS NULL)",
+            (is_active, dish_id, hotel_id)
+        )
+        affected_rows = cursor.rowcount
+        conn.commit()
+
+        cursor.execute(
+            "SELECT COALESCE(is_active, 1) FROM menu_dishes WHERE id = %s AND (hotel_id = %s OR hotel_id IS NULL) LIMIT 1",
+            (dish_id, hotel_id)
+        )
+        status_row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        db_is_active = status_row[0] if status_row else None
+        if affected_rows == 0:
+            print(f"[TOGGLE_DISH_STATUS] No-op update for dish_id={dish_id} hotel_id={hotel_id} requested={is_active} db_is_active={db_is_active}")
+        else:
+            print(f"[TOGGLE_DISH_STATUS] dish_id={dish_id} hotel_id={hotel_id} requested={is_active} affected_rows={affected_rows} db_is_active={db_is_active}")
+
+        if db_is_active is None:
+            return jsonify({"success": False, "message": "Dish not found or update failed"}), 404
+
+        status_label = "Active" if is_active else "Inactive"
+        log_menu_activity('menu', f"Dish ID {dish_id} set to {status_label}", hotel_id)
+        response = jsonify({"success": True, "is_active": int(db_is_active)})
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        return response
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
 
 @menu_bp.route("/api/delete-dish", methods=["POST"])
 def delete_dish():
@@ -518,9 +835,12 @@ def add_category():
             return jsonify({"success": False, "message": "No data provided"})
         
         name = data.get("name", "").strip()
+        food_type = str(data.get("food_type", "")).strip().lower()
         
         if not name:
             return jsonify({"success": False, "message": "Category name is required"})
+        if food_type not in ("veg", "nonveg"):
+            return jsonify({"success": False, "message": "Food type is required"})
         
         # Check if category already exists for this hotel
         existing_categories = MenuCategory.get_categories_by_hotel(hotel_id)
@@ -528,14 +848,14 @@ def add_category():
             if cat['name'].lower() == name.lower():
                 return jsonify({"success": False, "message": "Category already exists"})
         
-        result = MenuCategory.add_category(hotel_id, name)  # hotel_id first
+        result = MenuCategory.add_category(hotel_id, name, food_type)  # hotel_id first
         
         if result.get("success"):
             log_menu_activity('menu', f"Category '{name}' was created", hotel_id)
             return jsonify({
                 "success": True, 
                 "message": f"Category '{name}' added successfully", 
-                "category": {"id": result.get("category_id"), "name": name}
+                "category": {"id": result.get("category_id"), "name": name, "food_type": food_type}
             })
         else:
             return jsonify({"success": False, "message": result.get("message", "Failed to add category")})
@@ -556,9 +876,12 @@ def edit_category():
         
         category_id = int(data.get("category_id", 0))
         name = data.get("name", "").strip()
+        food_type = str(data.get("food_type", "")).strip().lower()
         
         if not name:
             return jsonify({"success": False, "message": "Category name is required"})
+        if food_type not in ("veg", "nonveg"):
+            return jsonify({"success": False, "message": "Food type is required"})
         
         # Check if category exists for this hotel
         existing_categories = MenuCategory.get_categories_by_hotel(hotel_id)
@@ -571,14 +894,14 @@ def edit_category():
             if cat['id'] != category_id and cat['name'].lower() == name.lower():
                 return jsonify({"success": False, "message": "Category name already exists"})
         
-        result = MenuCategory.update_category(category_id, name, hotel_id)
+        result = MenuCategory.update_category(category_id, name, food_type, hotel_id)
         
         if result.get("success"):
             log_menu_activity('menu', f"Category updated to '{name}'", hotel_id)
             return jsonify({
                 "success": True, 
                 "message": f"Category updated to '{name}' successfully", 
-                "category": {"id": category_id, "name": name}
+                "category": {"id": category_id, "name": name, "food_type": food_type}
             })
         else:
             return jsonify({"success": False, "message": result.get("message", "Failed to update category")})
@@ -642,10 +965,18 @@ def get_full_menu():
     
     for category in categories:
         dishes_list = MenuDish.get_dishes_by_category(category['id'], hotel_id)
-        dishes = [format_dish(dish) for dish in dishes_list]
+        category_food_type = str(category.get('food_type') or 'veg').strip().lower()
+        dishes = [
+            {
+                **format_dish(dish),
+                "food_type": category_food_type
+            }
+            for dish in dishes_list
+        ]
         full_menu.append({
             "category_id": category['id'],
             "category_name": category['name'],
+            "food_type": category_food_type,
             "dishes": dishes
         })
     return jsonify({"success": True, "menu": full_menu})
@@ -673,17 +1004,33 @@ def get_public_menu(table_id):
             }), 503
         
         full_menu = []
+        today_special_names = _get_today_special_name_set(hotel_id)
         categories = MenuCategory.get_categories_by_hotel(hotel_id)
         
         for category in categories:
-            dishes_list = MenuDish.get_dishes_by_category(category['id'], hotel_id)
-            dishes = [format_dish(dish) for dish in dishes_list]
+            dishes_list = MenuDish.get_dishes_by_category(category['id'], hotel_id, active_only=True)
+            category_food_type = str(category.get('food_type') or 'veg').strip().lower()
+            dishes = []
+            for dish in dishes_list:
+                formatted = {
+                    **format_dish(dish),
+                    "food_type": category_food_type
+                }
+                formatted = _apply_runtime_offer_state(formatted)
+                formatted['is_today_special'] = str(formatted.get('name') or '').strip().lower() in today_special_names
+                dishes.append(formatted)
+            if not dishes:
+                continue
             full_menu.append({
                 "category_id": category['id'],
                 "category_name": category['name'],
+                "food_type": category_food_type,
                 "dishes": dishes
             })
-        return jsonify({"success": True, "menu": full_menu})
+        response = jsonify({"success": True, "menu": full_menu})
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        return response
     except Exception as e:
         return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 
@@ -713,17 +1060,43 @@ def get_public_daily_special(table_id):
         # Get all today's specials for this hotel
         specials = DailySpecialMenu.get_today_specials(hotel_id)
         settings = DailySpecialSettings.get_settings(hotel_id)
+        special_names = {str(s.get('dish_name') or '').strip().lower() for s in specials if s.get('dish_name')}
+        menu_offer_map = _get_active_menu_offer_map(hotel_id, special_names)
         
         # Format specials for API response
         formatted_specials = []
         for special in specials:
+            base_price = float(special['price'])
+            special_offer_active = int(special.get('is_offer_active') or 0) == 1
+            offer_type = (special.get('offer_type') or '').strip().lower()
+            offer_value = float(special['offer_value']) if special.get('offer_value') is not None else None
+            offer_price = float(special['offer_price']) if special.get('offer_price') is not None else None
+            discount_percent = float(special['discount_percent']) if special.get('discount_percent') is not None else None
+
+            if not special_offer_active:
+                synced = menu_offer_map.get(str(special.get('dish_name') or '').strip().lower())
+                if synced:
+                    special_offer_active = True
+                    offer_price = synced.get('offer_price')
+                    discount_percent = synced.get('discount_percent')
+                    offer_type = synced.get('offer_type') or ''
+                    if offer_type == 'percentage':
+                        offer_value = discount_percent
+                    elif offer_type == 'flat' and offer_price is not None:
+                        offer_value = max(0.0, base_price - float(offer_price))
+
             formatted_specials.append({
                 "id": special['id'],
                 "dish_name": special['dish_name'],
                 "menu_name": special['dish_name'],  # backward compatibility
                 "description": special['description'],
-                "price": float(special['price']),
+                "price": base_price,
                 "image_path": special.get('image_path'),
+                "is_offer_active": 1 if special_offer_active else 0,
+                "offer_type": offer_type,
+                "offer_value": offer_value,
+                "offer_price": offer_price,
+                "discount_percent": discount_percent,
                 "start_datetime": special.get('start_datetime'),
                 "end_datetime": special.get('end_datetime'),
                 "daily_start_time": special.get('daily_start_time'),
@@ -739,8 +1112,6 @@ def get_public_daily_special(table_id):
             "special": single_special,  # backward compatibility
             "settings": settings
         })
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
     except Exception as e:
         return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 

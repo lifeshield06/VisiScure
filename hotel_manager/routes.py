@@ -764,120 +764,177 @@ def allowed_special_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_SPECIAL_EXTENSIONS
 
 
-def _parse_special_datetime(value):
+def _parse_offer_datetime(value):
     if not value:
         return None
-    value = value.strip()
+    text = str(value).strip()
+    if not text:
+        return None
     try:
-        parsed = datetime.fromisoformat(value)
+        return datetime.fromisoformat(text.replace(' ', 'T'))
     except ValueError:
-        try:
-            parsed = datetime.strptime(value, '%Y-%m-%d %H:%M')
-        except ValueError:
-            return None
-    return parsed.strftime('%Y-%m-%d %H:%M:%S')
-
-
-def _parse_special_time(value):
-    if not value:
         return None
-    value = value.strip()
+
+
+def _parse_special_offer_payload(payload_get, base_price):
+    offer_type = (payload_get('offer_type') or '').strip().lower()
+    offer_value_raw = (payload_get('offer_value') or '').strip()
+
+    if not offer_type or offer_type == 'none':
+        return {
+            'is_offer_active': False,
+            'offer_type': None,
+            'offer_value': None,
+            'offer_price': None,
+            'discount_percent': None
+        }, None
+
+    if offer_type not in ('percentage', 'flat'):
+        return None, 'Offer type must be Percentage or Flat Price'
+
     try:
-        parsed = datetime.strptime(value, '%H:%M')
-    except ValueError:
-        try:
-            parsed = datetime.strptime(value, '%H:%M:%S')
-        except ValueError:
-            return None
-    return parsed.strftime('%H:%M:%S')
+        offer_value = float(offer_value_raw)
+    except (TypeError, ValueError):
+        return None, 'Offer value must be a valid number'
+
+    if offer_value <= 0:
+        return None, 'Offer value must be greater than 0'
+
+    if offer_type == 'percentage':
+        if offer_value > 100:
+            return None, 'Percentage offer cannot exceed 100'
+        return {
+            'is_offer_active': True,
+            'offer_type': 'percentage',
+            'offer_value': offer_value,
+            'offer_price': None,
+            'discount_percent': offer_value
+        }, None
+
+    # Flat amount off
+    if offer_value >= float(base_price):
+        return None, 'Flat offer must be less than base price'
+
+    return {
+        'is_offer_active': True,
+        'offer_type': 'flat',
+        'offer_value': offer_value,
+        'offer_price': float(base_price) - offer_value,
+        'discount_percent': None
+    }, None
 
 
-def _format_special_datetime(value):
-    if not value:
-        return None
-    if isinstance(value, str):
-        try:
-            value = datetime.fromisoformat(value.replace(' ', 'T'))
-        except ValueError:
-            return value
-    return value.strftime('%Y-%m-%dT%H:%M')
+def _apply_menu_offer_sync(hotel_id, specials):
+    """If special has no own offer, inherit active menu-dish offer by matching name."""
+    if not specials:
+        return specials
 
+    names = sorted({str((s.get('dish_name') or s.get('menu_name') or '')).strip().lower() for s in specials if (s.get('dish_name') or s.get('menu_name'))})
+    if not names:
+        return specials
 
-def _format_special_time(value):
-    if not value:
-        return None
-    # MySQL TIME columns come back as timedelta objects
-    import datetime as dt
-    if isinstance(value, dt.timedelta):
-        total_seconds = int(value.total_seconds())
-        hours = total_seconds // 3600
-        minutes = (total_seconds % 3600) // 60
-        return f'{hours:02d}:{minutes:02d}'
-    if isinstance(value, str):
-        try:
-            value = datetime.strptime(value, '%H:%M:%S')
-        except ValueError:
-            return value[:5] if len(value) >= 5 else value
+    conn = None
+    cursor = None
+    menu_offer_map = {}
     try:
-        return value.strftime('%H:%M')
-    except Exception:
-        return str(value)[:5]
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        placeholders = ','.join(['%s'] * len(names))
+        query = f"""
+            SELECT name, COALESCE(is_offer_active, 0) AS is_offer_active,
+                   offer_price, discount_percent, offer_start, offer_end
+            FROM menu_dishes
+            WHERE hotel_id = %s
+              AND COALESCE(is_active, 1) = 1
+              AND LOWER(name) IN ({placeholders})
+        """
+        cursor.execute(query, [hotel_id] + names)
+        rows = cursor.fetchall() or []
+
+        now = datetime.now()
+        for row in rows:
+            if not int(row.get('is_offer_active') or 0):
+                continue
+            start_dt = _parse_offer_datetime(row.get('offer_start'))
+            end_dt = _parse_offer_datetime(row.get('offer_end'))
+            if not start_dt or not end_dt or not (start_dt <= now <= end_dt):
+                continue
+
+            key = str(row.get('name') or '').strip().lower()
+            if not key:
+                continue
+
+            menu_offer_map[key] = {
+                'is_offer_active': 1,
+                'offer_price': float(row['offer_price']) if row.get('offer_price') is not None else None,
+                'discount_percent': float(row['discount_percent']) if row.get('discount_percent') is not None else None,
+                'offer_type': 'percentage' if row.get('discount_percent') is not None else ('flat' if row.get('offer_price') is not None else None),
+                'offer_source': 'menu'
+            }
+    except Exception as exc:
+        print(f"[DAILY SPECIAL] menu offer sync error: {exc}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+    for special in specials:
+        # Prefer explicit special-level offer if configured
+        if int(special.get('is_offer_active') or 0):
+            special['offer_source'] = 'special'
+            continue
+
+        key = str(special.get('dish_name') or special.get('menu_name') or '').strip().lower()
+        synced = menu_offer_map.get(key)
+        if not synced:
+            continue
+
+        special['is_offer_active'] = synced['is_offer_active']
+        special['offer_price'] = synced['offer_price']
+        special['discount_percent'] = synced['discount_percent']
+        special['offer_type'] = synced['offer_type']
+        if synced['offer_type'] == 'percentage':
+            special['offer_value'] = synced['discount_percent']
+        elif synced['offer_type'] == 'flat' and special.get('price') is not None and synced['offer_price'] is not None:
+            special['offer_value'] = max(0.0, float(special['price']) - float(synced['offer_price']))
+        else:
+            special['offer_value'] = None
+        special['offer_source'] = 'menu'
+
+    return specials
 
 @hotel_manager_bp.route('/api/daily-special', methods=['GET'])
 def get_daily_special():
     """Get all today's specials for the manager's hotel"""
     hotel_id = session.get('hotel_id')
-
-    # Fallback: accept hotel_id as query param (for cases where session is stale)
     if not hotel_id:
-        hotel_id_param = request.args.get('hotel_id')
-        if hotel_id_param:
-            try:
-                hotel_id = int(hotel_id_param)
-                # Re-set in session so subsequent calls work
-                session['hotel_id'] = hotel_id
-            except (ValueError, TypeError):
-                pass
-
-    if not hotel_id:
-        print(f"[DAILY_SPECIAL] GET failed: no hotel_id in session. Session keys: {list(session.keys())}")
         return jsonify({'success': False, 'message': 'Not authorized'}), 403
-
-    print(f"[DAILY_SPECIAL] GET hotel_id={hotel_id}")
-    try:
-        specials = DailySpecialMenu.get_all_specials_for_manager(hotel_id)
-        print(f"[DAILY_SPECIAL] Found {len(specials)} specials for hotel_id={hotel_id}")
-        # Convert Decimal to float for JSON serialization
-        for special in specials:
-            special['price'] = float(special['price'])
-            special['special_date'] = str(special['special_date'])
-            special['start_datetime'] = _format_special_datetime(special.get('start_datetime'))
-            special['end_datetime'] = _format_special_datetime(special.get('end_datetime'))
-            special['daily_start_time'] = _format_special_time(special.get('daily_start_time'))
-            special['daily_end_time'] = _format_special_time(special.get('daily_end_time'))
-            special['menu_name'] = special.get('dish_name', '')
-
-        single_special = specials[0] if specials else None
-        return jsonify({'success': True, 'specials': specials, 'special': single_special})
-    except Exception as e:
-        import traceback
-        print(f"[DAILY_SPECIAL] ERROR: {e}")
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': f'Server error: {str(e)}'}), 500
+    
+    specials = DailySpecialMenu.get_today_specials(hotel_id)
+    specials = _apply_menu_offer_sync(hotel_id, specials)
+    # Convert Decimal to float for JSON serialization
+    for special in specials:
+        special['price'] = float(special['price'])
+        special['special_date'] = str(special['special_date'])
+        special['is_offer_active'] = int(special.get('is_offer_active') or 0)
+        special['offer_type'] = (special.get('offer_type') or '').strip().lower()
+        special['offer_value'] = float(special['offer_value']) if special.get('offer_value') is not None else None
+        special['offer_price'] = float(special['offer_price']) if special.get('offer_price') is not None else None
+        special['discount_percent'] = float(special['discount_percent']) if special.get('discount_percent') is not None else None
+        # Add menu_name for backward compatibility
+        special['menu_name'] = special.get('dish_name', '')
+    
+    # Also return single 'special' for backward compatibility
+    single_special = specials[0] if specials else None
+    
+    return jsonify({'success': True, 'specials': specials, 'special': single_special})
 
 
 @hotel_manager_bp.route('/api/daily-special', methods=['POST'])
 def save_daily_special():
     """Add a new today's special or update existing one"""
     hotel_id = session.get('hotel_id')
-    if not hotel_id:
-        # Try query param fallback
-        try:
-            hotel_id = int(request.args.get('hotel_id', 0)) or None
-            if hotel_id:
-                session['hotel_id'] = hotel_id
-        except (ValueError, TypeError):
-            hotel_id = None
     if not hotel_id:
         return jsonify({'success': False, 'message': 'Not authorized'}), 403
     
@@ -887,10 +944,6 @@ def save_daily_special():
         menu_name = request.form.get('menu_name', '').strip() or request.form.get('dish_name', '').strip()
         description = request.form.get('description', '').strip()
         price = request.form.get('price')
-        start_datetime = _parse_special_datetime(request.form.get('start_datetime'))
-        end_datetime = _parse_special_datetime(request.form.get('end_datetime'))
-        daily_start_time = _parse_special_time(request.form.get('daily_start_time'))
-        daily_end_time = _parse_special_time(request.form.get('daily_end_time'))
         image_file = request.files.get('image')
     else:
         data = request.json or {}
@@ -898,10 +951,6 @@ def save_daily_special():
         menu_name = data.get('menu_name', '').strip() or data.get('dish_name', '').strip()
         description = data.get('description', '').strip()
         price = data.get('price')
-        start_datetime = _parse_special_datetime(data.get('start_datetime'))
-        end_datetime = _parse_special_datetime(data.get('end_datetime'))
-        daily_start_time = _parse_special_time(data.get('daily_start_time'))
-        daily_end_time = _parse_special_time(data.get('daily_end_time'))
         image_file = None
     
     # Validation
@@ -909,12 +958,6 @@ def save_daily_special():
         return jsonify({'success': False, 'message': 'Dish name is required!'})
     if not price:
         return jsonify({'success': False, 'message': 'Price is required!'})
-
-    if bool(start_datetime) != bool(end_datetime):
-        return jsonify({'success': False, 'message': 'Start Date & Time and End Date & Time must be provided together!'})
-
-    if bool(daily_start_time) != bool(daily_end_time):
-        return jsonify({'success': False, 'message': 'Daily Start Time and Daily End Time must be provided together!'})
     
     try:
         price_float = float(price)
@@ -922,6 +965,14 @@ def save_daily_special():
             return jsonify({'success': False, 'message': 'Price must be greater than zero!'})
     except (ValueError, TypeError):
         return jsonify({'success': False, 'message': 'Invalid price format!'})
+
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        offer_payload, offer_error = _parse_special_offer_payload(lambda key: request.form.get(key), price_float)
+    else:
+        offer_payload, offer_error = _parse_special_offer_payload(lambda key: data.get(key), price_float)
+
+    if offer_error:
+        return jsonify({'success': False, 'message': offer_error})
     
     # Handle image upload
     image_path = None
@@ -948,13 +999,15 @@ def save_daily_special():
     if special_id:
         result = DailySpecialMenu.update_special(
             int(special_id), hotel_id, menu_name, description, price_float, image_path,
-            start_datetime, end_datetime, daily_start_time, daily_end_time
+            offer_payload['is_offer_active'], offer_payload['offer_type'], offer_payload['offer_value'],
+            offer_payload['offer_price'], offer_payload['discount_percent']
         )
         action = "updated"
     else:
         result = DailySpecialMenu.add_special(
             hotel_id, menu_name, description, price_float, image_path,
-            start_datetime, end_datetime, daily_start_time, daily_end_time
+            offer_payload['is_offer_active'], offer_payload['offer_type'], offer_payload['offer_value'],
+            offer_payload['offer_price'], offer_payload['discount_percent']
         )
         action = "added"
     
@@ -1008,13 +1061,6 @@ def upload_special_image():
 def delete_specific_special(special_id):
     """Delete a specific today's special by ID"""
     hotel_id = session.get('hotel_id')
-    if not hotel_id:
-        try:
-            hotel_id = int(request.args.get('hotel_id', 0)) or None
-            if hotel_id:
-                session['hotel_id'] = hotel_id
-        except (ValueError, TypeError):
-            hotel_id = None
     if not hotel_id:
         return jsonify({'success': False, 'message': 'Not authorized'}), 403
     

@@ -345,6 +345,7 @@ def init_db():
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 hotel_id INT,
                 name VARCHAR(255) NOT NULL,
+                food_type VARCHAR(10) NOT NULL DEFAULT 'veg',
                 cgst_percentage DECIMAL(5,2) DEFAULT 2.50,
                 sgst_percentage DECIMAL(5,2) DEFAULT 2.50,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -363,6 +364,10 @@ def init_db():
         cursor.execute("SHOW COLUMNS FROM menu_categories LIKE 'sgst_percentage'")
         if not cursor.fetchone():
             cursor.execute("ALTER TABLE menu_categories ADD COLUMN sgst_percentage DECIMAL(5,2) DEFAULT 2.50")
+        cursor.execute("SHOW COLUMNS FROM menu_categories LIKE 'food_type'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE menu_categories ADD COLUMN food_type VARCHAR(10) NOT NULL DEFAULT 'veg'")
+        cursor.execute("UPDATE menu_categories SET food_type = 'veg' WHERE food_type IS NULL OR TRIM(food_type) = ''")
         
         # Create menu_dishes table if not exists
         cursor.execute("""
@@ -372,6 +377,9 @@ def init_db():
                 category_id INT NOT NULL,
                 name VARCHAR(255) NOT NULL,
                 price DECIMAL(10,2) NOT NULL,
+                price_type VARCHAR(20) NOT NULL DEFAULT 'single',
+                half_price DECIMAL(10,2) NULL,
+                full_price DECIMAL(10,2) NULL,
                 quantity VARCHAR(50),
                 description TEXT,
                 images JSON,
@@ -383,6 +391,63 @@ def init_db():
         cursor.execute("SHOW COLUMNS FROM menu_dishes LIKE 'hotel_id'")
         if not cursor.fetchone():
             cursor.execute("ALTER TABLE menu_dishes ADD COLUMN hotel_id INT")
+
+        # Ensure menu_dishes has is_active column (dish visibility toggle)
+        cursor.execute("SHOW COLUMNS FROM menu_dishes LIKE 'is_active'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE menu_dishes ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1")
+            print("Added is_active column to menu_dishes table")
+
+        # Ensure menu_dishes supports single and half/full pricing
+        cursor.execute("SHOW COLUMNS FROM menu_dishes LIKE 'price_type'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE menu_dishes ADD COLUMN price_type VARCHAR(20) NOT NULL DEFAULT 'single'")
+            print("Added price_type column to menu_dishes table")
+
+        cursor.execute("SHOW COLUMNS FROM menu_dishes LIKE 'half_price'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE menu_dishes ADD COLUMN half_price DECIMAL(10,2) NULL")
+            print("Added half_price column to menu_dishes table")
+
+        cursor.execute("SHOW COLUMNS FROM menu_dishes LIKE 'full_price'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE menu_dishes ADD COLUMN full_price DECIMAL(10,2) NULL")
+            print("Added full_price column to menu_dishes table")
+
+        cursor.execute("UPDATE menu_dishes SET price_type = 'single' WHERE price_type IS NULL OR price_type = ''")
+        
+        # Ensure menu_dishes has offer columns for time-based discounts
+        cursor.execute("SHOW COLUMNS FROM menu_dishes LIKE 'is_offer_active'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE menu_dishes ADD COLUMN is_offer_active TINYINT(1) DEFAULT 0")
+            print("Added is_offer_active column to menu_dishes table")
+        
+        cursor.execute("SHOW COLUMNS FROM menu_dishes LIKE 'offer_price'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE menu_dishes ADD COLUMN offer_price DECIMAL(10,2) NULL")
+            print("Added offer_price column to menu_dishes table")
+        
+        cursor.execute("SHOW COLUMNS FROM menu_dishes LIKE 'discount_percent'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE menu_dishes ADD COLUMN discount_percent DECIMAL(5,2) NULL")
+            print("Added discount_percent column to menu_dishes table")
+        
+        cursor.execute("SHOW COLUMNS FROM menu_dishes LIKE 'offer_start'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE menu_dishes ADD COLUMN offer_start DATETIME NULL")
+            print("Added offer_start column to menu_dishes table")
+        
+        cursor.execute("SHOW COLUMNS FROM menu_dishes LIKE 'offer_end'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE menu_dishes ADD COLUMN offer_end DATETIME NULL")
+            print("Added offer_end column to menu_dishes table")
+
+        cursor.execute("SHOW COLUMNS FROM menu_dishes LIKE 'offer_applies_to'")
+        if not cursor.fetchone():
+            cursor.execute("ALTER TABLE menu_dishes ADD COLUMN offer_applies_to VARCHAR(10) NULL")
+            print("Added offer_applies_to column to menu_dishes table")
+
+        cursor.execute("UPDATE menu_dishes SET offer_applies_to = 'both' WHERE is_offer_active = 1 AND (offer_applies_to IS NULL OR offer_applies_to = '')")
         
         # Create default admin if not exists
         import hashlib
@@ -479,7 +544,7 @@ def create_hotel_redirect():
     code = 307 if request.method == "POST" else 302
     return redirect(url_for("admin.create_hotel"), code=code)
 
-if os.getenv("ENABLE_DB_INIT") == "1":
+if os.getenv("ENABLE_DB_INIT", "1") != "0":
     init_db()  # Initialize database tables on startup
 
 if __name__ == "__main__":

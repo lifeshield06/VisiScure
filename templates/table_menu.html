@@ -75,11 +75,10 @@
                 </div>
             </div>
             <div class="today-special-banner-row">
-                <div class="today-special-banner-viewport" id="today-special-banner-viewport">
+                <div class="today-special-banner-viewport">
                     <div class="today-special-banner-track" id="today-special-banner-track"></div>
                 </div>
             </div>
-            <div class="today-special-dots" id="today-special-dots"></div>
         </div>
     </section>
 
@@ -92,6 +91,16 @@
 
     <!-- Main Content -->
     <main class="menu-container" id="menu-container">
+        {% if table_busy %}
+        <div class="table-busy-notice">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <h3>Table is currently busy</h3>
+                <p>If you already placed an order on this visit, you can still add more items. Otherwise, please wait for the current order to finish.</p>
+            </div>
+        </div>
+        {% endif %}
+        
         <div class="loading" id="loading-state">
             <i class="fas fa-spinner fa-spin"></i>
             <p>Loading menu...</p>
@@ -144,28 +153,6 @@
     <div class="call-waiter-btn" id="call-waiter-btn" onclick="callWaiter()">
         <i class="fas fa-bell"></i>
         <span>Call Waiter</span>
-    </div>
-
-    <!-- Dish Detail Modal -->
-    <div class="dish-detail-modal" id="dish-detail-modal" onclick="closeDishDetailOnBackdrop(event)">
-        <div class="dish-detail-sheet">
-            <button class="dish-detail-close" onclick="closeDishDetailModal()" aria-label="Close">&times;</button>
-            <div class="dish-detail-image-wrap" id="ddm-image-wrap">
-                <img id="ddm-image" src="" alt="" class="dish-detail-img">
-            </div>
-            <div class="dish-detail-body">
-                <div class="dish-detail-toprow">
-                    <span id="ddm-veg-icon"></span>
-                </div>
-                <h2 class="dish-detail-name" id="ddm-name"></h2>
-                <p class="dish-detail-desc" id="ddm-desc"></p>
-                <p class="dish-detail-qty" id="ddm-qty"></p>
-                <div class="dish-detail-footer">
-                    <span class="dish-detail-price" id="ddm-price"></span>
-                    <div id="ddm-action"></div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Order Success Modal -->
@@ -593,7 +580,9 @@
                         <div class="pamphlet-price-section">
                             <div class="price-tag">
                                 <span class="price-label">Special Price</span>
+                                <span class="offer-badge offer-badge-inline" id="special-popup-offer-badge" style="display:none;"></span>
                                 <span class="price-value" id="special-popup-price"></span>
+                                <span class="original-price" id="special-popup-original-price" style="display:none;"></span>
                             </div>
                         </div>
                         
@@ -634,6 +623,71 @@
         </button>
     </div>
 </div>
+
+    <!-- Dish Variant Modal -->
+    <div class="dish-variant-modal" id="dish-variant-modal" aria-hidden="true">
+        <div class="dish-variant-overlay" onclick="closeDishVariantModal()"></div>
+        <div class="dish-variant-dialog" role="dialog" aria-modal="true" aria-labelledby="dish-variant-title">
+            <button class="dish-variant-close" onclick="closeDishVariantModal()" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="dish-variant-header">
+                <p class="dish-variant-kicker">Choose portion</p>
+                <h3 id="dish-variant-title">Dish name</h3>
+            </div>
+            <div id="dish-variant-error" style="display:none; color:#dc2626; font-size:0.82rem; font-weight:600; margin: 0 0 0.7rem;"></div>
+            <div class="dish-variant-options" id="dish-variant-options"></div>
+            <div class="dish-variant-qty-row">
+                <span class="dish-variant-label">Quantity</span>
+                <div class="dish-variant-qty-controls">
+                    <button type="button" class="dish-variant-qty-btn" onclick="updateDishVariantQuantity(-1)">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <span class="dish-variant-qty-value" id="dish-variant-qty-value">1</span>
+                    <button type="button" class="dish-variant-qty-btn" onclick="updateDishVariantQuantity(1)">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="button" class="dish-variant-confirm-btn" onclick="confirmDishVariantSelection()">
+                <i class="fas fa-cart-plus"></i>
+                <span>Add to Cart</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Dish Quick View Modal -->
+    <div class="dish-quick-modal" id="dish-quick-modal" aria-hidden="true">
+        <div class="dish-quick-overlay" onclick="closeDishQuickView()"></div>
+        <div class="dish-quick-sheet" role="dialog" aria-modal="true" aria-labelledby="dish-quick-name">
+            <button class="dish-quick-close" onclick="closeDishQuickView()" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="dish-quick-image-wrap" id="dish-quick-image-wrap">
+                <img id="dish-quick-image" src="" alt="Dish image">
+                <div class="dish-quick-no-image" id="dish-quick-no-image" style="display:none;">
+                    <i class="fas fa-utensils"></i>
+                </div>
+            </div>
+            <div class="dish-quick-body">
+                <h3 id="dish-quick-name">Dish</h3>
+                <p id="dish-quick-description"></p>
+                <div class="dish-quick-meta">
+                    <span id="dish-quick-quantity">-</span>
+                </div>
+                <div class="dish-quick-variants" id="dish-quick-variants" style="display:none;"></div>
+                <div class="dish-quick-price-row">
+                    <span class="dish-quick-price" id="dish-quick-price">₹0.00</span>
+                    <span class="dish-quick-original" id="dish-quick-original" style="display:none;">₹0.00</span>
+                    <span class="offer-badge offer-badge-inline" id="dish-quick-offer" style="display:none;">Offer</span>
+                </div>
+                <button type="button" class="dish-quick-add-btn" id="dish-quick-add-btn" onclick="addDishQuickViewToCart(event)">
+                    <i class="fas fa-cart-plus"></i>
+                    <span>Add</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Cart Review Modal -->
     <div class="cart-review-modal" id="cart-review-modal">
@@ -723,11 +777,22 @@
         console.log('[MENU_DEBUG] tableId:', tableId, 'hotelId:', hotelId);
 
         function updateSpecialStickyOffset() {
-            // Banner is no longer sticky, category nav sticks at top: 0
-            document.documentElement.style.setProperty('--today-special-sticky-offset', '0px');
+            const banner = document.getElementById('today-special-banner');
+            const offset = banner && banner.offsetParent !== null ? Math.ceil(banner.offsetHeight) : 0;
+            document.documentElement.style.setProperty('--today-special-sticky-offset', `${offset}px`);
+        }
+
+        function updateCategoryStickyOffset() {
+            const searchWrap = document.querySelector('.menu-search-wrap');
+            const searchOffset = searchWrap ? Math.ceil(searchWrap.offsetHeight) : 0;
+            document.documentElement.style.setProperty('--category-section-scroll-margin', `${searchOffset + 12}px`);
         }
 
         window.addEventListener('resize', updateSpecialStickyOffset);
+        window.addEventListener('resize', updateCategoryStickyOffset);
+        window.addEventListener('load', updateCategoryStickyOffset);
+        updateSpecialStickyOffset();
+        updateCategoryStickyOffset();
         let cart = [];
         let currentOrderId = null;
         let sessionId = localStorage.getItem(sessionStorageKey);
@@ -744,6 +809,12 @@
         let viewOnlyMode = false; // Track if guest is in view-only mode
         let walletGateBlocked = false;
         let walletGateToastShown = false;
+        let activeDishVariantModalDish = null;
+        let activeDishVariant = 'half';
+        let activeDishVariantQuantity = 1;
+        let activeDishQuickDish = null;
+        let activeDishQuickVariant = 'full';
+        let categoryScrollSpyObserver = null;
 
         if (isManagerAddOrderMode) {
             if (managerSessionId) {
@@ -1051,7 +1122,27 @@
         }
         
         function showViewOnlyNotice(message) {
-            // View only notice hidden
+            // Remove existing notice
+            let notice = document.querySelector('.view-only-notice');
+            if (notice) notice.remove();
+            
+            notice = document.createElement('div');
+            notice.className = 'view-only-notice';
+            notice.innerHTML = `
+                <div class="view-only-content">
+                    <i class="fas fa-eye"></i>
+                    <span>View Only Mode</span>
+                </div>
+                <p>${message || 'This table is occupied. You can browse the menu but cannot place orders.'}</p>
+            `;
+            
+            // Insert after header
+            const header = document.querySelector('.header');
+            if (header) {
+                header.after(notice);
+            } else {
+                document.body.prepend(notice);
+            }
         }
         
         function showWelcomeBackModal(message, existingBill) {
@@ -1142,9 +1233,22 @@
             fetch('/api/public-menu/' + tableId)
                 .then(response => response.json())
                 .then(data => {
+                    console.debug('[Offer Debug] public-menu response:', data);
                     if (data.success) {
                         menuData = data.menu;
                         filteredMenuData = data.menu;
+                        const firstDish = data.menu?.[0]?.dishes?.[0] || null;
+                        if (firstDish) {
+                            console.debug('[Offer Debug] first dish offer fields:', {
+                                name: firstDish.name,
+                                is_offer_active: firstDish.is_offer_active,
+                                offer_price: firstDish.offer_price,
+                                discount_percent: firstDish.discount_percent,
+                                offer_start: firstDish.offer_start,
+                                offer_end: firstDish.offer_end,
+                                offer_applies_to: firstDish.offer_applies_to
+                            });
+                        }
                         renderCategoryNav(filteredMenuData);
                         renderMenu(filteredMenuData);
                     } else {
@@ -1226,24 +1330,22 @@
             
             tabs.innerHTML = tabsHTML;
             nav.style.display = 'block';
+            updateCategoryStickyOffset();
         }
         
         function scrollToCategory(categoryId, btn) {
             // Update active tab
             document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
             btn.classList.add('active');
+
+            if (btn.scrollIntoView) {
+                btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
             
             // Scroll to category
             const element = document.getElementById(categoryId);
             if (element) {
-                const navHeight = document.getElementById('category-nav').offsetHeight;
-                const headerHeight = document.querySelector('.header').offsetHeight;
-                const offset = headerHeight + navHeight + 16;
-                
-                window.scrollTo({
-                    top: element.offsetTop - offset,
-                    behavior: 'smooth'
-                });
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
         
@@ -1278,7 +1380,7 @@
                     `;
                     
                     category.dishes.forEach(dish => {
-                        const cartItem = cart.find(item => item.name === dish.name);
+                        const cartItem = cart.find(item => item.base_name === dish.name && item.variant === 'single');
                         const quantity = cartItem ? cartItem.quantity : 0;
                         
                         menuHTML += renderDishCard(dish, quantity);
@@ -1312,6 +1414,297 @@
             return '/static/uploads/menu/' + value;
         }
 
+        function findDishById(dishId) {
+            return menuData.flatMap(category => category.dishes || []).find(dish => Number(dish.id) === Number(dishId)) || null;
+        }
+
+        function getOfferAppliesTo(dish) {
+            const value = String(dish?.offer_applies_to || 'both').toLowerCase();
+            return ['half', 'full', 'both'].includes(value) ? value : 'both';
+        }
+
+        function isOfferApplicableForVariant(dish, variant = 'full') {
+            if (!dish) return false;
+            const priceType = (dish.price_type || 'single').toLowerCase();
+            if (priceType !== 'half_full') {
+                return true;
+            }
+
+            const appliesTo = getOfferAppliesTo(dish);
+            if (appliesTo === 'both') return true;
+            if (appliesTo === 'half') return variant === 'half';
+            if (appliesTo === 'full') return variant === 'full';
+            return true;
+        }
+
+        function getDishVariantPrice(dish, variant) {
+            if (!dish) return 0;
+            
+            let basePrice = 0;
+            if (variant === 'half') {
+                basePrice = Number(dish.half_price ?? dish.price ?? 0);
+            } else if (variant === 'full') {
+                basePrice = Number(dish.full_price ?? dish.price ?? 0);
+            } else {
+                basePrice = Number(dish.price ?? 0);
+            }
+            
+            // Apply offer discount if currently active and valid for this variant
+            if (isOfferCurrentlyActive(dish) && isOfferApplicableForVariant(dish, variant)) {
+                if (dish.offer_price) {
+                    return parseFloat(dish.offer_price);
+                } else if (dish.discount_percent) {
+                    const discount = (basePrice * parseFloat(dish.discount_percent)) / 100;
+                    return basePrice - discount;
+                }
+            }
+            
+            return basePrice;
+        }
+
+        function openDishVariantModal(dishId, domEvent = null) {
+            if (domEvent) {
+                domEvent.preventDefault();
+                domEvent.stopPropagation();
+            }
+
+            if (viewOnlyMode || walletGateBlocked) {
+                showViewOnlyAlert();
+                return;
+            }
+
+            if (!guestName || !guestName.trim()) {
+                showGuestNameModal();
+                return;
+            }
+
+            const dish = findDishById(dishId);
+            if (!dish) return;
+
+            activeDishVariantModalDish = dish;
+            activeDishVariant = '';
+            activeDishVariantQuantity = 1;
+
+            const titleEl = document.getElementById('dish-variant-title');
+            const optionsEl = document.getElementById('dish-variant-options');
+            const qtyValueEl = document.getElementById('dish-variant-qty-value');
+            const errorEl = document.getElementById('dish-variant-error');
+
+            if (errorEl) {
+                errorEl.style.display = 'none';
+                errorEl.textContent = '';
+            }
+
+            if (titleEl) {
+                titleEl.textContent = dish.name || 'Dish';
+            }
+
+            if (qtyValueEl) {
+                qtyValueEl.textContent = String(activeDishVariantQuantity);
+            }
+
+            const halfPrice = getDishVariantPrice(dish, 'half');
+            const fullPrice = getDishVariantPrice(dish, 'full');
+            
+            // Get original prices and offer info for each variant
+            const halfBasePrice = Number(dish.half_price ?? dish.price ?? 0);
+            const fullBasePrice = Number(dish.full_price ?? dish.price ?? 0);
+            const halfOfferInfo = getOfferDisplayInfo(dish, 'half');
+            const fullOfferInfo = getOfferDisplayInfo(dish, 'full');
+            
+            const halfPriceHTML = halfOfferInfo.isActive
+                ? `<span class="dish-variant-option-price">₹${halfPrice.toFixed(2)}</span><span class="original-price" style="font-size: 0.75rem;">₹${halfBasePrice.toFixed(2)}</span>`
+                : `<span class="dish-variant-option-price">₹${halfPrice.toFixed(2)}</span>`;
+            
+            const fullPriceHTML = fullOfferInfo.isActive
+                ? `<span class="dish-variant-option-price">₹${fullPrice.toFixed(2)}</span><span class="original-price" style="font-size: 0.75rem;">₹${fullBasePrice.toFixed(2)}</span>`
+                : `<span class="dish-variant-option-price">₹${fullPrice.toFixed(2)}</span>`;
+
+            const halfBadgeHTML = halfOfferInfo.isActive
+                ? `<span class="offer-badge" style="position: static; margin-left: 0.5rem;">${halfOfferInfo.badgeText}</span>`
+                : '';
+
+            const fullBadgeHTML = fullOfferInfo.isActive
+                ? `<span class="offer-badge" style="position: static; margin-left: 0.5rem;">${fullOfferInfo.badgeText}</span>`
+                : '';
+
+            if (optionsEl) {
+                optionsEl.innerHTML = `
+                    <label class="dish-variant-option" data-variant="half">
+                        <input type="radio" name="dish-variant" value="half" onchange="setDishVariantChoice('half')">
+                        <div class="dish-variant-option-body">
+                            <div>
+                                <span class="dish-variant-option-title">Half</span>
+                                ${halfPriceHTML}
+                                ${halfBadgeHTML}
+                            </div>
+                            <span class="dish-variant-option-check"><i class="fas fa-check"></i></span>
+                        </div>
+                    </label>
+                    <label class="dish-variant-option" data-variant="full">
+                        <input type="radio" name="dish-variant" value="full" onchange="setDishVariantChoice('full')">
+                        <div class="dish-variant-option-body">
+                            <div>
+                                <span class="dish-variant-option-title">Full</span>
+                                ${fullPriceHTML}
+                                ${fullBadgeHTML}
+                            </div>
+                            <span class="dish-variant-option-check"><i class="fas fa-check"></i></span>
+                        </div>
+                    </label>
+                `;
+            }
+
+            const modal = document.getElementById('dish-variant-modal');
+            if (modal) {
+                modal.classList.add('show');
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeDishVariantModal() {
+            const modal = document.getElementById('dish-variant-modal');
+            if (modal) {
+                modal.classList.remove('show');
+                modal.setAttribute('aria-hidden', 'true');
+            }
+            document.body.style.overflow = '';
+            activeDishVariantModalDish = null;
+            activeDishVariant = '';
+            activeDishVariantQuantity = 1;
+        }
+
+        function setDishVariantChoice(variant) {
+            activeDishVariant = variant;
+            document.querySelectorAll('.dish-variant-option').forEach(option => {
+                option.classList.toggle('is-selected', option.dataset.variant === variant);
+            });
+
+            const errorEl = document.getElementById('dish-variant-error');
+            if (errorEl) {
+                errorEl.style.display = 'none';
+                errorEl.textContent = '';
+            }
+        }
+
+        function updateDishVariantQuantity(delta) {
+            activeDishVariantQuantity = Math.max(1, activeDishVariantQuantity + delta);
+            const qtyValueEl = document.getElementById('dish-variant-qty-value');
+            if (qtyValueEl) {
+                qtyValueEl.textContent = String(activeDishVariantQuantity);
+            }
+        }
+
+        function confirmDishVariantSelection() {
+            if (!activeDishVariantModalDish) return;
+
+            if (!activeDishVariant) {
+                const errorEl = document.getElementById('dish-variant-error');
+                if (errorEl) {
+                    errorEl.textContent = 'Please select an option';
+                    errorEl.style.display = 'block';
+                }
+                return;
+            }
+
+            const dish = activeDishVariantModalDish;
+            const price = getDishVariantPrice(dish, activeDishVariant);
+
+            addToCart(dish.id, dish.name, price, activeDishVariant, activeDishVariantQuantity);
+
+            closeDishVariantModal();
+        }
+
+        function parseOfferDate(value) {
+            if (!value) return null;
+            if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+
+            let text = String(value).trim();
+            if (!text) return null;
+
+            // Normalize server datetime formats (YYYY-MM-DD HH:mm:ss -> YYYY-MM-DDTHH:mm:ss)
+            if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}/.test(text)) {
+                text = text.replace(' ', 'T');
+            }
+
+            let parsed = new Date(text);
+            if (!Number.isNaN(parsed.getTime())) return parsed;
+
+            const match = text.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?$/);
+            if (!match) return null;
+
+            const [, y, m, d, hh, mm, ss] = match;
+            parsed = new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss || 0));
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        function isOfferCurrentlyActive(dish) {
+            // Check if offer is configured
+            if (!dish.is_offer_active) return false;
+            if (!dish.offer_start || !dish.offer_end) return false;
+            
+            // Check if current time is within offer window
+            const now = new Date();
+            const offerStart = parseOfferDate(dish.offer_start);
+            const offerEnd = parseOfferDate(dish.offer_end);
+
+            if (!offerStart || !offerEnd) {
+                console.warn('[Offer Debug] invalid offer date format:', {
+                    dish: dish.name,
+                    offer_start: dish.offer_start,
+                    offer_end: dish.offer_end
+                });
+                return false;
+            }
+            
+            return now >= offerStart && now <= offerEnd;
+        }
+
+        function getOfferDisplayInfo(dish, variant = 'full') {
+            // Returns {isActive, displayPrice, originalPrice, badgeText}
+            if (!isOfferCurrentlyActive(dish) || !isOfferApplicableForVariant(dish, variant)) {
+                const original = getDishVariantPrice({ ...dish, is_offer_active: 0 }, variant);
+                return {
+                    isActive: false,
+                    displayPrice: original,
+                    originalPrice: null,
+                    badgeText: ''
+                };
+            }
+            
+            const originalPrice = Number(getDishVariantPrice({ ...dish, is_offer_active: 0 }, variant));
+            let displayPrice = null;
+            let badgeText = '';
+            
+            if (dish.offer_price) {
+                displayPrice = parseFloat(dish.offer_price) || 0;
+                if (originalPrice > 0 && displayPrice < originalPrice) {
+                    badgeText = `🔥 ${Math.round(((originalPrice - displayPrice) / originalPrice) * 100)}% OFF`;
+                } else {
+                    badgeText = 'Special Price';
+                }
+            } else if (dish.discount_percent) {
+                const discount = (originalPrice * parseFloat(dish.discount_percent)) / 100;
+                displayPrice = originalPrice - discount;
+                badgeText = `🔥 ${Math.round(parseFloat(dish.discount_percent))}% OFF`;
+            } else {
+                return {
+                    isActive: false,
+                    displayPrice: originalPrice,
+                    originalPrice: null,
+                    badgeText: ''
+                };
+            }
+            
+            return {
+                isActive: true,
+                displayPrice: Number(displayPrice).toFixed(2),
+                originalPrice: Number(originalPrice).toFixed(2),
+                badgeText
+            };
+        }
+
         function renderDishCard(dish, quantity) {
             const rawImage = dish.image_urls && dish.image_urls.length > 0 ? dish.image_urls[0] : '';
             const imageUrl = normalizeDishImageUrl(rawImage);
@@ -1322,37 +1715,70 @@
             
             const escapedName = dish.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
             const isVeg = dish.is_veg === true || dish.is_veg === 1 || String(dish.food_type || '').toLowerCase() === 'veg';
-            const isNonVeg = dish.is_non_veg === true || dish.is_non_veg === 1 || String(dish.food_type || '').toLowerCase() === 'non-veg';
+            const normalizedFoodType = String(dish.food_type || '').toLowerCase();
+            const isNonVeg = dish.is_non_veg === true || dish.is_non_veg === 1 || normalizedFoodType === 'nonveg' || normalizedFoodType === 'non-veg';
+            const foodTypeClass = isNonVeg ? 'nonveg' : 'veg';
+            const foodTypeAria = isNonVeg ? 'Non-Veg' : 'Veg';
+            const foodTypeIconHTML = `<span class="dish-food-icon ${foodTypeClass}" title="${foodTypeAria}" aria-label="${foodTypeAria}"></span>`;
             const isBestseller = !!(dish.is_bestseller || dish.bestseller || dish.popular || dish.most_ordered);
             const prepTime = dish.prep_time || dish.preparation_time || '';
             const fewLeft = Number.isFinite(Number(dish.stock)) && Number(dish.stock) > 0 && Number(dish.stock) <= 5;
             const tags = [];
+            if (dish.is_today_special) tags.push('<span class="item-tag today-special">⭐ Today\'s Special</span>');
             if (isBestseller) tags.push('<span class="item-tag bestseller">⭐ Bestseller</span>');
-            if (isVeg) tags.push('<span class="item-tag veg">🟢 Veg</span>');
-            if (isNonVeg) tags.push('<span class="item-tag non-veg">🔴 Non-veg</span>');
             if (prepTime) tags.push(`<span class="item-tag prep">⏱️ ${prepTime}</span>`);
             if (fewLeft) tags.push('<span class="item-tag low-stock">Only few left</span>');
             const tagsHTML = tags.length ? `<div class="item-tags">${tags.join('')}</div>` : '';
             
-            const actionHTML = quantity > 0 
+            // Main card always represents full/single price. Half-specific discounts stay in popup.
+            const offerInfo = getOfferDisplayInfo(dish, 'full');
+            const finalPrice = Number(getDishVariantPrice(dish, 'full'));
+            
+            const isHalfFull = (dish.price_type || 'single') === 'half_full';
+            const actionHTML = isHalfFull
                 ? `
-                    <div class="quantity-controls" id="qty-${escapedName.replace(/\s+/g, '-')}">
-                        <button class="qty-btn minus" onclick="updateQuantity('${escapedName}', -1)">−</button>
-                        <span class="qty-value">${quantity}</span>
-                        <button class="qty-btn plus" onclick="updateQuantity('${escapedName}', 1)">+</button>
+                    <button class="add-btn" onclick="openDishVariantModal(${dish.id}, event)">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                `
+                : quantity > 0 
+                    ? `
+                        <div class="quantity-controls" id="qty-${escapedName.replace(/\s+/g, '-')}">
+                            <button class="qty-btn minus" onclick="updateQuantity('${escapedName}', -1)">−</button>
+                            <span class="qty-value">${quantity}</span>
+                            <button class="qty-btn plus" onclick="updateQuantity('${escapedName}', 1)">+</button>
+                        </div>
+                    `
+                    : `
+                        <button class="add-btn" onclick="addToCart(${dish.id}, '${escapedName}', ${finalPrice}, 'single', 1, event)">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    `;
+            
+            const hasHalfOnlyOffer = isHalfFull && isOfferCurrentlyActive(dish) && getOfferAppliesTo(dish) === 'half';
+
+            const priceHTML = offerInfo.isActive && !hasHalfOnlyOffer
+                ? `
+                    <div class="item-price-wrapper">
+                        <div class="offer-price">₹${offerInfo.displayPrice}</div>
+                        <div class="original-price">₹${offerInfo.originalPrice}</div>
                     </div>
                 `
                 : `
-                    <button class="add-btn" onclick="addToCart(${dish.id}, '${escapedName}', ${dish.price})">
-                        <i class="fas fa-plus"></i> Add
-                    </button>
+                    <div class="item-price">
+                        ₹${Number(dish.display_price ?? dish.full_price ?? dish.price ?? 0).toFixed(2)}
+                    </div>
                 `;
             
-            const dishDataAttr = `data-dish-id="${dish.id}" data-dish-name="${escapedName}" data-dish-price="${dish.price}" data-dish-desc="${(dish.description||'').replace(/"/g,'&quot;')}" data-dish-qty="${dish.quantity||''}" data-dish-img="${imageUrl}" data-dish-isveg="${isVeg}" data-dish-isnonveg="${isNonVeg}"`;
-
+            const showSticker = isOfferCurrentlyActive(dish);
+            const offerBadgeNearAction = showSticker
+                ? `<span class="offer-badge offer-badge-action">${offerInfo.badgeText || 'Special Price'}</span>`
+                : '';
+            
             return `
-                <div class="menu-item" data-dish="${escapedName}" ${dishDataAttr} onclick="openDishDetailModal(this)">
+                <div class="menu-item" data-dish="${escapedName}" onclick="openDishQuickView(${dish.id}, event)">
                     <div class="item-image">
+                        ${foodTypeIconHTML}
                         ${imageHTML}
                     </div>
                     <div class="item-details">
@@ -1361,15 +1787,23 @@
                         ${dish.description ? `<div class="item-description">${dish.description}</div>` : ''}
                         <div class="item-quantity-info">${dish.quantity}</div>
                         <div class="item-footer">
-                            <div class="item-price">₹${dish.price.toFixed(2)}</div>
-                            ${actionHTML}
+                            ${priceHTML}
+                            <div class="item-action-wrap">
+                                ${offerBadgeNearAction}
+                                ${actionHTML}
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
         }
-        
-        function addToCart(dishId, itemName, price) {
+
+        function addToCart(dishId, itemName, price, variant = 'single', quantityToAdd = 1, domEvent = null) {
+            if (domEvent) {
+                domEvent.preventDefault();
+                domEvent.stopPropagation();
+            }
+
             // Check if in view-only mode
             if (viewOnlyMode || walletGateBlocked) {
                 showViewOnlyAlert();
@@ -1382,21 +1816,29 @@
                 return;
             }
             
-            const existingItem = cart.find(item => item.name === itemName);
+            const variantLabel = variant === 'half' ? 'Half' : variant === 'full' ? 'Full' : '';
+            const cartName = variantLabel ? `${itemName} (${variantLabel})` : itemName;
+            const existingItem = cart.find(item => item.key === `${dishId}:${variant}`);
             
             if (existingItem) {
-                existingItem.quantity += 1;
+                existingItem.quantity += quantityToAdd;
             } else {
                 cart.push({
+                    key: `${dishId}:${variant}`,
                     id: dishId,  // ← CRITICAL: Include dish ID for kitchen routing
-                    name: itemName,
+                    base_name: itemName,
+                    name: cartName,
+                    display_name: cartName,
+                    variant: variant,
                     price: price,
-                    quantity: 1
+                    quantity: quantityToAdd
                 });
             }
             
             updateCartUI();
-            updateDishButton(itemName);
+            if (variant === 'single') {
+                updateDishButton(itemName);
+            }
             
             // Pulse animation on cart
             const cartBar = document.getElementById('cart-bar');
@@ -1425,7 +1867,7 @@
             }
             
             updateCartUI();
-            updateDishButton(itemName);
+            updateDishButton(item.base_name || itemName);
         }
         
         function updateDishButton(itemName) {
@@ -1436,12 +1878,22 @@
             if (!menuItem) return;
             
             const footer = menuItem.querySelector('.item-footer');
-            const cartItem = cart.find(item => item.name === itemName);
+            const cartItem = cart.find(item => item.base_name === itemName && item.variant === 'single');
             const quantity = cartItem ? cartItem.quantity : 0;
             
             const escapedName = itemName.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+            const offerInfo = getOfferDisplayInfo(dish, 'full');
+            const isHalfFull = (dish.price_type || 'single') === 'half_full';
+            const hasHalfOnlyOffer = isHalfFull && isOfferCurrentlyActive(dish) && getOfferAppliesTo(dish) === 'half';
+            const finalSinglePrice = Number(getDishVariantPrice(dish, 'full'));
             
-            const actionHTML = quantity > 0 
+            const actionHTML = isHalfFull
+                ? `
+                    <button class="add-btn" onclick="openDishVariantModal(${dish.id}, event)">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                `
+                : quantity > 0 
                 ? `
                     <div class="quantity-controls">
                         <button class="qty-btn minus" onclick="updateQuantity('${escapedName}', -1)">−</button>
@@ -1450,15 +1902,156 @@
                     </div>
                 `
                 : `
-                    <button class="add-btn" onclick="addToCart(${dish.id}, '${escapedName}', ${dish.price})">
+                    <button class="add-btn" onclick="addToCart(${dish.id}, '${escapedName}', ${finalSinglePrice}, 'single', 1, event)">
                         <i class="fas fa-plus"></i> Add
                     </button>
                 `;
+
+            const showSticker = isOfferCurrentlyActive(dish);
+            const offerBadgeNearAction = showSticker
+                ? `<span class="offer-badge offer-badge-action">${offerInfo.badgeText || 'Special Price'}</span>`
+                : '';
+
+            const priceHTML = offerInfo.isActive && !hasHalfOnlyOffer
+                ? `
+                    <div class="item-price-wrapper">
+                        <div class="offer-price">₹${offerInfo.displayPrice}</div>
+                        <div class="original-price">₹${offerInfo.originalPrice}</div>
+                    </div>
+                `
+                : `
+                    <div class="item-price">₹${Number(dish.display_price ?? dish.full_price ?? dish.price ?? 0).toFixed(2)}</div>
+                `;
             
             footer.innerHTML = `
-                <div class="item-price">₹${dish.price.toFixed(2)}</div>
-                ${actionHTML}
+                ${priceHTML}
+                <div class="item-action-wrap">
+                    ${offerBadgeNearAction}
+                    ${actionHTML}
+                </div>
             `;
+        }
+
+        function openDishQuickView(dishId, event) {
+            if (event?.target?.closest('.item-action-wrap, .add-btn, .quantity-controls, .qty-btn')) {
+                return;
+            }
+
+            const dish = findDishById(dishId);
+            if (!dish) return;
+
+            activeDishQuickDish = dish;
+            activeDishQuickVariant = (dish.price_type || 'single') === 'half_full' ? 'full' : 'single';
+
+            const modal = document.getElementById('dish-quick-modal');
+            if (!modal) return;
+
+            const imageWrap = document.getElementById('dish-quick-image-wrap');
+            const imageEl = document.getElementById('dish-quick-image');
+            const noImageEl = document.getElementById('dish-quick-no-image');
+            const rawImage = dish.image_urls && dish.image_urls.length > 0 ? dish.image_urls[0] : '';
+            const imageUrl = normalizeDishImageUrl(rawImage);
+
+            if (imageUrl) {
+                imageEl.src = imageUrl;
+                imageEl.alt = dish.name || 'Dish image';
+                imageEl.style.display = 'block';
+                noImageEl.style.display = 'none';
+                imageWrap.classList.remove('no-media');
+            } else {
+                imageEl.src = '';
+                imageEl.style.display = 'none';
+                noImageEl.style.display = 'flex';
+                imageWrap.classList.add('no-media');
+            }
+
+            document.getElementById('dish-quick-name').textContent = dish.name || 'Dish';
+            document.getElementById('dish-quick-description').textContent = dish.description || 'No description available.';
+            document.getElementById('dish-quick-quantity').textContent = dish.quantity || 'Standard portion';
+
+            const variantWrap = document.getElementById('dish-quick-variants');
+            if ((dish.price_type || 'single') === 'half_full') {
+                variantWrap.style.display = 'flex';
+                variantWrap.innerHTML = `
+                    <button type="button" class="dish-quick-variant ${activeDishQuickVariant === 'half' ? 'active' : ''}" onclick="setDishQuickViewVariant('half', event)">Half</button>
+                    <button type="button" class="dish-quick-variant ${activeDishQuickVariant === 'full' ? 'active' : ''}" onclick="setDishQuickViewVariant('full', event)">Full</button>
+                `;
+            } else {
+                variantWrap.style.display = 'none';
+                variantWrap.innerHTML = '';
+            }
+
+            refreshDishQuickViewContent();
+
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDishQuickView() {
+            const modal = document.getElementById('dish-quick-modal');
+            if (!modal) return;
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            activeDishQuickDish = null;
+            activeDishQuickVariant = 'full';
+        }
+
+        function setDishQuickViewVariant(variant, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            if (!activeDishQuickDish) return;
+            activeDishQuickVariant = variant === 'half' ? 'half' : 'full';
+            refreshDishQuickViewContent();
+
+            document.querySelectorAll('.dish-quick-variant').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.trim().toLowerCase() === activeDishQuickVariant);
+            });
+        }
+
+        function refreshDishQuickViewContent() {
+            if (!activeDishQuickDish) return;
+
+            const dish = activeDishQuickDish;
+            const variant = (dish.price_type || 'single') === 'half_full' ? activeDishQuickVariant : 'single';
+            const offerVariant = variant === 'single' ? 'full' : variant;
+            const offerInfo = getOfferDisplayInfo(dish, offerVariant);
+            const price = Number(getDishVariantPrice(dish, offerVariant));
+
+            const priceEl = document.getElementById('dish-quick-price');
+            const originalEl = document.getElementById('dish-quick-original');
+            const offerEl = document.getElementById('dish-quick-offer');
+            const addBtn = document.getElementById('dish-quick-add-btn');
+
+            priceEl.textContent = `₹${price.toFixed(2)}`;
+            if (offerInfo.isActive) {
+                originalEl.style.display = 'inline-flex';
+                originalEl.textContent = `₹${Number(offerInfo.originalPrice || 0).toFixed(2)}`;
+                offerEl.style.display = 'inline-flex';
+                offerEl.textContent = offerInfo.badgeText || 'Special Price';
+            } else {
+                originalEl.style.display = 'none';
+                originalEl.textContent = '';
+                offerEl.style.display = 'none';
+                offerEl.textContent = '';
+            }
+
+            addBtn.innerHTML = `<i class="fas fa-cart-plus"></i><span>Add${variant === 'single' ? '' : ' (' + variant.toUpperCase() + ')'}</span>`;
+        }
+
+        function addDishQuickViewToCart(event) {
+            if (!activeDishQuickDish) return;
+
+            const dish = activeDishQuickDish;
+            const variant = (dish.price_type || 'single') === 'half_full' ? activeDishQuickVariant : 'single';
+            const offerVariant = variant === 'single' ? 'full' : variant;
+            const price = Number(getDishVariantPrice(dish, offerVariant));
+
+            addToCart(dish.id, dish.name, price, variant, 1, event);
+            closeDishQuickView();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -1607,34 +2200,45 @@
             }
         });
         
-        // Intersection Observer for category nav highlighting
+        // Intersection Observer for category nav highlighting.
+        // This only updates active tab styles and never auto-scrolls the page/tab rail.
         function setupScrollSpy() {
             const categories = document.querySelectorAll('.category');
             const tabs = document.querySelectorAll('.category-tab');
-            
-            const observer = new IntersectionObserver((entries) => {
+            const searchWrap = document.querySelector('.menu-search-wrap');
+            const stickyOffset = (searchWrap ? Math.ceil(searchWrap.offsetHeight) : 0);
+
+            if (categoryScrollSpyObserver) {
+                categoryScrollSpyObserver.disconnect();
+                categoryScrollSpyObserver = null;
+            }
+
+            if (!categories.length || !tabs.length) return;
+
+            categoryScrollSpyObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const id = entry.target.id;
-                        tabs.forEach(tab => {
-                            tab.classList.toggle('active', 
-                                tab.getAttribute('onclick').includes(id));
-                        });
-                    }
+                    if (!entry.isIntersecting) return;
+
+                    const id = entry.target.id;
+                    tabs.forEach(tab => {
+                        const onClickValue = tab.getAttribute('onclick') || '';
+                        const isActive = onClickValue.includes(id);
+                        tab.classList.toggle('active', isActive);
+                    });
                 });
             }, {
-                rootMargin: '-150px 0px -50% 0px',
+                rootMargin: `-${stickyOffset + 24}px 0px -50% 0px`,
                 threshold: 0
             });
-            
-            categories.forEach(cat => observer.observe(cat));
+
+            categories.forEach(cat => categoryScrollSpyObserver.observe(cat));
         }
-        
-        // Initialize scroll spy after menu loads
+
+        // Initialize scroll spy after menu renders, without timer-induced scroll side effects.
         const originalRenderMenu = renderMenu;
         renderMenu = function(menu) {
             originalRenderMenu(menu);
-            setTimeout(setupScrollSpy, 100);
+            requestAnimationFrame(setupScrollSpy);
         };
         
         // ============== Bill & Payment Functions ==============
@@ -1800,6 +2404,70 @@
             return DAILY_SPECIAL_CONFIG.defaultReopenDelayMs;
         }
 
+        function getDailySpecialOfferInfo(special) {
+            const basePrice = Number(special?.price || 0);
+            const isActive = Number(special?.is_offer_active || 0) === 1;
+            if (!isActive) {
+                return {
+                    isActive: false,
+                    displayPrice: basePrice,
+                    originalPrice: null,
+                    badgeText: ''
+                };
+            }
+
+            const type = String(special?.offer_type || '').toLowerCase();
+            const value = special?.offer_value !== null && special?.offer_value !== undefined ? Number(special.offer_value) : null;
+
+            if (type === 'percentage' && value !== null && !Number.isNaN(value) && value > 0) {
+                const finalPrice = basePrice - ((basePrice * value) / 100);
+                return {
+                    isActive: true,
+                    displayPrice: finalPrice,
+                    originalPrice: basePrice,
+                    badgeText: `${Math.round(value)}% OFF`
+                };
+            }
+
+            if (type === 'flat' && value !== null && !Number.isNaN(value) && value > 0) {
+                const finalPrice = basePrice - value;
+                return {
+                    isActive: true,
+                    displayPrice: finalPrice,
+                    originalPrice: basePrice,
+                    badgeText: `₹${Math.round(value)} OFF`
+                };
+            }
+
+            if (special?.offer_price !== null && special?.offer_price !== undefined && special?.offer_price !== '') {
+                const offerPrice = Number(special.offer_price);
+                return {
+                    isActive: true,
+                    displayPrice: offerPrice,
+                    originalPrice: basePrice,
+                    badgeText: 'SPECIAL PRICE'
+                };
+            }
+
+            if (special?.discount_percent !== null && special?.discount_percent !== undefined && special?.discount_percent !== '') {
+                const pct = Number(special.discount_percent);
+                const finalPrice = basePrice - ((basePrice * pct) / 100);
+                return {
+                    isActive: true,
+                    displayPrice: finalPrice,
+                    originalPrice: basePrice,
+                    badgeText: `${Math.round(pct)}% OFF`
+                };
+            }
+
+            return {
+                isActive: false,
+                displayPrice: basePrice,
+                originalPrice: null,
+                badgeText: ''
+            };
+        }
+
         function loadDailySpecial() {
             if (hasFetchedDailySpecials) {
                 if (allDailySpecials.length > 0 && DAILY_SPECIAL_CONFIG.autoPopupEnabled) {
@@ -1855,9 +2523,10 @@
             const banner = document.getElementById('today-special-banner');
             const track = document.getElementById('today-special-banner-track');
             const count = document.getElementById('today-special-banner-count');
-            const dotsEl = document.getElementById('today-special-dots');
 
-            if (!banner || !track || !count) return;
+            if (!banner || !track || !count) {
+                return;
+            }
 
             if (!allDailySpecials.length) {
                 banner.style.display = 'none';
@@ -1866,112 +2535,56 @@
             }
 
             banner.style.display = 'block';
+            count.textContent = `${dailySpecialBannerIndex + 1} of ${allDailySpecials.length}`;
 
-            // Render ALL cards into the track as a horizontal slider
-            track.innerHTML = allDailySpecials.map((special, idx) => {
-                const title = special.dish_name || special.menu_name || "Today's Special";
-                const price = parseFloat(special.price || 0).toFixed(2);
-                const chefBadge = special.chef_pick ? '<span class="today-special-banner-badge"><i class="fas fa-award"></i> Chef\'s Pick</span>' : '';
-                const imageMarkup = special.image_path
-                    ? '<img src="' + special.image_path + '" alt="' + title + '" loading="eager" decoding="async">'
-                    : '<div class="today-special-banner-thumb-placeholder"><i class="fas fa-utensils"></i></div>';
-                return '<article class="today-special-banner-item" data-index="' + idx + '">'
-                    + '<div class="today-special-banner-thumb">' + imageMarkup + '</div>'
-                    + '<div class="today-special-banner-content">'
-                    + (chefBadge ? '<div class="today-special-banner-topline">' + chefBadge + '</div>' : '')
-                    + '<div class="today-special-banner-footer">'
-                    + '<div class="today-special-banner-info">'
-                    + '<h4 class="today-special-banner-name">' + title + '</h4>'
-                    + '<div class="today-special-banner-price">'
-                    + '<span class="today-special-banner-price-label">Special Price</span>'
-                    + '<span class="today-special-banner-price-value">\u20b9' + price + '</span>'
-                    + '</div></div>'
-                    + '<button type="button" class="today-special-banner-action" onclick="addBannerSpecialToCart(' + idx + ')">'
-                    + '<i class="fas fa-plus"></i> Add</button>'
-                    + '</div></div>'
-                    + '</article>';
-            }).join('');
-
-            // Render dots
-            if (dotsEl) {
-                if (allDailySpecials.length > 1) {
-                    dotsEl.innerHTML = allDailySpecials.map((_, idx) =>
-                        '<button class="today-special-dot' + (idx === 0 ? ' active' : '') + '" data-idx="' + idx + '" aria-label="Item ' + (idx+1) + '"></button>'
-                    ).join('');
-                    dotsEl.style.display = 'flex';
-                    dotsEl.querySelectorAll('.today-special-dot').forEach(function(dot) {
-                        dot.addEventListener('click', function() {
-                            scrollBannerToIndex(parseInt(dot.dataset.idx));
-                        });
-                    });
-                } else {
-                    dotsEl.style.display = 'none';
-                }
-            }
-
-            // Scroll listener for count + dots (on viewport, not track)
-            var viewport = document.getElementById('today-special-banner-viewport');
-            if (viewport) {
-                viewport.removeEventListener('scroll', onBannerScroll);
-                viewport.addEventListener('scroll', onBannerScroll, { passive: true });
-            }
-
-            // Touch swipe on viewport
-            if (viewport) setupBannerSwipe(viewport);
-
-            count.textContent = '1 of ' + allDailySpecials.length;
-            dailySpecialBannerIndex = 0;
+            syncDailySpecialBannerScroll();
             startDailySpecialBannerAutoSlide();
-            updateSpecialStickyOffset();
-        }
-
-        function onBannerScroll() {
-            var viewport = document.getElementById('today-special-banner-viewport');
-            var track = document.getElementById('today-special-banner-track');
-            var count = document.getElementById('today-special-banner-count');
-            var dotsEl = document.getElementById('today-special-dots');
-            if (!viewport || !track) return;
-            var firstCard = track.firstElementChild;
-            var cardWidth = firstCard ? (firstCard.offsetWidth + 12) : viewport.offsetWidth;
-            var idx = Math.round(viewport.scrollLeft / cardWidth);
-            var clampedIdx = Math.max(0, Math.min(idx, allDailySpecials.length - 1));
-            dailySpecialBannerIndex = clampedIdx;
-            currentSpecialIndex = clampedIdx;
-            if (count) count.textContent = (clampedIdx + 1) + ' of ' + allDailySpecials.length;
-            if (dotsEl) {
-                dotsEl.querySelectorAll('.today-special-dot').forEach(function(d, i) {
-                    d.classList.toggle('active', i === clampedIdx);
-                });
-            }
-        }
-
-        function scrollBannerToIndex(idx) {
-            var viewport = document.getElementById('today-special-banner-viewport');
-            var track = document.getElementById('today-special-banner-track');
-            if (!viewport || !track) return;
-            var firstCard = track.firstElementChild;
-            var cardWidth = firstCard ? (firstCard.offsetWidth + 12) : viewport.offsetWidth;
-            viewport.scrollTo({ left: idx * cardWidth, behavior: 'smooth' });
-            dailySpecialBannerIndex = idx;
-            currentSpecialIndex = idx;
-        }
-
-        function setupBannerSwipe(track) {
-            var startX = 0;
-            track.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; }, { passive: true });
-            track.addEventListener('touchend', function(e) {
-                var diff = startX - e.changedTouches[0].clientX;
-                if (Math.abs(diff) > 40) {
-                    var next = diff > 0
-                        ? Math.min(dailySpecialBannerIndex + 1, allDailySpecials.length - 1)
-                        : Math.max(dailySpecialBannerIndex - 1, 0);
-                    scrollBannerToIndex(next);
-                }
-            }, { passive: true });
         }
 
         function syncDailySpecialBannerScroll() {
-            scrollBannerToIndex(currentSpecialIndex);
+            const track = document.getElementById('today-special-banner-track');
+            const count = document.getElementById('today-special-banner-count');
+            if (!track || !count) return;
+
+            dailySpecialBannerIndex = currentSpecialIndex;
+
+            const special = allDailySpecials[dailySpecialBannerIndex];
+            if (!special) return;
+
+            const title = special.dish_name || special.menu_name || "Today's Special";
+            const offerInfo = getDailySpecialOfferInfo(special);
+            const price = Number(offerInfo.displayPrice || 0).toFixed(2);
+            const chefBadge = special.chef_pick ? `<span class="today-special-banner-badge"><i class="fas fa-award"></i> Chef's Pick</span>` : '';
+            const offerBadge = offerInfo.isActive ? `<span class="today-special-banner-offer-badge">${offerInfo.badgeText}</span>` : '';
+            const imageMarkup = special.image_path
+                ? `<img src="${special.image_path}" alt="${title}">`
+                : `<div class="today-special-banner-thumb-placeholder"><i class="fas fa-utensils"></i></div>`;
+
+            track.innerHTML = `
+                <article class="today-special-banner-item active" data-index="${dailySpecialBannerIndex}">
+                    <div class="today-special-banner-thumb">
+                        ${imageMarkup}
+                        ${offerBadge}
+                    </div>
+                    <div class="today-special-banner-content">
+                        <div class="today-special-banner-topline">
+                            ${chefBadge}
+                        </div>
+                        <h4 class="today-special-banner-name">${title}</h4>
+                        <div class="today-special-banner-price">
+                            <span class="today-special-banner-price-label">Special Price</span>
+                            <span class="today-special-banner-price-value">₹${price}</span>
+                            ${offerInfo.isActive ? `<span class="today-special-banner-price-label" style="text-decoration:line-through;opacity:0.75;">₹${Number(offerInfo.originalPrice || 0).toFixed(2)}</span>` : ''}
+                        </div>
+                    </div>
+                    <button type="button" class="today-special-banner-action" onclick="addBannerSpecialToCart(${dailySpecialBannerIndex})">
+                        <i class="fas fa-cart-plus"></i>
+                        Add to Cart
+                    </button>
+                </article>
+            `;
+
+            count.textContent = `${dailySpecialBannerIndex + 1} of ${allDailySpecials.length}`;
             updateSpecialStickyOffset();
         }
 
@@ -2118,7 +2731,29 @@
         function updateSpecialDisplay(special) {
             document.getElementById('special-popup-name').textContent = special.dish_name || special.menu_name;
             document.getElementById('special-popup-description').textContent = special.description || 'A specially curated dish made with the finest ingredients for today!';
-            document.getElementById('special-popup-price').textContent = '₹' + parseFloat(special.price || 0).toFixed(2);
+            const offerInfo = getDailySpecialOfferInfo(special);
+            document.getElementById('special-popup-price').textContent = '₹' + Number(offerInfo.displayPrice || 0).toFixed(2);
+
+            const popupOfferBadge = document.getElementById('special-popup-offer-badge');
+            const popupOriginalPrice = document.getElementById('special-popup-original-price');
+            if (popupOfferBadge) {
+                if (offerInfo.isActive) {
+                    popupOfferBadge.style.display = 'inline-flex';
+                    popupOfferBadge.textContent = offerInfo.badgeText || 'SPECIAL PRICE';
+                } else {
+                    popupOfferBadge.style.display = 'none';
+                    popupOfferBadge.textContent = '';
+                }
+            }
+            if (popupOriginalPrice) {
+                if (offerInfo.isActive) {
+                    popupOriginalPrice.style.display = 'inline-flex';
+                    popupOriginalPrice.textContent = '₹' + Number(offerInfo.originalPrice || 0).toFixed(2);
+                } else {
+                    popupOriginalPrice.style.display = 'none';
+                    popupOriginalPrice.textContent = '';
+                }
+            }
 
             const heroSection = document.getElementById('pamphlet-hero');
             const noImageSection = document.getElementById('pamphlet-no-image');
@@ -2261,7 +2896,8 @@
 
         function addSpecialItemToCart(special) {
             const specialName = special.dish_name || special.menu_name;
-            const specialPrice = parseFloat(special.price);
+            const offerInfo = getDailySpecialOfferInfo(special);
+            const specialPrice = Number(offerInfo.displayPrice || special.price || 0);
             const specialId = special.id || special.menu_id;
 
             const existingItem = cart.find(item => item.name === specialName);
@@ -2327,12 +2963,13 @@
             cart.forEach((item, index) => {
                 const itemTotal = item.price * item.quantity;
                 total += itemTotal;
-                const escapedName = item.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                const itemName = item.display_name || item.name;
+                const escapedName = itemName.replace(/'/g, "\\'").replace(/"/g, "&quot;");
                 
                 html += `
                     <div class="cart-review-item">
                         <div class="cart-item-info">
-                            <h4>${item.name}</h4>
+                            <h4>${itemName}</h4>
                             <p class="cart-item-price">₹${item.price.toFixed(2)} each</p>
                         </div>
                         <div class="cart-item-controls">
@@ -2373,7 +3010,7 @@
             
             // Update dish button in menu if applicable
             if (item) {
-                updateDishButton(item.name);
+                updateDishButton(item.base_name || item.name);
             }
             
             // Close modal if cart is empty
@@ -3706,111 +4343,6 @@
         
         // No need to check existing waiter call on page load
         // Button is always available (with cooldown protection)
-
-        // ── Dish Detail Modal ──────────────────────────────────────────
-        function openDishDetailModal(card) {
-            const id      = card.dataset.dishId;
-            const name    = card.dataset.dishName;
-            const price   = parseFloat(card.dataset.dishPrice);
-            const desc    = card.dataset.dishDesc;
-            const qty     = card.dataset.dishQty;
-            const img     = card.dataset.dishImg;
-            const isVeg   = card.dataset.dishIsveg === 'true';
-            const isNonVeg= card.dataset.dishIsnonveg === 'true';
-
-            document.getElementById('ddm-name').textContent  = name;
-            document.getElementById('ddm-desc').textContent  = desc || '';
-            document.getElementById('ddm-desc').style.display = desc ? '' : 'none';
-            document.getElementById('ddm-qty').textContent   = qty || '';
-            document.getElementById('ddm-qty').style.display = qty ? '' : 'none';
-            document.getElementById('ddm-price').textContent = '₹' + price.toFixed(2);
-
-            const imgWrap = document.getElementById('ddm-image-wrap');
-            // Reset wrap to original state (in case previous onerror replaced it)
-            if (!document.getElementById('ddm-image')) {
-                imgWrap.innerHTML = '<img id="ddm-image" src="" alt="" class="dish-detail-img">';
-            }
-            const imgEl = document.getElementById('ddm-image');
-            if (img) {
-                imgEl.src = img;
-                imgEl.alt = name;
-                imgEl.onerror = function() {
-                    imgWrap.innerHTML = '<div class="dish-detail-img-placeholder"><i class="fas fa-image"></i></div>';
-                };
-                imgWrap.style.display = '';
-            } else {
-                imgWrap.style.display = 'none';
-            }
-
-            const vegIcon = document.getElementById('ddm-veg-icon');
-            if (isVeg)    vegIcon.innerHTML = '<span class="item-tag veg">🟢 Veg</span>';
-            else if (isNonVeg) vegIcon.innerHTML = '<span class="item-tag non-veg">🔴 Non-veg</span>';
-            else          vegIcon.innerHTML = '';
-
-            // Build action button (add or qty controls)
-            const cartItem = cart.find(c => c.name === name);
-            const cartQty  = cartItem ? cartItem.quantity : 0;
-            const escapedName = name.replace(/'/g, "\\'");
-            const actionEl = document.getElementById('ddm-action');
-            if (cartQty > 0) {
-                actionEl.innerHTML = `
-                    <div class="quantity-controls">
-                        <button class="qty-btn minus" onclick="updateQuantity('${escapedName}', -1); refreshDDMAction('${escapedName}')">−</button>
-                        <span class="qty-value">${cartQty}</span>
-                        <button class="qty-btn plus" onclick="updateQuantity('${escapedName}', 1); refreshDDMAction('${escapedName}')">+</button>
-                    </div>`;
-            } else {
-                actionEl.innerHTML = `
-                    <button class="add-btn ddm-add-btn" onclick="addToCart(${id}, '${escapedName}', ${price}); refreshDDMAction('${escapedName}')">
-                        <i class="fas fa-plus"></i> Add
-                    </button>`;
-            }
-
-            const modal = document.getElementById('dish-detail-modal');
-            modal.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function refreshDDMAction(name) {
-            const cartItem = cart.find(c => c.name === name);
-            const cartQty  = cartItem ? cartItem.quantity : 0;
-            const escapedName = name.replace(/'/g, "\\'");
-            const actionEl = document.getElementById('ddm-action');
-            // find dish id & price from menuData
-            let dishId = 0, dishPrice = 0;
-            if (menuData) {
-                for (const cat of menuData) {
-                    const d = cat.dishes.find(x => x.name === name);
-                    if (d) { dishId = d.id; dishPrice = d.price; break; }
-                }
-            }
-            if (cartQty > 0) {
-                actionEl.innerHTML = `
-                    <div class="quantity-controls">
-                        <button class="qty-btn minus" onclick="updateQuantity('${escapedName}', -1); refreshDDMAction('${escapedName}')">−</button>
-                        <span class="qty-value">${cartQty}</span>
-                        <button class="qty-btn plus" onclick="updateQuantity('${escapedName}', 1); refreshDDMAction('${escapedName}')">+</button>
-                    </div>`;
-            } else {
-                actionEl.innerHTML = `
-                    <button class="add-btn ddm-add-btn" onclick="addToCart(${dishId}, '${escapedName}', ${dishPrice}); refreshDDMAction('${escapedName}')">
-                        <i class="fas fa-plus"></i> Add
-                    </button>`;
-            }
-        }
-
-        function closeDishDetailModal() {
-            document.getElementById('dish-detail-modal').classList.remove('show');
-            document.body.style.overflow = '';
-        }
-
-        function closeDishDetailOnBackdrop(e) {
-            if (e.target === document.getElementById('dish-detail-modal')) {
-                closeDishDetailModal();
-            }
-        }
-        // ── End Dish Detail Modal ──────────────────────────────────────
-
     </script>
 </body>
 </html>

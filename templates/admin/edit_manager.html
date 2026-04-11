@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Manager - VisiScure Order Admin</title>
-    <!-- Favicon -->
     <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
     <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
@@ -20,34 +19,25 @@
         <nav class="sidebar-menu">
             <div class="menu-label">Main Menu</div>
             <a href="{{ url_for('admin.dashboard') }}" class="menu-item">
-                <i class="fas fa-chart-pie"></i>
-                <span>Dashboard</span>
+                <i class="fas fa-chart-pie"></i><span>Dashboard</span>
             </a>
-            
             <div class="menu-label">Restaurant Management</div>
             <a href="{{ url_for('admin.create_hotel') }}" class="menu-item">
-                <i class="fas fa-plus-circle"></i>
-                <span>Create Hotel</span>
+                <i class="fas fa-plus-circle"></i><span>Create Hotel</span>
             </a>
             <a href="{{ url_for('admin.all_hotels') }}" class="menu-item">
-                <i class="fas fa-building"></i>
-                <span>All Hotels</span>
+                <i class="fas fa-building"></i><span>All Hotels</span>
             </a>
-            
             <div class="menu-label">Manager Management</div>
             <a href="{{ url_for('admin.add_manager') }}" class="menu-item">
-                <i class="fas fa-user-plus"></i>
-                <span>Add Manager</span>
+                <i class="fas fa-user-plus"></i><span>Add Manager</span>
             </a>
             <a href="{{ url_for('admin.all_managers') }}" class="menu-item active">
-                <i class="fas fa-users"></i>
-                <span>All Managers</span>
+                <i class="fas fa-users"></i><span>All Managers</span>
             </a>
-            
             <div class="menu-label">Settings</div>
             <a href="{{ url_for('admin.account_settings') }}" class="menu-item">
-                <i class="fas fa-cog"></i>
-                <span>Account Settings</span>
+                <i class="fas fa-cog"></i><span>Account Settings</span>
             </a>
         </nav>
     </aside>
@@ -103,30 +93,84 @@
         {% endwith %}
 
         <div class="form-container">
-            <form method="POST">
+            {# manager tuple: (0:id, 1:name, 2:phone, 3:email, 4:username) #}
+            <form method="POST" id="edit-manager-form" onsubmit="return validateEditForm(event)" novalidate>
+
+                <!-- Full Name -->
                 <div class="form-group">
-                    <label for="name"><i class="fas fa-user" style="margin-right: 0.5rem; color: var(--primary);"></i>Full Name</label>
-                    <input type="text" id="name" name="name" value="{{ manager[1] }}" required>
+                    <label for="name">
+                        <i class="fas fa-user" style="margin-right: 0.5rem; color: var(--primary);"></i>Full Name <span style="color: var(--danger);">*</span>
+                    </label>
+                    <input type="text" id="name" name="name" required
+                           value="{{ manager[1] if manager else '' }}">
+                    <div class="field-error" id="name-error" style="display:none; color: var(--danger); font-size: 0.8rem; margin-top: 0.25rem;">
+                        <i class="fas fa-exclamation-circle"></i> Full name is required.
+                    </div>
                 </div>
-                
+
+                <!-- Phone Number -->
                 <div class="form-group">
-                    <label for="email"><i class="fas fa-envelope" style="margin-right: 0.5rem; color: var(--primary);"></i>Email Address</label>
-                    <input type="email" id="email" name="email" value="{{ manager[2] }}" required style="text-transform: lowercase;" oninput="this.value = this.value.toLowerCase()">
+                    <label for="phone">
+                        <i class="fas fa-phone" style="margin-right: 0.5rem; color: var(--primary);"></i>Phone Number <span style="color: var(--danger);">*</span>
+                    </label>
+                    <input type="tel" id="phone" name="phone" required
+                           placeholder="Enter 10-digit phone number" maxlength="15"
+                           value="{{ manager[2] if manager else '' }}">
+                    <div class="field-error" id="phone-error" style="display:none; color: var(--danger); font-size: 0.8rem; margin-top: 0.25rem;">
+                        <i class="fas fa-exclamation-circle"></i> <span id="phone-error-msg">Valid phone number is required.</span>
+                    </div>
                 </div>
-                
+
+                <!-- Email Address (Optional) -->
                 <div class="form-group">
-                    <label for="username"><i class="fas fa-at" style="margin-right: 0.5rem; color: var(--primary);"></i>Username</label>
-                    <input type="text" id="username" name="username" value="{{ manager[3] }}" required>
+                    <label for="email">
+                        <i class="fas fa-envelope" style="margin-right: 0.5rem; color: var(--primary);"></i>Email Address
+                        <span style="color: var(--gray); font-size: 0.8rem; font-weight: 400;">(Optional)</span>
+                    </label>
+                    <input type="email" id="email" name="email"
+                           placeholder="Enter email address (optional)"
+                           style="text-transform: lowercase;" oninput="this.value = this.value.toLowerCase()"
+                           value="{{ manager[3] if manager and manager[3] else '' }}">
+                    <div class="field-error" id="email-error" style="display:none; color: var(--danger); font-size: 0.8rem; margin-top: 0.25rem;">
+                        <i class="fas fa-exclamation-circle"></i> Please enter a valid email address.
+                    </div>
                 </div>
-                
+
+                <!-- Username -->
                 <div class="form-group">
-                    <label for="password"><i class="fas fa-lock" style="margin-right: 0.5rem; color: var(--primary);"></i>Password</label>
-                    <input type="password" id="password" name="password" placeholder="Leave blank to keep current password">
-                    <small>Leave blank to keep the current password</small>
+                    <label for="username">
+                        <i class="fas fa-at" style="margin-right: 0.5rem; color: var(--primary);"></i>Username <span style="color: var(--danger);">*</span>
+                    </label>
+                    <input type="text" id="username" name="username" required
+                           value="{{ manager[4] if manager else '' }}">
+                    <div class="field-error" id="username-error" style="display:none; color: var(--danger); font-size: 0.8rem; margin-top: 0.25rem;">
+                        <i class="fas fa-exclamation-circle"></i> Username is required.
+                    </div>
                 </div>
-                
+
+                <!-- Password -->
                 <div class="form-group">
-                    <label for="hotel_id"><i class="fas fa-hotel" style="margin-right: 0.5rem; color: var(--primary);"></i>Assigned Hotel</label>
+                    <label for="password">
+                        <i class="fas fa-lock" style="margin-right: 0.5rem; color: var(--primary);"></i>Password
+                        <span style="color: var(--gray); font-size: 0.8rem; font-weight: 400;">(Optional)</span>
+                    </label>
+                    <div style="position: relative;">
+                        <input type="password" id="password" name="password"
+                               placeholder="Leave blank to keep current password"
+                               style="padding-right: 2.75rem;">
+                        <button type="button" onclick="togglePassword()"
+                                style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--gray); padding: 0; line-height: 1;">
+                            <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                        </button>
+                    </div>
+                    <small style="color: var(--gray);">Leave blank to keep the current password</small>
+                </div>
+
+                <!-- Assigned Hotel -->
+                <div class="form-group">
+                    <label for="hotel_id">
+                        <i class="fas fa-hotel" style="margin-right: 0.5rem; color: var(--primary);"></i>Assigned Hotel
+                    </label>
                     {% if assigned_hotel %}
                         <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--bg-light); border-radius: var(--radius); border: 2px solid #e2e8f0;">
                             <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); display: flex; align-items: center; justify-content: center; color: white;">
@@ -170,6 +214,72 @@
                 document.getElementById('dropdownMenu').classList.remove('show');
             }
         }
+
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const icon = document.getElementById('togglePasswordIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        function showError(fieldId, show) {
+            const errEl = document.getElementById(fieldId + '-error');
+            const inputEl = document.getElementById(fieldId);
+            if (errEl) errEl.style.display = show ? 'block' : 'none';
+            if (inputEl) inputEl.style.borderColor = show ? 'var(--danger)' : '';
+        }
+
+        function validateEditForm(event) {
+            let valid = true;
+
+            // Full Name
+            const name = document.getElementById('name').value.trim();
+            showError('name', !name);
+            if (!name) valid = false;
+
+            // Phone
+            const phone = document.getElementById('phone').value.trim();
+            const phoneDigits = phone.replace(/[\s\-+]/g, '');
+            const phoneMsg = document.getElementById('phone-error-msg');
+            if (!phone) {
+                phoneMsg.textContent = 'Phone number is required.';
+                showError('phone', true);
+                valid = false;
+            } else if (!/^\d{7,15}$/.test(phoneDigits)) {
+                phoneMsg.textContent = 'Enter a valid phone number (7–15 digits).';
+                showError('phone', true);
+                valid = false;
+            } else {
+                showError('phone', false);
+            }
+
+            // Email (optional)
+            const email = document.getElementById('email').value.trim();
+            if (email && (email.indexOf('@') === -1 || email.split('@')[1].indexOf('.') === -1)) {
+                showError('email', true);
+                valid = false;
+            } else {
+                showError('email', false);
+            }
+
+            // Username
+            const username = document.getElementById('username').value.trim();
+            showError('username', !username);
+            if (!username) valid = false;
+
+            if (!valid) event.preventDefault();
+            return valid;
+        }
+
+        ['name', 'phone', 'email', 'username'].forEach(function(id) {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', function() { showError(id, false); });
+        });
     </script>
 </body>
 </html>

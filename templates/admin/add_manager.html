@@ -4,14 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Manager - VisiScure Order Admin</title>
-    
-    <!-- Favicon -->
     <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
     <link rel="shortcut icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpeg') }}">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <style>
+        .otp-row { display: flex; gap: 0.6rem; align-items: center; }
+        .otp-row input { flex: 1; }
+        .btn-otp {
+            white-space: nowrap;
+            padding: 0.55rem 1rem;
+            border-radius: 8px;
+            border: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s;
+        }
+        .btn-otp-send  { background: var(--primary); color: #fff; }
+        .btn-otp-send:hover  { filter: brightness(1.08); }
+        .btn-otp-send:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-otp-verify { background: var(--success); color: #fff; }
+        .btn-otp-verify:hover { filter: brightness(1.08); }
+        .btn-otp-verify:disabled { opacity: 0.6; cursor: not-allowed; }
+        .otp-section { margin-top: 0.6rem; display: none; }
+        .otp-status {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            font-size: 0.82rem; font-weight: 600; margin-top: 0.4rem;
+        }
+        .otp-status.verified  { color: var(--success); }
+        .otp-status.error     { color: var(--danger); }
+        .otp-status.info      { color: var(--primary); }
+        .resend-row { margin-top: 0.4rem; font-size: 0.8rem; color: var(--gray); }
+        .resend-row a { color: var(--primary); cursor: pointer; text-decoration: underline; }
+        #phone-verified-badge {
+            display: none;
+            align-items: center; gap: 0.35rem;
+            background: #ecfdf5; color: #059669;
+            border: 1px solid #6ee7b7;
+            border-radius: 6px; padding: 0.35rem 0.7rem;
+            font-size: 0.82rem; font-weight: 600; margin-top: 0.5rem;
+        }
+    </style>
 </head>
 <body>
     <!-- Sidebar -->
@@ -22,34 +60,25 @@
         <nav class="sidebar-menu">
             <div class="menu-label">Main Menu</div>
             <a href="{{ url_for('admin.dashboard') }}" class="menu-item">
-                <i class="fas fa-chart-pie"></i>
-                <span>Dashboard</span>
+                <i class="fas fa-chart-pie"></i><span>Dashboard</span>
             </a>
-            
             <div class="menu-label">Restaurant Management</div>
             <a href="{{ url_for('admin.create_hotel') }}" class="menu-item">
-                <i class="fas fa-plus-circle"></i>
-                <span>Create Hotel</span>
+                <i class="fas fa-plus-circle"></i><span>Create Hotel</span>
             </a>
             <a href="{{ url_for('admin.all_hotels') }}" class="menu-item">
-                <i class="fas fa-building"></i>
-                <span>All Hotels</span>
+                <i class="fas fa-building"></i><span>All Hotels</span>
             </a>
-            
             <div class="menu-label">Manager Management</div>
             <a href="{{ url_for('admin.add_manager') }}" class="menu-item active">
-                <i class="fas fa-user-plus"></i>
-                <span>Add Manager</span>
+                <i class="fas fa-user-plus"></i><span>Add Manager</span>
             </a>
             <a href="{{ url_for('admin.all_managers') }}" class="menu-item">
-                <i class="fas fa-users"></i>
-                <span>All Managers</span>
+                <i class="fas fa-users"></i><span>All Managers</span>
             </a>
-            
             <div class="menu-label">Settings</div>
             <a href="{{ url_for('admin.account_settings') }}" class="menu-item">
-                <i class="fas fa-cog"></i>
-                <span>Account Settings</span>
+                <i class="fas fa-cog"></i><span>Account Settings</span>
             </a>
         </nav>
     </aside>
@@ -105,85 +134,346 @@
         {% endwith %}
 
         <div class="form-container full">
-            <form method="POST" id="add-manager-form" onsubmit="return validateManagerForm(event)">
+            <form method="POST" id="add-manager-form" onsubmit="return validateManagerForm(event)" novalidate>
+
+                <!-- Full Name -->
                 <div class="form-group">
-                    <label for="name"><i class="fas fa-user" style="margin-right: 0.5rem; color: var(--primary);"></i>Full Name</label>
-                    <input type="text" id="name" name="name" required placeholder="Enter manager's full name">
+                    <label for="name">
+                        <i class="fas fa-user" style="margin-right:0.5rem;color:var(--primary);"></i>Full Name <span style="color:var(--danger);">*</span>
+                    </label>
+                    <input type="text" id="name" name="name" required placeholder="Enter manager's full name"
+                           value="{{ request.form.get('name', '') }}">
+                    <div class="field-error" id="name-error" style="display:none;color:var(--danger);font-size:0.8rem;margin-top:0.25rem;">
+                        <i class="fas fa-exclamation-circle"></i> Full name is required.
+                    </div>
                 </div>
-                
+
+                <!-- Phone Number + OTP -->
                 <div class="form-group">
-                    <label for="email"><i class="fas fa-envelope" style="margin-right: 0.5rem; color: var(--primary);"></i>Email Address</label>
-                    <input type="email" id="email" name="email" required placeholder="Enter email address" style="text-transform: lowercase;" oninput="this.value = this.value.toLowerCase()">
+                    <label for="phone">
+                        <i class="fas fa-phone" style="margin-right:0.5rem;color:var(--primary);"></i>Phone Number <span style="color:var(--danger);">*</span>
+                    </label>
+                    <div class="otp-row">
+                        <input type="tel" id="phone" name="phone" required placeholder="Enter 10-digit phone number"
+                               maxlength="15" value="{{ request.form.get('phone', '') }}"
+                               oninput="onPhoneInput()">
+                        <button type="button" class="btn-otp btn-otp-send" id="send-otp-btn" onclick="sendOTP()">
+                            <i class="fas fa-paper-plane"></i> Send OTP
+                        </button>
+                    </div>
+                    <div class="field-error" id="phone-error" style="display:none;color:var(--danger);font-size:0.8rem;margin-top:0.25rem;">
+                        <i class="fas fa-exclamation-circle"></i> <span id="phone-error-msg">Valid phone number is required.</span>
+                    </div>
+
+                    <!-- OTP input section (shown after OTP sent) -->
+                    <div class="otp-section" id="otp-section">
+                        <div class="otp-row">
+                            <input type="text" id="otp-input" placeholder="Enter 6-digit OTP"
+                                   maxlength="6" inputmode="numeric" autocomplete="one-time-code"
+                                   style="letter-spacing:0.2rem;font-weight:700;font-size:1.05rem;">
+                            <button type="button" class="btn-otp btn-otp-verify" id="verify-otp-btn" onclick="verifyOTP()">
+                                <i class="fas fa-shield-alt"></i> Verify OTP
+                            </button>
+                        </div>
+                        <div class="resend-row" id="resend-row" style="display:none;">
+                            Didn't receive it? <a onclick="resendOTP()">Resend OTP</a>
+                            <span id="resend-timer"></span>
+                        </div>
+                    </div>
+
+                    <!-- Verified badge -->
+                    <div id="phone-verified-badge">
+                        <i class="fas fa-check-circle"></i> Phone Verified
+                    </div>
+
+                    <!-- OTP status message -->
+                    <div class="otp-status" id="otp-status" style="display:none;"></div>
                 </div>
-                
+
+                <!-- Email Address (Optional) -->
                 <div class="form-group">
-                    <label for="username"><i class="fas fa-at" style="margin-right: 0.5rem; color: var(--primary);"></i>Username</label>
-                    <input type="text" id="username" name="username" required placeholder="Choose a username">
+                    <label for="email">
+                        <i class="fas fa-envelope" style="margin-right:0.5rem;color:var(--primary);"></i>Email Address
+                        <span style="color:var(--gray);font-size:0.8rem;font-weight:400;">(Optional)</span>
+                    </label>
+                    <input type="email" id="email" name="email" placeholder="Enter email address (optional)"
+                           style="text-transform:lowercase;" oninput="this.value=this.value.toLowerCase()"
+                           value="{{ request.form.get('email', '') }}">
+                    <div class="field-error" id="email-error" style="display:none;color:var(--danger);font-size:0.8rem;margin-top:0.25rem;">
+                        <i class="fas fa-exclamation-circle"></i> Please enter a valid email address.
+                    </div>
                 </div>
-                
+
+                <!-- Username -->
                 <div class="form-group">
-                    <label for="password"><i class="fas fa-lock" style="margin-right: 0.5rem; color: var(--primary);"></i>Password</label>
-                    <div style="position: relative;">
-                        <input type="password" id="password" name="password" required placeholder="Create a password" style="padding-right: 2.5rem;">
-                        <button type="button" onclick="togglePassword()" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--gray); padding: 0;">
+                    <label for="username">
+                        <i class="fas fa-at" style="margin-right:0.5rem;color:var(--primary);"></i>Username <span style="color:var(--danger);">*</span>
+                    </label>
+                    <input type="text" id="username" name="username" required placeholder="Choose a username"
+                           value="{{ request.form.get('username', '') }}">
+                    <div class="field-error" id="username-error" style="display:none;color:var(--danger);font-size:0.8rem;margin-top:0.25rem;">
+                        <i class="fas fa-exclamation-circle"></i> Username is required.
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-lock" style="margin-right:0.5rem;color:var(--primary);"></i>Password <span style="color:var(--danger);">*</span>
+                    </label>
+                    <div style="position:relative;">
+                        <input type="password" id="password" name="password" required placeholder="Create a password"
+                               style="padding-right:2.75rem;">
+                        <button type="button" onclick="togglePassword()"
+                                style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray);padding:0;line-height:1;">
                             <i class="fas fa-eye" id="togglePasswordIcon"></i>
                         </button>
                     </div>
+                    <div class="field-error" id="password-error" style="display:none;color:var(--danger);font-size:0.8rem;margin-top:0.25rem;">
+                        <i class="fas fa-exclamation-circle"></i> Password is required.
+                    </div>
                 </div>
-                
+
+                <!-- Assign Hotel -->
                 <div class="form-group">
-                    <label for="hotel_id"><i class="fas fa-hotel" style="margin-right: 0.5rem; color: var(--primary);"></i>Assign Hotel</label>
-                    <select id="hotel_id" name="hotel_id" required>
+                    <label for="hotel_id">
+                        <i class="fas fa-hotel" style="margin-right:0.5rem;color:var(--primary);"></i>Assign Hotel
+                    </label>
+                    <select id="hotel_id" name="hotel_id">
                         <option value="">-- Select a Hotel --</option>
                         {% for h in hotels %}
-                        <option value="{{ h[0] }}">{{ h[1] }}</option>
+                        <option value="{{ h[0] }}" {% if request.form.get('hotel_id') == h[0]|string %}selected{% endif %}>{{ h[1] }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                    <button type="submit" class="btn btn-primary btn-large" id="add-manager-submit-btn">
+                <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+                    <button type="submit" class="btn btn-primary btn-large" id="add-manager-submit-btn" disabled>
                         <i class="fas fa-user-plus"></i> Add Manager
                     </button>
                     <a href="{{ url_for('admin.all_managers') }}" class="btn btn-secondary btn-large">
                         Cancel
                     </a>
                 </div>
+                <p style="font-size:0.8rem;color:var(--gray);margin-top:0.5rem;">
+                    <i class="fas fa-info-circle"></i> Phone number must be verified via OTP to enable the Add Manager button.
+                </p>
             </form>
         </div>
     </main>
 
     <script>
+        // ── Dropdown ──────────────────────────────────────────────────────────
         function toggleDropdown() {
             document.getElementById('dropdownMenu').classList.toggle('show');
         }
-        window.onclick = function(event) {
-            if (!event.target.closest('.profile-dropdown')) {
+        window.onclick = function(e) {
+            if (!e.target.closest('.profile-dropdown'))
                 document.getElementById('dropdownMenu').classList.remove('show');
-            }
-        }
-        
+        };
+
+        // ── Password toggle ───────────────────────────────────────────────────
         function togglePassword() {
-            const input = document.getElementById('password');
-            const icon = document.getElementById('togglePasswordIcon');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
+            const inp = document.getElementById('password');
+            const ico = document.getElementById('togglePasswordIcon');
+            inp.type = inp.type === 'password' ? 'text' : 'password';
+            ico.classList.toggle('fa-eye');
+            ico.classList.toggle('fa-eye-slash');
+        }
+
+        // ── Error helpers ─────────────────────────────────────────────────────
+        function showError(id, show, msg) {
+            const err = document.getElementById(id + '-error');
+            const inp = document.getElementById(id);
+            if (err) err.style.display = show ? 'block' : 'none';
+            if (inp) inp.style.borderColor = show ? 'var(--danger)' : '';
+            if (msg && err) {
+                const sp = err.querySelector('span') || err;
+                sp.textContent = msg;
             }
         }
-        
-        // Form validation on submit - ensure email is lowercase
-        function validateManagerForm(event) {
-            const email = document.getElementById('email');
-            // Force email to lowercase
-            email.value = email.value.toLowerCase();
-            return true;
+
+        // ── OTP state ─────────────────────────────────────────────────────────
+        let phoneVerified = false;
+        let resendTimer   = null;
+
+        function getPhoneDigits() {
+            return document.getElementById('phone').value.trim().replace(/[\s\-+]/g, '');
         }
+
+        function setOtpStatus(msg, type) {
+            const el = document.getElementById('otp-status');
+            el.style.display = msg ? 'inline-flex' : 'none';
+            el.className = 'otp-status ' + (type || 'info');
+            const icons = { verified: 'fa-check-circle', error: 'fa-times-circle', info: 'fa-info-circle' };
+            el.innerHTML = `<i class="fas ${icons[type] || 'fa-info-circle'}"></i> ${msg}`;
+        }
+
+        function onPhoneInput() {
+            // If phone changes after verification, reset
+            if (phoneVerified) {
+                phoneVerified = false;
+                document.getElementById('phone-verified-badge').style.display = 'none';
+                document.getElementById('add-manager-submit-btn').disabled = true;
+                document.getElementById('otp-section').style.display = 'none';
+                setOtpStatus('', '');
+            }
+            showError('phone', false);
+        }
+
+        function sendOTP() {
+            const digits = getPhoneDigits();
+            if (!digits || !/^\d{10}$/.test(digits)) {
+                showError('phone', true);
+                document.getElementById('phone-error-msg').textContent = 'Enter a valid 10-digit phone number before sending OTP.';
+                return;
+            }
+
+            const btn = document.getElementById('send-otp-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
+
+            fetch('{{ url_for("admin.send_manager_otp") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: digits })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Resend OTP';
+                btn.disabled = false;
+                if (data.success) {
+                    document.getElementById('otp-section').style.display = 'block';
+                    document.getElementById('otp-input').value = '';
+                    setOtpStatus('OTP sent to your phone via SMS!', 'info');
+                    startResendTimer(30);
+                } else {
+                    setOtpStatus(data.message || 'Failed to send OTP.', 'error');
+                }
+            })
+            .catch(() => {
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP';
+                btn.disabled = false;
+                setOtpStatus('Network error. Please try again.', 'error');
+            });
+        }
+
+        function verifyOTP() {
+            const digits  = getPhoneDigits();
+            const otp     = document.getElementById('otp-input').value.trim();
+            const btn     = document.getElementById('verify-otp-btn');
+
+            if (!otp || otp.length < 4) {
+                setOtpStatus('Please enter the OTP.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying…';
+
+            fetch('{{ url_for("admin.verify_manager_otp") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: digits, otp: otp })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-shield-alt"></i> Verify OTP';
+                if (data.success) {
+                    phoneVerified = true;
+                    setOtpStatus('', '');
+                    document.getElementById('otp-section').style.display = 'none';
+                    document.getElementById('phone-verified-badge').style.display = 'inline-flex';
+                    document.getElementById('add-manager-submit-btn').disabled = false;
+                    document.getElementById('send-otp-btn').style.display = 'none';
+                    clearInterval(resendTimer);
+                } else {
+                    setOtpStatus(data.message || 'Incorrect OTP.', 'error');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-shield-alt"></i> Verify OTP';
+                setOtpStatus('Network error. Please try again.', 'error');
+            });
+        }
+
+        function resendOTP() {
+            clearInterval(resendTimer);
+            document.getElementById('resend-row').style.display = 'none';
+            sendOTP();
+        }
+
+        function startResendTimer(seconds) {
+            const row   = document.getElementById('resend-row');
+            const timer = document.getElementById('resend-timer');
+            let remaining = seconds;
+            row.style.display = 'none';
+            timer.textContent = '';
+
+            resendTimer = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(resendTimer);
+                    row.style.display = 'block';
+                    timer.textContent = '';
+                } else {
+                    timer.textContent = ` (${remaining}s)`;
+                }
+            }, 1000);
+        }
+
+        // ── Form validation ───────────────────────────────────────────────────
+        function validateManagerForm(event) {
+            let valid = true;
+
+            const name = document.getElementById('name').value.trim();
+            showError('name', !name);
+            if (!name) valid = false;
+
+            const digits = getPhoneDigits();
+            if (!digits || !/^\d{10}$/.test(digits)) {
+                document.getElementById('phone-error-msg').textContent = 'Valid 10-digit phone number is required.';
+                showError('phone', true);
+                valid = false;
+            } else if (!phoneVerified) {
+                document.getElementById('phone-error-msg').textContent = 'Please verify your phone number via OTP.';
+                showError('phone', true);
+                valid = false;
+            } else {
+                showError('phone', false);
+            }
+
+            const email = document.getElementById('email').value.trim();
+            if (email && (email.indexOf('@') === -1 || email.split('@')[1].indexOf('.') === -1)) {
+                showError('email', true);
+                valid = false;
+            } else {
+                showError('email', false);
+            }
+
+            const username = document.getElementById('username').value.trim();
+            showError('username', !username);
+            if (!username) valid = false;
+
+            const password = document.getElementById('password').value;
+            showError('password', !password);
+            if (!password) valid = false;
+
+            if (!valid) event.preventDefault();
+            return valid;
+        }
+
+        ['name', 'email', 'username', 'password'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', () => showError(id, false));
+        });
+
+        // Allow Enter key in OTP input to trigger verify
+        document.getElementById('otp-input').addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); verifyOTP(); }
+        });
     </script>
 </body>
 </html>

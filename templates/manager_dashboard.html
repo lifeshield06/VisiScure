@@ -5928,6 +5928,19 @@
                 transform: scale(0.97) !important;
                 box-shadow: 0 1px 4px rgba(239, 68, 68, 0.3) !important;
             }
+
+            /* Dish status toggle buttons */
+            .btn-status {
+                display: inline-flex; align-items: center; gap: 0.3rem;
+                padding: 0.28rem 0.7rem; border-radius: 20px; border: none;
+                font-size: 0.75rem; font-weight: 700; cursor: pointer;
+                transition: opacity 0.2s, transform 0.15s; white-space: nowrap;
+            }
+            .btn-status:active { transform: scale(0.95); }
+            .btn-status-active  { background: #dcfce7; color: #15803d; }
+            .btn-status-active:hover  { background: #bbf7d0; }
+            .btn-status-inactive { background: #fee2e2; color: #b91c1c; }
+            .btn-status-inactive:hover { background: #fecaca; }
             
             .status-badge.active {
                 background: #d1fae5 !important;
@@ -7474,8 +7487,29 @@
                             </div>
                             
                             <div class="form-group">
+                                <label for="dish-price-type">Pricing Type</label>
+                                <select id="dish-price-type" name="price_type" class="form-select" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; background-color: white;" onchange="toggleDishPriceInputs()">
+                                    <option value="single">Single</option>
+                                    <option value="half_full">Half & Full</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="single-price-group">
                                 <label for="dish-price">Price (₹) *</label>
-                                <input type="number" id="dish-price" name="price" step="0.01" min="0.01" required>
+                                <input type="number" id="dish-price" name="price" step="0.01" min="0.01">
+                            </div>
+
+                            <div id="half-full-price-group" style="display: none;">
+                                <div style="display: flex; gap: 1rem;">
+                                    <div class="form-group" style="flex: 1;">
+                                        <label for="dish-half-price">Half Price (₹) *</label>
+                                        <input type="number" id="dish-half-price" name="half_price" step="0.01" min="0.01">
+                                    </div>
+                                    <div class="form-group" style="flex: 1;">
+                                        <label for="dish-full-price">Full Price (₹) *</label>
+                                        <input type="number" id="dish-full-price" name="full_price" step="0.01" min="0.01">
+                                    </div>
+                                </div>
                             </div>
                             
                             <div style="display: flex; gap: 1rem;">
@@ -7486,6 +7520,60 @@
                                 <div class="form-group" style="flex: 1;">
                                     <label for="dish-sgst">SGST %</label>
                                     <input type="number" id="dish-sgst" name="sgst" step="0.1" min="0" max="100" value="0" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                                </div>
+                            </div>
+                            
+                            <!-- Offer Settings Section -->
+                            <div style="padding: 1.5rem; background: #f0fdf4; border-radius: 12px; border: 2px solid #86efac; margin-bottom: 1.5rem;">
+                                <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                                    <input type="checkbox" id="is-offer-active" name="is_offer_active" style="width: 20px; height: 20px; cursor: pointer; accent-color: #10b981;">
+                                    <label for="is-offer-active" style="margin-left: 0.5rem; font-weight: 600; cursor: pointer; color: #059669;">Enable Offer / Discount</label>
+                                </div>
+                                
+                                <!-- Offer Details (Hidden by default) -->
+                                <div id="offer-details" style="display: none; gap: 1rem;">
+                                    <div class="form-group">
+                                        <label style="margin-bottom: 0.5rem; display: block;">Apply Offer To *</label>
+                                        <div style="display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;">
+                                            <label style="display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                                                <input type="radio" name="offer_applies_to" value="full">
+                                                <span>Full</span>
+                                            </label>
+                                            <label style="display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                                                <input type="radio" name="offer_applies_to" value="half">
+                                                <span>Half</span>
+                                            </label>
+                                            <label style="display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                                                <input type="radio" name="offer_applies_to" value="both" checked>
+                                                <span>Both</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; gap: 1rem;">
+                                        <div class="form-group" style="flex: 1;">
+                                            <label for="offer-price">Offer Price (₹)</label>
+                                            <input type="number" id="offer-price" name="offer_price" step="0.01" min="0" placeholder="Leave empty if using discount %" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                                        </div>
+                                        <div class="form-group" style="flex: 1;">
+                                            <label for="discount-percent">Discount %</label>
+                                            <input type="number" id="discount-percent" name="discount_percent" step="0.01" min="0" max="100" placeholder="Leave empty if using offer price" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="display: flex; gap: 1rem;">
+                                        <div class="form-group" style="flex: 1;">
+                                            <label for="offer-start">Start Date & Time *</label>
+                                            <input type="datetime-local" id="offer-start" name="offer_start" required style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                                        </div>
+                                        <div class="form-group" style="flex: 1;">
+                                            <label for="offer-end">End Date & Time *</label>
+                                            <input type="datetime-local" id="offer-end" name="offer_end" required style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                                        </div>
+                                    </div>
+                                    <small style="color: #059669; display: block;">
+                                        📅 Offer will automatically activate at start time and deactivate at end time
+                                    </small>
                                 </div>
                             </div>
                             
@@ -7525,6 +7613,13 @@
                             <div class="form-group">
                                 <label for="category-name">Category Name *</label>
                                 <input type="text" id="category-name" name="name" required placeholder="e.g., Beverages, Appetizers">
+                            </div>
+                            <div class="form-group">
+                                <label for="category-food-type">Food Type *</label>
+                                <select id="category-food-type" name="food_type" required>
+                                    <option value="veg">Veg</option>
+                                    <option value="nonveg">Non-Veg</option>
+                                </select>
                             </div>
                             
                             <div class="modal-actions">
@@ -7615,6 +7710,26 @@
                                 <div class="form-group">
                                     <label for="special-price">Price (₹) <span class="required">*</span></label>
                                     <input type="number" id="special-price" step="0.01" min="0.01" required placeholder="Enter price">
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="special-offer-type">Offer Type</label>
+                                            <select id="special-offer-type" class="form-control">
+                                                <option value="">No Offer</option>
+                                                <option value="percentage">Percentage (%)</option>
+                                                <option value="flat">Flat Price (₹ OFF)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="special-offer-value">Offer Value</label>
+                                            <input type="number" id="special-offer-value" class="form-control" step="0.01" min="0" placeholder="e.g. 10 or 50">
+                                            <small class="text-muted">For Flat: enter ₹ amount to reduce</small>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="row g-3">
@@ -8716,6 +8831,7 @@
 
         const managerActivitiesApiUrl = {{ url_for('hotel_manager.get_recent_activities') | tojson }};
         const managerAllActivitiesApiUrl = {{ url_for('hotel_manager.get_all_activities') | tojson }};
+        const toggleDishStatusApiUrl = {{ url_for('menu.toggle_dish_status') | tojson }};
         let isFetchingManagerActivities = false;
 
         async function fetchJsonSafe(url) {
@@ -9882,6 +9998,7 @@
         let currentCategoryId = 1;
         let isEditMode = false;
         let menuCategories = {1: 'Starters', 2: 'Main Course', 3: 'Desserts'};
+        let menuCategoryFoodTypes = {};
         let menuKitchens = [];
         let currentImageIndex = 0;
         let currentImages = [];
@@ -9930,6 +10047,12 @@
                 .then(data => {
                     if (data.success) {
                         menuCategories = data.categories;
+                        menuCategoryFoodTypes = {};
+                        if (data.category_meta) {
+                            Object.entries(data.category_meta).forEach(([id, meta]) => {
+                                menuCategoryFoodTypes[parseInt(id)] = (meta.food_type || 'veg').toLowerCase();
+                            });
+                        }
                         updateMenuCategoryTabs();
                     }
                 })
@@ -10045,9 +10168,15 @@
                         <div class="dish-name">${escapeMenuHtml(dish.name)}</div>
                         <div class="dish-desc">${escapeMenuHtml(dish.description || 'No description')}</div>
                     </td>
-                    <td class="price">₹${dish.price.toFixed(2)}</td>
+                    <td class="price">${formatDishPriceSummary(dish)}</td>
                     <td class="quantity">${escapeMenuHtml(dish.quantity)}</td>
-                    <td class="actions">
+                    <td class="actions" style="white-space:nowrap;">
+                        <label class="toggle-switch" style="margin:0 6px 0 0;vertical-align:middle;" title="${dish.is_active !== 0 ? 'Active – click to deactivate' : 'Inactive – click to activate'}">
+                            <input type="checkbox" ${dish.is_active !== 0 ? 'checked' : ''}
+                                data-dish-id="${dish.id}"
+                                onchange="toggleMenuDishStatus(this)">
+                            <span class="toggle-slider"></span>
+                        </label>
                         <button class="btn-action btn-edit" onclick="editMenuDish(${dish.id})" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -10063,6 +10192,98 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function toggleMenuDishStatus(checkbox) {
+            const dishId   = parseInt(checkbox.dataset.dishId);
+            const isActive = checkbox.checked ? 1 : 0;
+
+            fetch(toggleDishStatusApiUrl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({dish_id: dishId, is_active: isActive})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    // Revert on failure
+                    checkbox.checked = !checkbox.checked;
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(() => {
+                checkbox.checked = !checkbox.checked;
+                alert('Network error. Please try again.');
+            });
+        }
+
+        function toggleDishPriceInputs() {
+            const priceType = document.getElementById('dish-price-type')?.value || 'single';
+            const isHalfFull = priceType === 'half_full';
+            const singlePriceGroup = document.getElementById('single-price-group');
+            const halfFullPriceGroup = document.getElementById('half-full-price-group');
+            const singlePriceInput = document.getElementById('dish-price');
+            const halfPriceInput = document.getElementById('dish-half-price');
+            const fullPriceInput = document.getElementById('dish-full-price');
+
+            if (singlePriceGroup) singlePriceGroup.style.display = isHalfFull ? 'none' : 'block';
+            if (halfFullPriceGroup) halfFullPriceGroup.style.display = isHalfFull ? 'block' : 'none';
+
+            if (singlePriceInput) {
+                singlePriceInput.disabled = isHalfFull;
+                singlePriceInput.required = !isHalfFull;
+            }
+            if (halfPriceInput) {
+                halfPriceInput.disabled = !isHalfFull;
+                halfPriceInput.required = isHalfFull;
+            }
+            if (fullPriceInput) {
+                fullPriceInput.disabled = !isHalfFull;
+                fullPriceInput.required = isHalfFull;
+            }
+        }
+
+        function toggleOfferInputs() {
+            const isOfferActive = document.getElementById('is-offer-active')?.checked || false;
+            const offerDetails = document.getElementById('offer-details');
+            const offerStartInput = document.getElementById('offer-start');
+            const offerEndInput = document.getElementById('offer-end');
+            const offerAppliesToInputs = document.querySelectorAll('input[name="offer_applies_to"]');
+
+            if (offerDetails) offerDetails.style.display = isOfferActive ? 'block' : 'none';
+            if (offerStartInput) offerStartInput.required = isOfferActive;
+            if (offerEndInput) offerEndInput.required = isOfferActive;
+            offerAppliesToInputs.forEach(input => {
+                input.required = isOfferActive;
+            });
+
+            if (isOfferActive) {
+                const anySelected = Array.from(offerAppliesToInputs).some(input => input.checked);
+                if (!anySelected) {
+                    const bothOption = document.querySelector('input[name="offer_applies_to"][value="both"]');
+                    if (bothOption) bothOption.checked = true;
+                }
+            }
+        }
+
+        function toDateTimeLocalValue(value) {
+            if (!value) return '';
+            try {
+                const normalized = String(value).replace(' ', 'T');
+                return normalized.slice(0, 16);
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function formatDishPriceSummary(dish) {
+            if (!dish) return '-';
+            if ((dish.price_type || 'single') === 'half_full') {
+                const halfPrice = Number(dish.half_price ?? 0).toFixed(2);
+                const fullPrice = Number(dish.full_price ?? dish.price ?? 0).toFixed(2);
+                return `Half - ₹${halfPrice} | Full - ₹${fullPrice}`;
+            }
+            return `₹${Number(dish.price ?? 0).toFixed(2)}`;
         }
 
         function updateMenuCategoryTitle(categoryId) {
@@ -10083,6 +10304,21 @@
             document.getElementById('dish-kitchen').value = '';
             document.getElementById('dish-cgst').value = '0';
             document.getElementById('dish-sgst').value = '0';
+            document.getElementById('dish-price-type').value = 'single';
+            document.getElementById('dish-price').value = '';
+            document.getElementById('dish-half-price').value = '';
+            document.getElementById('dish-full-price').value = '';
+            toggleDishPriceInputs();
+            
+            // Reset offer fields
+            document.getElementById('is-offer-active').checked = false;
+            document.getElementById('offer-price').value = '';
+            document.getElementById('discount-percent').value = '';
+            document.getElementById('offer-start').value = '';
+            document.getElementById('offer-end').value = '';
+            const offerBothOption = document.querySelector('input[name="offer_applies_to"][value="both"]');
+            if (offerBothOption) offerBothOption.checked = true;
+            toggleOfferInputs();
             
             // Reset existing images info and enable file input
             const existingInfoDiv = document.getElementById('existing-images-info');
@@ -10099,15 +10335,18 @@
             document.getElementById('category-submit-btn').textContent = 'Add Category';
             document.getElementById('category-form').reset();
             document.getElementById('edit-category-id').value = '';
+            document.getElementById('category-food-type').value = 'veg';
             document.getElementById('category-modal').style.display = 'flex';
         }
 
         function editCategory() {
             const categoryName = menuCategories[currentCategoryId];
+            const categoryFoodType = menuCategoryFoodTypes[currentCategoryId] || 'veg';
             document.getElementById('category-modal-title').textContent = 'Edit Category';
             document.getElementById('category-submit-btn').textContent = 'Update Category';
             document.getElementById('edit-category-id').value = currentCategoryId;
             document.getElementById('category-name').value = categoryName;
+            document.getElementById('category-food-type').value = categoryFoodType;
             document.getElementById('category-modal').style.display = 'flex';
         }
 
@@ -10172,13 +10411,34 @@
                         const dish = data.dish;
                         document.getElementById('dish-id').value = dish.id;
                         document.getElementById('dish-name').value = dish.name;
-                        document.getElementById('dish-price').value = dish.price;
+                        document.getElementById('dish-price-type').value = dish.price_type || 'single';
+                        if ((dish.price_type || 'single') === 'half_full') {
+                            document.getElementById('dish-price').value = '';
+                            document.getElementById('dish-half-price').value = dish.half_price ?? '';
+                            document.getElementById('dish-full-price').value = dish.full_price ?? dish.price ?? '';
+                        } else {
+                            document.getElementById('dish-price').value = dish.price;
+                            document.getElementById('dish-half-price').value = '';
+                            document.getElementById('dish-full-price').value = '';
+                        }
                         document.getElementById('dish-quantity').value = dish.quantity;
                         document.getElementById('dish-description').value = dish.description || '';
                         document.getElementById('dish-kitchen').value = dish.kitchen_id || '';
                         document.getElementById('dish-cgst').value = dish.cgst != null ? dish.cgst : 0;
                         document.getElementById('dish-sgst').value = dish.sgst != null ? dish.sgst : 0;
                         document.getElementById('dish-images').removeAttribute('required');
+                        toggleDishPriceInputs();
+                        
+                        // Load offer fields
+                        document.getElementById('is-offer-active').checked = dish.is_offer_active ? true : false;
+                        document.getElementById('offer-price').value = dish.offer_price ?? '';
+                        document.getElementById('discount-percent').value = dish.discount_percent ?? '';
+                        document.getElementById('offer-start').value = toDateTimeLocalValue(dish.offer_start);
+                        document.getElementById('offer-end').value = toDateTimeLocalValue(dish.offer_end);
+                        const offerAppliesTo = (dish.offer_applies_to || 'both').toLowerCase();
+                        const selectedOfferType = document.querySelector(`input[name="offer_applies_to"][value="${offerAppliesTo}"]`) || document.querySelector('input[name="offer_applies_to"][value="both"]');
+                        if (selectedOfferType) selectedOfferType.checked = true;
+                        toggleOfferInputs();
                         
                         // Filter valid images (exclude empty strings, null, undefined) and DEDUPLICATE
                         let validImages = (dish.images || []).filter(img => img && typeof img === 'string' && img.trim() !== '');
@@ -10539,6 +10799,59 @@
                 dishForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     
+                    // Validate offer details if enabled
+                    const isOfferActive = document.getElementById('is-offer-active').checked;
+                    if (isOfferActive) {
+                        const offerPrice = document.getElementById('offer-price').value.trim();
+                        const discountPercent = document.getElementById('discount-percent').value.trim();
+                        const offerStart = document.getElementById('offer-start').value.trim();
+                        const offerEnd = document.getElementById('offer-end').value.trim();
+                        const offerAppliesTo = document.querySelector('input[name="offer_applies_to"]:checked')?.value || '';
+                        
+                        // Check if at least one of price or discount is set
+                        if (!offerPrice && !discountPercent) {
+                            showMenuAlert('Please enter either an offer price or discount percentage', 'error');
+                            return;
+                        }
+                        
+                        // Check if both dates are set
+                        if (!offerStart || !offerEnd) {
+                            showMenuAlert('Offer start and end times are required when offer is enabled', 'error');
+                            return;
+                        }
+
+                        if (!offerAppliesTo) {
+                            showMenuAlert('Please select Apply Offer To: Full, Half, or Both', 'error');
+                            return;
+                        }
+                        
+                        // Validate date range
+                        const startTime = new Date(offerStart).getTime();
+                        const endTime = new Date(offerEnd).getTime();
+                        if (startTime >= endTime) {
+                            showMenuAlert('Offer end time must be after start time', 'error');
+                            return;
+                        }
+                        
+                        // Validate discount percentage if set
+                        if (discountPercent) {
+                            const discNum = parseFloat(discountPercent);
+                            if (isNaN(discNum) || discNum < 0 || discNum > 100) {
+                                showMenuAlert('Discount percentage must be between 0 and 100', 'error');
+                                return;
+                            }
+                        }
+                        
+                        // Validate offer price if set
+                        if (offerPrice) {
+                            const priceNum = parseFloat(offerPrice);
+                            if (isNaN(priceNum) || priceNum <= 0) {
+                                showMenuAlert('Offer price must be a positive number', 'error');
+                                return;
+                            }
+                        }
+                    }
+                    
                     const formData = new FormData(this);
                     const url = isEditMode ? '/api/edit-dish' : '/api/add-dish';
                     
@@ -10572,17 +10885,28 @@
                 });
             }
 
+            // Setup offer checkbox toggle listener
+            const offerCheckbox = document.getElementById('is-offer-active');
+            if (offerCheckbox) {
+                offerCheckbox.addEventListener('change', toggleOfferInputs);
+            }
+
             const categoryForm = document.getElementById('category-form');
             if (categoryForm) {
                 categoryForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     
                     const categoryName = document.getElementById('category-name').value.trim();
+                    const categoryFoodType = document.getElementById('category-food-type').value;
                     const categoryId = document.getElementById('edit-category-id').value;
                     const isEdit = categoryId !== '';
                     
                     if (!categoryName) {
                         showMenuAlert('Category name is required', 'error');
+                        return;
+                    }
+                    if (!categoryFoodType) {
+                        showMenuAlert('Food type is required', 'error');
                         return;
                     }
                     
@@ -10593,8 +10917,8 @@
                     
                     const url = isEdit ? '/api/edit-category' : '/api/add-category';
                     const payload = isEdit ? 
-                        {name: categoryName, category_id: parseInt(categoryId)} : 
-                        {name: categoryName};
+                        {name: categoryName, food_type: categoryFoodType, category_id: parseInt(categoryId)} : 
+                        {name: categoryName, food_type: categoryFoodType};
                     
                     fetch(url, {
                         method: 'POST',
@@ -10608,6 +10932,7 @@
                             closeCategoryModal();
                             
                             menuCategories[data.category.id] = data.category.name;
+                            menuCategoryFoodTypes[data.category.id] = (data.category.food_type || 'veg').toLowerCase();
                             updateMenuCategoryTabs();
                             
                             if (isEdit) {
@@ -12927,20 +13252,15 @@
             document.getElementById('special-today-date').textContent = today.toLocaleDateString('en-US', options);
 
             // Fetch all today's specials
-            const specialsUrl = '/hotel-manager/api/daily-special' + (hotelId ? '?hotel_id=' + hotelId : '');
-            fetch(specialsUrl)
+            fetch('/hotel-manager/api/daily-special')
                 .then(response => response.json())
                 .then(data => {
-                    console.log('[DAILY_SPECIAL] API response:', data);
                     if (data.success && data.specials && data.specials.length > 0) {
                         allSpecials = data.specials;
                         displaySpecialsGrid(data.specials);
                     } else {
                         allSpecials = [];
                         displayNoSpecials();
-                        if (!data.success) {
-                            console.warn('[DAILY_SPECIAL] API error:', data.message);
-                        }
                     }
                 })
                 .catch(error => {
@@ -12958,6 +13278,28 @@
             grid.innerHTML = '';
             
             specials.forEach((special, index) => {
+                const basePrice = parseFloat(special.price || 0);
+                const offerType = (special.offer_type || '').toLowerCase();
+                const offerValue = special.offer_value !== null && special.offer_value !== undefined ? parseFloat(special.offer_value) : null;
+                const offerPrice = special.offer_price !== null && special.offer_price !== undefined ? parseFloat(special.offer_price) : null;
+                const discountPercent = special.discount_percent !== null && special.discount_percent !== undefined ? parseFloat(special.discount_percent) : null;
+                let finalPrice = basePrice;
+                let offerBadge = '';
+
+                if (Number(special.is_offer_active || 0) === 1) {
+                    if (offerType === 'percentage' && (offerValue || discountPercent)) {
+                        const pct = offerValue || discountPercent;
+                        finalPrice = basePrice - ((basePrice * pct) / 100);
+                        offerBadge = `${Math.round(pct)}% OFF`;
+                    } else if (offerType === 'flat' && offerValue) {
+                        finalPrice = basePrice - offerValue;
+                        offerBadge = `₹${offerValue.toFixed(0)} OFF`;
+                    } else if (offerPrice) {
+                        finalPrice = offerPrice;
+                        offerBadge = 'SPECIAL PRICE';
+                    }
+                }
+
                 const card = document.createElement('div');
                 card.className = 'special-item-card';
                 card.innerHTML = `
@@ -12965,11 +13307,14 @@
                         ${special.image_path 
                             ? `<img src="${special.image_path}" alt="${special.dish_name || special.menu_name}">` 
                             : `<div class="no-image-placeholder"><i class="fas fa-utensils"></i></div>`}
+                        ${offerBadge ? `<span class="offer-badge" style="top: 8px; right: 8px; left: auto; z-index: 5;">${offerBadge}</span>` : ''}
                     </div>
                     <div class="special-item-content">
                         <h4>${special.dish_name || special.menu_name}</h4>
                         <p>${special.description || 'No description'}</p>
-                        <div class="special-item-price">₹${parseFloat(special.price).toFixed(2)}</div>
+                        ${offerBadge
+                            ? `<div class="special-item-price" style="color:#059669;">₹${finalPrice.toFixed(2)}</div><div style="font-size:0.82rem;color:#94a3b8;text-decoration:line-through;">₹${basePrice.toFixed(2)}</div>`
+                            : `<div class="special-item-price">₹${basePrice.toFixed(2)}</div>`}
                     </div>
                     <div class="special-item-actions">
                         <button type="button" class="btn-icon btn-edit" onclick="editSpecial(${special.id})" title="Edit">
@@ -13011,6 +13356,22 @@
             document.getElementById('special-name').value = special.dish_name || special.menu_name || '';
             document.getElementById('special-description').value = special.description || '';
             document.getElementById('special-price').value = special.price;
+            const incomingType = (special.offer_type || '').toLowerCase();
+            let effectiveType = incomingType;
+            let effectiveValue = special.offer_value;
+
+            if (!effectiveType && Number(special.is_offer_active || 0) === 1) {
+                if (special.discount_percent !== null && special.discount_percent !== undefined) {
+                    effectiveType = 'percentage';
+                    effectiveValue = special.discount_percent;
+                } else if (special.offer_price !== null && special.offer_price !== undefined) {
+                    effectiveType = 'flat';
+                    effectiveValue = Math.max(0, Number(special.price || 0) - Number(special.offer_price || 0));
+                }
+            }
+
+            document.getElementById('special-offer-type').value = effectiveType || '';
+            document.getElementById('special-offer-value').value = (effectiveValue !== null && effectiveValue !== undefined) ? effectiveValue : '';
             document.getElementById('special-start-datetime').value = formatDateTimeForInput(special.start_datetime);
             document.getElementById('special-end-datetime').value = formatDateTimeForInput(special.end_datetime);
             document.getElementById('special-daily-start-time').value = formatTimeForInput(special.daily_start_time);
@@ -13044,6 +13405,8 @@
             document.getElementById('special-name').value = '';
             document.getElementById('special-description').value = '';
             document.getElementById('special-price').value = '';
+            document.getElementById('special-offer-type').value = '';
+            document.getElementById('special-offer-value').value = '';
             document.getElementById('special-start-datetime').value = '';
             document.getElementById('special-end-datetime').value = '';
             document.getElementById('special-daily-start-time').value = '';
@@ -13156,6 +13519,9 @@
             const menuName = document.getElementById('special-name').value.trim();
             const description = document.getElementById('special-description').value.trim();
             const price = parseFloat(document.getElementById('special-price').value);
+            const offerType = (document.getElementById('special-offer-type').value || '').trim().toLowerCase();
+            const offerValueRaw = document.getElementById('special-offer-value').value;
+            const offerValue = offerValueRaw !== '' ? parseFloat(offerValueRaw) : null;
             const imageInput = document.getElementById('special-image');
             const startDatetime = document.getElementById('special-start-datetime').value;
             const endDatetime = document.getElementById('special-end-datetime').value;
@@ -13169,6 +13535,25 @@
             if (!price || price <= 0) {
                 showSpecialMessage('Please enter a valid price', 'error');
                 return;
+            }
+
+            if (offerType) {
+                if (!['percentage', 'flat'].includes(offerType)) {
+                    showSpecialMessage('Offer type must be Percentage or Flat Price', 'error');
+                    return;
+                }
+                if (offerValue === null || Number.isNaN(offerValue) || offerValue <= 0) {
+                    showSpecialMessage('Please enter a valid offer value', 'error');
+                    return;
+                }
+                if (offerType === 'percentage' && offerValue > 100) {
+                    showSpecialMessage('Percentage offer cannot exceed 100', 'error');
+                    return;
+                }
+                if (offerType === 'flat' && offerValue >= price) {
+                    showSpecialMessage('Flat offer must be less than base price', 'error');
+                    return;
+                }
             }
             
             const submitBtn = document.getElementById('special-submit-btn');
@@ -13184,6 +13569,8 @@
             formData.append('dish_name', menuName);
             formData.append('description', description);
             formData.append('price', price);
+            formData.append('offer_type', offerType);
+            formData.append('offer_value', offerValue !== null && !Number.isNaN(offerValue) ? offerValue : '');
             formData.append('start_datetime', startDatetime);
             formData.append('end_datetime', endDatetime);
             formData.append('daily_start_time', dailyStartTime);
@@ -13193,7 +13580,7 @@
                 formData.append('image', imageInput.files[0]);
             }
             
-            fetch('/hotel-manager/api/daily-special' + (hotelId ? '?hotel_id=' + hotelId : ''), {
+            fetch('/hotel-manager/api/daily-special', {
                 method: 'POST',
                 body: formData
             })
@@ -13223,7 +13610,7 @@
                 return;
             }
             
-            fetch(`/hotel-manager/api/daily-special/${specialId}` + (hotelId ? '?hotel_id=' + hotelId : ''), {
+            fetch(`/hotel-manager/api/daily-special/${specialId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
             })

@@ -108,6 +108,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Manager</th>
+                        <th>Phone</th>
                         <th>Email</th>
                         <th>Username</th>
                         <th>Hotel</th>
@@ -127,16 +128,25 @@
                                 <span style="font-weight: 600;">{{ manager[1] }}</span>
                             </div>
                         </td>
-                        <td>{{ manager[2] }}</td>
-                        <td><code style="background: var(--bg-light); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">{{ manager[3] }}</code></td>
                         <td>
-                            {% if manager[4] %}
-                            <span class="badge badge-info"><i class="fas fa-hotel"></i> {{ manager[4] }}</span>
+                            {% if manager[2] %}
+                            <span style="display:inline-flex;align-items:center;gap:0.35rem;">
+                                <i class="fas fa-phone" style="color:var(--primary);font-size:0.8rem;"></i>{{ manager[2] }}
+                            </span>
+                            {% else %}
+                            <span style="color:var(--light-gray);font-size:0.85rem;">—</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ manager[3] or '—' }}</td>
+                        <td><code style="background: var(--bg-light); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">{{ manager[4] }}</code></td>
+                        <td>
+                            {% if manager[5] %}
+                            <span class="badge badge-info"><i class="fas fa-hotel"></i> {{ manager[5] }}</span>
                             {% else %}
                             <span class="badge badge-warning"><i class="fas fa-exclamation"></i> Not Assigned</span>
                             {% endif %}
                         </td>
-                        <td style="font-size: 0.85rem; color: var(--gray);">{{ manager[5] }}</td>
+                        <td style="font-size: 0.85rem; color: var(--gray);">{{ manager[6] }}</td>
                         <td>
                             <div class="action-buttons">
                                 <a href="{{ url_for('admin.edit_manager', manager_id=manager[0]) }}" class="btn btn-edit">
@@ -152,7 +162,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7" class="no-data">
+                        <td colspan="8" class="no-data">
                             <i class="fas fa-user-slash" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
                             No managers found. <a href="{{ url_for('admin.add_manager') }}">Add one now</a>
                         </td>

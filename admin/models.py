@@ -65,7 +65,8 @@ class Manager:
             cursor.execute("""
                 SELECT 
                     m.id, 
-                    m.name, 
+                    m.name,
+                    COALESCE(m.phone, '') as phone,
                     m.email, 
                     m.username, 
                     h.hotel_name,
@@ -87,7 +88,7 @@ class Manager:
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT id, name, email, username FROM managers WHERE id = %s", (manager_id,))
+            cursor.execute("SELECT id, name, phone, email, username FROM managers WHERE id = %s", (manager_id,))
             manager = cursor.fetchone()
             conn.close()
             return manager
@@ -96,19 +97,19 @@ class Manager:
             return None
     
     @staticmethod
-    def update_manager(manager_id, name, email, username, password=None):
+    def update_manager(manager_id, name, phone, email, username, password=None):
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
             if password:
                 cursor.execute(
-                    "UPDATE managers SET name = %s, email = %s, username = %s, password = SHA2(%s, 256) WHERE id = %s",
-                    (name, email, username, password, manager_id)
+                    "UPDATE managers SET name = %s, phone = %s, email = %s, username = %s, password = SHA2(%s, 256) WHERE id = %s",
+                    (name, phone, email, username, password, manager_id)
                 )
             else:
                 cursor.execute(
-                    "UPDATE managers SET name = %s, email = %s, username = %s WHERE id = %s",
-                    (name, email, username, manager_id)
+                    "UPDATE managers SET name = %s, phone = %s, email = %s, username = %s WHERE id = %s",
+                    (name, phone, email, username, manager_id)
                 )
             conn.commit()
             conn.close()

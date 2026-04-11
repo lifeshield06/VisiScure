@@ -11,13 +11,15 @@ class MenuCategory:
             
             if hotel_id:
                 cursor.execute(
-                    "SELECT id, name, COALESCE(cgst_percentage, 0.00) as cgst_percentage, COALESCE(sgst_percentage, 0.00) as sgst_percentage FROM menu_categories WHERE hotel_id = %s ORDER BY id",
+                    "SELECT id, name, COALESCE(food_type, 'veg') as food_type, COALESCE(cgst_percentage, 0.00) as cgst_percentage, COALESCE(sgst_percentage, 0.00) as sgst_percentage FROM menu_categories WHERE hotel_id = %s ORDER BY id",
                     (hotel_id,)
                 )
             else:
-                cursor.execute("SELECT id, name, COALESCE(cgst_percentage, 0.00) as cgst_percentage, COALESCE(sgst_percentage, 0.00) as sgst_percentage FROM menu_categories ORDER BY id")
+                cursor.execute("SELECT id, name, COALESCE(food_type, 'veg') as food_type, COALESCE(cgst_percentage, 0.00) as cgst_percentage, COALESCE(sgst_percentage, 0.00) as sgst_percentage FROM menu_categories ORDER BY id")
             
             categories = cursor.fetchall()
+            for category in categories:
+                category['food_type'] = str(category.get('food_type') or 'veg').strip().lower()
             cursor.close()
             connection.close()
             
@@ -28,15 +30,16 @@ class MenuCategory:
             return []
     
     @staticmethod
-    def add_category(hotel_id, name):
+    def add_category(hotel_id, name, food_type='veg'):
         """Add a new category for a hotel"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor()
+            normalized_food_type = 'nonveg' if str(food_type).strip().lower() == 'nonveg' else 'veg'
             
             cursor.execute(
-                "INSERT INTO menu_categories (hotel_id, name) VALUES (%s, %s)",
-                (hotel_id, name)
+                "INSERT INTO menu_categories (hotel_id, name, food_type) VALUES (%s, %s, %s)",
+                (hotel_id, name, normalized_food_type)
             )
             
             category_id = cursor.lastrowid
@@ -50,21 +53,22 @@ class MenuCategory:
             return {"success": False, "message": str(e)}
     
     @staticmethod
-    def update_category(category_id, name, hotel_id=None):
+    def update_category(category_id, name, food_type='veg', hotel_id=None):
         """Update a category"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor()
+            normalized_food_type = 'nonveg' if str(food_type).strip().lower() == 'nonveg' else 'veg'
             
             if hotel_id:
                 cursor.execute(
-                    "UPDATE menu_categories SET name = %s WHERE id = %s AND hotel_id = %s",
-                    (name, category_id, hotel_id)
+                    "UPDATE menu_categories SET name = %s, food_type = %s WHERE id = %s AND hotel_id = %s",
+                    (name, normalized_food_type, category_id, hotel_id)
                 )
             else:
                 cursor.execute(
-                    "UPDATE menu_categories SET name = %s WHERE id = %s",
-                    (name, category_id)
+                    "UPDATE menu_categories SET name = %s, food_type = %s WHERE id = %s",
+                    (name, normalized_food_type, category_id)
                 )
             
             connection.commit()
@@ -165,26 +169,36 @@ class MenuDish:
         return f"/static/uploads/menu_images/{filename}"
 
     @staticmethod
-    def get_dishes_by_category(category_id, hotel_id=None):
-        """Get all dishes for a specific category"""
+    def get_dishes_by_category(category_id, hotel_id=None, active_only=False):
+        """Get dishes for a specific category"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
-            
+
+            active_clause = " AND COALESCE(is_active, 1) = 1" if active_only else ""
+
             if hotel_id:
-                cursor.execute(
-                    """SELECT id, name, price, quantity, description, images, kitchen_id, cgst, sgst
+                query = """SELECT id, name, price, quantity, description, images, kitchen_id, cgst, sgst, price_type, half_price, full_price,
+                              COALESCE(is_active, 1) as is_active,
+                              COALESCE(is_offer_active, 0) as is_offer_active,
+                          offer_price, discount_percent, offer_start, offer_end, COALESCE(offer_applies_to, 'both') as offer_applies_to
                        FROM menu_dishes 
-                       WHERE category_id = %s AND hotel_id = %s
-                       ORDER BY id""",
+                       WHERE category_id = %s AND hotel_id = %s""" + active_clause + """
+                       ORDER BY id"""
+                cursor.execute(
+                    query,
                     (category_id, hotel_id)
                 )
             else:
-                cursor.execute(
-                    """SELECT id, name, price, quantity, description, images, kitchen_id, cgst, sgst
+                query = """SELECT id, name, price, quantity, description, images, kitchen_id, cgst, sgst, price_type, half_price, full_price,
+                              COALESCE(is_active, 1) as is_active,
+                              COALESCE(is_offer_active, 0) as is_offer_active,
+                          offer_price, discount_percent, offer_start, offer_end, COALESCE(offer_applies_to, 'both') as offer_applies_to
                        FROM menu_dishes 
-                       WHERE category_id = %s
-                       ORDER BY id""",
+                       WHERE category_id = %s""" + active_clause + """
+                       ORDER BY id"""
+                cursor.execute(
+                    query,
                     (category_id,)
                 )
             
@@ -215,7 +229,10 @@ class MenuDish:
                 else:
                     dish['images'] = []  # Ensure empty list
                     dish['image_urls'] = []
-                dish['price'] = float(dish['price'])
+                dish['price'] = float(dish['price']) if dish.get('price') is not None else 0.00
+                dish['price_type'] = (dish.get('price_type') or 'single').strip().lower()
+                dish['half_price'] = float(dish['half_price']) if dish.get('half_price') is not None else None
+                dish['full_price'] = float(dish['full_price']) if dish.get('full_price') is not None else None
             
             return dishes
         except Exception as e:
@@ -223,18 +240,22 @@ class MenuDish:
             return []
     
     @staticmethod
-    def get_all_dishes_by_hotel(hotel_id):
+    def get_all_dishes_by_hotel(hotel_id, active_only=False):
         """Get all dishes for a specific hotel grouped by category"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
-            
-            cursor.execute(
-                """SELECT d.id, d.name, d.price, d.quantity, d.description, d.images, d.category_id, c.name as category_name, d.kitchen_id, d.cgst, d.sgst
+
+            active_clause = " AND COALESCE(d.is_active, 1) = 1" if active_only else ""
+
+            query = """SELECT d.id, d.name, d.price, d.quantity, d.description, d.images, d.category_id, c.name as category_name, COALESCE(c.food_type, 'veg') as category_food_type, d.kitchen_id, d.cgst, d.sgst, d.price_type, d.half_price, d.full_price,
+                        COALESCE(d.is_offer_active, 0) as is_offer_active, d.offer_price, d.discount_percent, d.offer_start, d.offer_end, COALESCE(d.offer_applies_to, 'both') as offer_applies_to
                    FROM menu_dishes d
                    JOIN menu_categories c ON d.category_id = c.id
-                   WHERE d.hotel_id = %s
-                   ORDER BY c.id, d.id""",
+                   WHERE d.hotel_id = %s""" + active_clause + """
+                   ORDER BY c.id, d.id"""
+            cursor.execute(
+                query,
                 (hotel_id,)
             )
             
@@ -264,7 +285,10 @@ class MenuDish:
                 else:
                     dish['images'] = []  # Ensure empty list
                     dish['image_urls'] = []
-                dish['price'] = float(dish['price'])
+                dish['price'] = float(dish['price']) if dish.get('price') is not None else 0.00
+                dish['price_type'] = (dish.get('price_type') or 'single').strip().lower()
+                dish['half_price'] = float(dish['half_price']) if dish.get('half_price') is not None else None
+                dish['full_price'] = float(dish['full_price']) if dish.get('full_price') is not None else None
             
             return dishes
         except Exception as e:
@@ -272,18 +296,29 @@ class MenuDish:
             return []
     
     @staticmethod
-    def add_dish(hotel_id, category_id, name, price, quantity, description, images=None, kitchen_id=None, cgst=0.00, sgst=0.00):
+    def add_dish(hotel_id, category_id, name, price, quantity, description, images=None, kitchen_id=None, cgst=0.00, sgst=0.00, price_type='single', half_price=None, full_price=None, is_offer_active=False, offer_price=None, discount_percent=None, offer_start=None, offer_end=None, offer_applies_to='both'):
         """Add a new dish"""
         try:
             connection = get_db_connection()
             cursor = connection.cursor()
             
             images_json = json.dumps(images) if images else '[]'
+            normalized_price_type = 'half_full' if str(price_type).lower() == 'half_full' else 'single'
+            normalized_half_price = half_price if half_price is not None else None
+            normalized_full_price = full_price if full_price is not None else None
+            stored_price = normalized_full_price if normalized_price_type == 'half_full' and normalized_full_price is not None else price
+            
+            is_offer_active_int = 1 if is_offer_active else 0
+            offer_price_val = float(offer_price) if offer_price and offer_price > 0 else None
+            discount_percent_val = float(discount_percent) if discount_percent and discount_percent > 0 else None
+            offer_applies_to_val = (offer_applies_to or 'both').strip().lower()
+            if offer_applies_to_val not in ('half', 'full', 'both'):
+                offer_applies_to_val = 'both'
             
             cursor.execute(
-                """INSERT INTO menu_dishes (hotel_id, category_id, name, price, quantity, description, images, kitchen_id, cgst, sgst) 
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                (hotel_id, category_id, name, price, quantity, description, images_json, kitchen_id, cgst, sgst)
+                """INSERT INTO menu_dishes (hotel_id, category_id, name, price, quantity, description, images, kitchen_id, cgst, sgst, price_type, half_price, full_price, is_offer_active, offer_price, discount_percent, offer_start, offer_end, offer_applies_to) 
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                (hotel_id, category_id, name, stored_price, quantity, description, images_json, kitchen_id, cgst, sgst, normalized_price_type, normalized_half_price, normalized_full_price, is_offer_active_int, offer_price_val, discount_percent_val, offer_start, offer_end, offer_applies_to_val)
             )
             
             dish_id = cursor.lastrowid
@@ -297,7 +332,7 @@ class MenuDish:
             return {"success": False, "message": str(e)}
     
     @staticmethod
-    def update_dish(dish_id, name, price, quantity, description, images=None, hotel_id=None, kitchen_id=None, cgst=0.00, sgst=0.00):
+    def update_dish(dish_id, name, price, quantity, description, images=None, hotel_id=None, kitchen_id=None, cgst=0.00, sgst=0.00, price_type='single', half_price=None, full_price=None, is_offer_active=False, offer_price=None, discount_percent=None, offer_start=None, offer_end=None, offer_applies_to='both'):
         """Update a dish"""
         try:
             connection = get_db_connection()
@@ -307,34 +342,45 @@ class MenuDish:
             # images=None means don't update images, images=[] means clear all images
             should_update_images = images is not None
             images_json = json.dumps(images) if images is not None else None
+            normalized_price_type = 'half_full' if str(price_type).lower() == 'half_full' else 'single'
+            normalized_half_price = half_price if half_price is not None else None
+            normalized_full_price = full_price if full_price is not None else None
+            stored_price = normalized_full_price if normalized_price_type == 'half_full' and normalized_full_price is not None else price
+            
+            is_offer_active_int = 1 if is_offer_active else 0
+            offer_price_val = float(offer_price) if offer_price and offer_price > 0 else None
+            discount_percent_val = float(discount_percent) if discount_percent and discount_percent > 0 else None
+            offer_applies_to_val = (offer_applies_to or 'both').strip().lower()
+            if offer_applies_to_val not in ('half', 'full', 'both'):
+                offer_applies_to_val = 'both'
             
             if should_update_images and hotel_id:
                 cursor.execute(
                     """UPDATE menu_dishes 
-                       SET name = %s, price = %s, quantity = %s, description = %s, images = %s, kitchen_id = %s, cgst = %s, sgst = %s 
+                       SET name = %s, price = %s, quantity = %s, description = %s, images = %s, kitchen_id = %s, cgst = %s, sgst = %s, price_type = %s, half_price = %s, full_price = %s, is_offer_active = %s, offer_price = %s, discount_percent = %s, offer_start = %s, offer_end = %s, offer_applies_to = %s
                        WHERE id = %s AND hotel_id = %s""",
-                    (name, price, quantity, description, images_json, kitchen_id, cgst, sgst, dish_id, hotel_id)
+                    (name, stored_price, quantity, description, images_json, kitchen_id, cgst, sgst, normalized_price_type, normalized_half_price, normalized_full_price, is_offer_active_int, offer_price_val, discount_percent_val, offer_start, offer_end, offer_applies_to_val, dish_id, hotel_id)
                 )
             elif should_update_images:
                 cursor.execute(
                     """UPDATE menu_dishes 
-                       SET name = %s, price = %s, quantity = %s, description = %s, images = %s, kitchen_id = %s, cgst = %s, sgst = %s 
+                       SET name = %s, price = %s, quantity = %s, description = %s, images = %s, kitchen_id = %s, cgst = %s, sgst = %s, price_type = %s, half_price = %s, full_price = %s, is_offer_active = %s, offer_price = %s, discount_percent = %s, offer_start = %s, offer_end = %s, offer_applies_to = %s
                        WHERE id = %s""",
-                    (name, price, quantity, description, images_json, kitchen_id, cgst, sgst, dish_id)
+                    (name, stored_price, quantity, description, images_json, kitchen_id, cgst, sgst, normalized_price_type, normalized_half_price, normalized_full_price, is_offer_active_int, offer_price_val, discount_percent_val, offer_start, offer_end, offer_applies_to_val, dish_id)
                 )
             elif hotel_id:
                 cursor.execute(
                     """UPDATE menu_dishes 
-                       SET name = %s, price = %s, quantity = %s, description = %s, kitchen_id = %s, cgst = %s, sgst = %s 
+                       SET name = %s, price = %s, quantity = %s, description = %s, kitchen_id = %s, cgst = %s, sgst = %s, price_type = %s, half_price = %s, full_price = %s, is_offer_active = %s, offer_price = %s, discount_percent = %s, offer_start = %s, offer_end = %s, offer_applies_to = %s
                        WHERE id = %s AND hotel_id = %s""",
-                    (name, price, quantity, description, kitchen_id, cgst, sgst, dish_id, hotel_id)
+                    (name, stored_price, quantity, description, kitchen_id, cgst, sgst, normalized_price_type, normalized_half_price, normalized_full_price, is_offer_active_int, offer_price_val, discount_percent_val, offer_start, offer_end, offer_applies_to_val, dish_id, hotel_id)
                 )
             else:
                 cursor.execute(
                     """UPDATE menu_dishes 
-                       SET name = %s, price = %s, quantity = %s, description = %s, kitchen_id = %s, cgst = %s, sgst = %s 
+                       SET name = %s, price = %s, quantity = %s, description = %s, kitchen_id = %s, cgst = %s, sgst = %s, price_type = %s, half_price = %s, full_price = %s, is_offer_active = %s, offer_price = %s, discount_percent = %s, offer_start = %s, offer_end = %s, offer_applies_to = %s
                        WHERE id = %s""",
-                    (name, price, quantity, description, kitchen_id, cgst, sgst, dish_id)
+                    (name, stored_price, quantity, description, kitchen_id, cgst, sgst, normalized_price_type, normalized_half_price, normalized_full_price, is_offer_active_int, offer_price_val, discount_percent_val, offer_start, offer_end, offer_applies_to_val, dish_id)
                 )
             
             connection.commit()
@@ -382,12 +428,12 @@ class MenuDish:
             
             if hotel_id:
                 cursor.execute(
-                    "SELECT id, name, price, quantity, description, images, category_id, hotel_id, kitchen_id, cgst, sgst FROM menu_dishes WHERE id = %s AND hotel_id = %s",
+                    "SELECT id, name, price, quantity, description, images, category_id, hotel_id, kitchen_id, cgst, sgst, price_type, half_price, full_price, COALESCE(is_active,1) as is_active, COALESCE(is_offer_active,0) as is_offer_active, offer_price, discount_percent, offer_start, offer_end, COALESCE(offer_applies_to, 'both') as offer_applies_to FROM menu_dishes WHERE id = %s AND hotel_id = %s",
                     (dish_id, hotel_id)
                 )
             else:
                 cursor.execute(
-                    "SELECT id, name, price, quantity, description, images, category_id, hotel_id, kitchen_id, cgst, sgst FROM menu_dishes WHERE id = %s",
+                    "SELECT id, name, price, quantity, description, images, category_id, hotel_id, kitchen_id, cgst, sgst, price_type, half_price, full_price, COALESCE(is_active,1) as is_active, COALESCE(is_offer_active,0) as is_offer_active, offer_price, discount_percent, offer_start, offer_end, COALESCE(offer_applies_to, 'both') as offer_applies_to FROM menu_dishes WHERE id = %s",
                     (dish_id,)
                 )
             
@@ -411,6 +457,9 @@ class MenuDish:
                         dish['images'] = []
                 else:
                     dish['images'] = []
+                dish['price_type'] = (dish.get('price_type') or 'single').strip().lower()
+                dish['half_price'] = float(dish['half_price']) if dish.get('half_price') is not None else None
+                dish['full_price'] = float(dish['full_price']) if dish.get('full_price') is not None else None
                 
                 # Only create URLs for valid image filenames - ensure list is truly empty when no images
                 if dish['images'] and len(dish['images']) > 0:
@@ -421,6 +470,9 @@ class MenuDish:
                     dish['image_urls'] = []
                 
                 dish['price'] = float(dish['price'])
+                dish['price_type'] = (dish.get('price_type') or 'single').strip().lower()
+                dish['half_price'] = float(dish['half_price']) if dish.get('half_price') is not None else None
+                dish['full_price'] = float(dish['full_price']) if dish.get('full_price') is not None else None
             
             return dish
         except Exception as e:

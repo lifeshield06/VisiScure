@@ -790,6 +790,52 @@ def delete_hotel(hotel_id):
 # MANAGER MANAGEMENT (STEP 5 FIXED)
 # =========================
 
+# ── OTP helpers ──────────────────────────────────────────────────────────────
+import random
+from guest_verification.otp_service import OTPService
+
+def _otp_session_key(phone):
+    return f"mgr_otp_{phone}"
+
+@admin_bp.route("/api/send-manager-otp", methods=["POST"])
+def send_manager_otp():
+    """Send OTP via MSG91 for manager phone verification (admin only)."""
+    if "admin_id" not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    phone = str(data.get("phone", "")).strip()
+    phone_digits = phone.replace(" ", "").replace("-", "").replace("+", "")
+    # Strip leading 91 for 10-digit check
+    check_digits = phone_digits[2:] if phone_digits.startswith("91") and len(phone_digits) == 12 else phone_digits
+
+    if not check_digits.isdigit() or len(check_digits) != 10:
+        return jsonify({"success": False, "message": "Enter a valid 10-digit phone number."})
+
+    result = OTPService.send_otp(check_digits, hotel_name="VisiScure Order Admin")
+    return jsonify(result)
+
+
+@admin_bp.route("/api/verify-manager-otp", methods=["POST"])
+def verify_manager_otp():
+    """Verify MSG91 OTP for manager phone (admin only)."""
+    if "admin_id" not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    phone = str(data.get("phone", "")).strip()
+    otp_entered = str(data.get("otp", "")).strip()
+    phone_digits = phone.replace(" ", "").replace("-", "").replace("+", "")
+    check_digits = phone_digits[2:] if phone_digits.startswith("91") and len(phone_digits) == 12 else phone_digits
+
+    result = OTPService.verify_otp(check_digits, otp_entered)
+    if result.get("success"):
+        session[f"mgr_phone_verified_{check_digits}"] = True
+
+    return jsonify(result)
+# ── End OTP helpers ───────────────────────────────────────────────────────────
+
+
 @admin_bp.route("/add-manager", methods=["GET", "POST"])
 def add_manager():
     if "admin_id" not in session:
@@ -809,26 +855,59 @@ def add_manager():
     hotels = cursor.fetchall()
 
     if request.method == "POST":
-        name = request.form["name"].strip()
-        email = request.form["email"].strip().lower()
-        username = request.form["username"].strip()
-        password = request.form["password"]
-        hotel_id = request.form["hotel_id"]
-        
-        # Validate email format
-        if '@' not in email or '.' not in email.split('@')[-1]:
-            flash("Invalid email format!", "error")
+        name = request.form.get("name", "").strip()
+        phone = request.form.get("phone", "").strip()
+        email = request.form.get("email", "").strip().lower() or None
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        hotel_id = request.form.get("hotel_id")
+
+        # Validate required fields
+        if not name:
+            flash("Full name is required.", "error")
+            conn.close()
+            return render_template("admin/add_manager.html", hotels=hotels)
+
+        phone_digits = phone.replace(" ", "").replace("-", "").replace("+", "")
+        check_digits = phone_digits[2:] if phone_digits.startswith("91") and len(phone_digits) == 12 else phone_digits
+        if not check_digits.isdigit() or len(check_digits) != 10:
+            flash("A valid 10-digit phone number is required.", "error")
+            conn.close()
+            return render_template("admin/add_manager.html", hotels=hotels)
+
+        # Require OTP verification
+        if not session.get(f"mgr_phone_verified_{check_digits}"):
+            flash("Phone number must be verified via OTP before adding a manager.", "error")
+            conn.close()
+            return render_template("admin/add_manager.html", hotels=hotels)
+
+        # Validate email format only if provided
+        if email and ('@' not in email or '.' not in email.split('@')[-1]):
+            flash("Invalid email format.", "error")
             conn.close()
             return render_template("admin/add_manager.html", hotels=hotels)
 
         try:
-            # Insert manager (email already normalized to lowercase)
+            # Ensure phone column exists (safe migration)
+            try:
+                cursor.execute("ALTER TABLE managers ADD COLUMN phone VARCHAR(20) NOT NULL DEFAULT ''")
+                conn.commit()
+            except Exception:
+                pass  # Column already exists
+
+            # Ensure email is nullable
+            try:
+                cursor.execute("ALTER TABLE managers MODIFY COLUMN email VARCHAR(255) NULL DEFAULT NULL")
+                conn.commit()
+            except Exception:
+                pass
+
             cursor.execute(
                 """
-                INSERT INTO managers (name, email, username, password)
-                VALUES (%s, %s, %s, SHA2(%s,256))
+                INSERT INTO managers (name, phone, email, username, password)
+                VALUES (%s, %s, %s, %s, SHA2(%s,256))
                 """,
-                (name, email, username, password)
+                (name, phone, email, username, password)
             )
             manager_id = cursor.lastrowid
 
@@ -842,6 +921,8 @@ def add_manager():
             log_activity('manager', f"Manager '{name}' was added")
 
             conn.commit()
+            # Clear OTP verification flag
+            session.pop(f"mgr_phone_verified_{check_digits}", None)
             flash("Manager added and assigned to hotel successfully!", "success")
             return redirect(url_for("admin.dashboard"))
 
@@ -881,30 +962,38 @@ def edit_manager(manager_id):
     cursor = conn.cursor()
     
     if request.method == "POST":
-        name = request.form["name"].strip()
-        email = request.form["email"].strip().lower()
-        username = request.form["username"].strip()
+        name = request.form.get("name", "").strip()
+        phone = request.form.get("phone", "").strip()
+        email = request.form.get("email", "").strip().lower() or None
+        username = request.form.get("username", "").strip()
         password = request.form.get("password")
         hotel_id = request.form.get("hotel_id")
-        
-        # Validate email format
-        if '@' not in email or '.' not in email.split('@')[-1]:
-            flash("Invalid email format!", "error")
+
+        # Validate phone
+        phone_digits = phone.replace(" ", "").replace("-", "").replace("+", "")
+        if not phone or not phone_digits.isdigit() or not (7 <= len(phone_digits) <= 15):
+            flash("A valid phone number is required (7–15 digits).", "error")
             manager = Manager.get_manager_by_id(manager_id)
             assigned_hotel = Manager.get_assigned_hotel(manager_id)
             conn.close()
-            return render_template("admin/edit_manager.html", 
-                                  manager=manager, 
-                                  assigned_hotel=assigned_hotel,
-                                  hotels=[])
-        
+            return render_template("admin/edit_manager.html",
+                                   manager=manager, assigned_hotel=assigned_hotel, hotels=[])
+
+        # Validate email only if provided
+        if email and ('@' not in email or '.' not in email.split('@')[-1]):
+            flash("Invalid email format.", "error")
+            manager = Manager.get_manager_by_id(manager_id)
+            assigned_hotel = Manager.get_assigned_hotel(manager_id)
+            conn.close()
+            return render_template("admin/edit_manager.html",
+                                   manager=manager, assigned_hotel=assigned_hotel, hotels=[])
+
         try:
-            Manager.update_manager(manager_id, name, email, username, password if password else None)
-            
-            # Handle hotel assignment if provided
+            Manager.update_manager(manager_id, name, phone, email, username, password if password else None)
+
             if hotel_id:
                 Manager.assign_hotel(manager_id, int(hotel_id))
-            
+
             log_activity('manager', f"Manager '{name}' was updated")
             flash("Manager updated successfully!", "success")
             return redirect(url_for("admin.all_managers"))
