@@ -91,16 +91,6 @@
 
     <!-- Main Content -->
     <main class="menu-container" id="menu-container">
-        {% if table_busy %}
-        <div class="table-busy-notice">
-            <i class="fas fa-info-circle"></i>
-            <div>
-                <h3>Table is currently busy</h3>
-                <p>If you already placed an order on this visit, you can still add more items. Otherwise, please wait for the current order to finish.</p>
-            </div>
-        </div>
-        {% endif %}
-        
         <div class="loading" id="loading-state">
             <i class="fas fa-spinner fa-spin"></i>
             <p>Loading menu...</p>
@@ -123,30 +113,11 @@
 
     <!-- Bill Request Button (shown when session active) -->
     <div class="view-bill-btn" id="view-bill-btn" style="display: none;">
-        <!-- State: no request yet -->
-        <div id="bill-btn-request" onclick="requestBill()" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;position:relative;">
-            <i class="fas fa-file-invoice"></i>
-            <span>Request Bill</span>
-            <span id="badge-request" style="background:#ff9500;color:white;font-size:0.75rem;padding:0.25rem 0.5rem;border-radius:10px;font-weight:600;margin-left:0.25rem;">⏳</span>
-        </div>
-        <!-- State: pending -->
-        <div id="bill-btn-pending" style="display:none;align-items:center;gap:0.5rem;opacity:0.9;cursor:default;position:relative;">
-            <i class="fas fa-hourglass-half" style="animation: spin 2s linear infinite;"></i>
-            <span>Bill Requested</span>
-            <span style="background:#ff9500;color:white;font-size:0.75rem;padding:0.25rem 0.5rem;border-radius:10px;font-weight:600;">⏳ Pending</span>
-        </div>
-        <!-- State: approved - show view bill -->
-        <div id="bill-btn-approved" onclick="viewSessionBill()" style="display:none;align-items:center;gap:0.5rem;cursor:pointer;background:#059669;position:relative;">
-            <i class="fas fa-receipt"></i>
-            <span>View Bill</span>
-            <span style="background:#059669;color:white;font-size:0.75rem;padding:0.25rem 0.5rem;border-radius:10px;font-weight:600;margin-left:0.25rem;">✅ Ready</span>
-        </div>
-        <!-- State: rejected -->
-        <div id="bill-btn-rejected" onclick="requestBill()" style="display:none;align-items:center;gap:0.5rem;cursor:pointer;background:#ef4444;position:relative;">
-            <i class="fas fa-redo"></i>
-            <span>Request Again</span>
-            <span style="background:#ef4444;color:white;font-size:0.75rem;padding:0.25rem 0.5rem;border-radius:10px;font-weight:600;margin-left:0.25rem;">❌ Rejected</span>
-        </div>
+        <button type="button" id="bill-action-btn" class="bill-action-btn bill-state-default" onclick="requestBill()">
+            <i id="bill-action-icon" class="fas fa-file-invoice"></i>
+            <span id="bill-action-label">Bill</span>
+            <span id="bill-status-badge" class="bill-status-badge" style="display:none;"></span>
+        </button>
     </div>
 
     <!-- Call Waiter Button (Floating) -->
@@ -745,15 +716,10 @@
             animation: slideUp 0.3s ease-out;
         }
         
-        /* Bill Button States */
-        #bill-btn-request:hover {
-            background: rgba(245, 158, 11, 0.1);
-            border-radius: 8px;
-            padding: 0.5rem;
-        }
-        
-        #bill-btn-approved:hover {
-            opacity: 0.9;
+        /* Bill action loading state */
+        .bill-action-btn.is-loading {
+            opacity: 0.8;
+            pointer-events: none;
         }
     </style>
 
@@ -764,6 +730,7 @@
         const shareRestaurantUrl = {{ share_restaurant_url | tojson }};
         const sessionStorageKey = `table_session_${tableId}`;
         const guestNameStorageKey = `guest_name_${tableId}`;
+        const paymentDoneStorageKey = `payment_done_${tableId}`;
         
         // UPI Payment Configuration
         const hotelUPIId = "{{ upi_id or '' }}";
@@ -780,6 +747,28 @@
             const banner = document.getElementById('today-special-banner');
             const offset = banner && banner.offsetParent !== null ? Math.ceil(banner.offsetHeight) : 0;
             document.documentElement.style.setProperty('--today-special-sticky-offset', `${offset}px`);
+        }
+
+        function isPaymentDoneForCurrentTable() {
+            return localStorage.getItem(paymentDoneStorageKey) === '1';
+        }
+
+        function clearPaymentDoneForCurrentTable() {
+            localStorage.removeItem(paymentDoneStorageKey);
+        }
+
+        function markPaymentDoneForCurrentTable() {
+            localStorage.setItem(paymentDoneStorageKey, '1');
+
+            if (dailySpecialReopenTimer) {
+                clearTimeout(dailySpecialReopenTimer);
+                dailySpecialReopenTimer = null;
+            }
+
+            const modal = document.getElementById('daily-special-modal');
+            if (modal && modal.classList.contains('show')) {
+                closeDailySpecialModal(false);
+            }
         }
 
         function updateCategoryStickyOffset() {
@@ -814,12 +803,29 @@
         let activeDishVariantQuantity = 1;
         let activeDishQuickDish = null;
         let activeDishQuickVariant = 'full';
+        let lastDishVariantTrigger = null;
+        let lastDishQuickTrigger = null;
         let categoryScrollSpyObserver = null;
+
+        function moveFocusOutsideContainer(container, fallbackTarget = null) {
+            if (!container) return;
+
+            const activeEl = document.activeElement;
+            if (activeEl && container.contains(activeEl) && typeof activeEl.blur === 'function') {
+                activeEl.blur();
+            }
+
+            const fallback = fallbackTarget || document.getElementById('menu-search-input') || document.getElementById('call-waiter-btn');
+            if (fallback && typeof fallback.focus === 'function') {
+                fallback.focus({ preventScroll: true });
+            }
+        }
 
         if (isManagerAddOrderMode) {
             if (managerSessionId) {
                 sessionId = managerSessionId;
                 localStorage.setItem(sessionStorageKey, sessionId);
+                clearPaymentDoneForCurrentTable();
             }
             if (managerGuestName) {
                 guestName = managerGuestName;
@@ -1024,6 +1030,7 @@
                         // Clear old session - new guest starts fresh
                         sessionId = null;
                         localStorage.removeItem(sessionStorageKey);
+                        clearPaymentDoneForCurrentTable();
                         document.getElementById('view-bill-btn').style.display = 'none';
                         cart = [];
                         currentOrderId = null;
@@ -1035,6 +1042,7 @@
                         if (data.session_id) {
                             sessionId = data.session_id;
                             localStorage.setItem(sessionStorageKey, sessionId);
+                            clearPaymentDoneForCurrentTable();
                         }
                         
                         // Show welcome back message
@@ -1466,6 +1474,8 @@
             if (domEvent) {
                 domEvent.preventDefault();
                 domEvent.stopPropagation();
+                const trigger = domEvent.currentTarget || domEvent.target;
+                lastDishVariantTrigger = trigger instanceof HTMLElement ? trigger : null;
             }
 
             if (viewOnlyMode || walletGateBlocked) {
@@ -1566,6 +1576,7 @@
         function closeDishVariantModal() {
             const modal = document.getElementById('dish-variant-modal');
             if (modal) {
+                moveFocusOutsideContainer(modal, lastDishVariantTrigger);
                 modal.classList.remove('show');
                 modal.setAttribute('aria-hidden', 'true');
             }
@@ -1573,6 +1584,7 @@
             activeDishVariantModalDish = null;
             activeDishVariant = '';
             activeDishVariantQuantity = 1;
+            lastDishVariantTrigger = null;
         }
 
         function setDishVariantChoice(variant) {
@@ -1937,6 +1949,11 @@
                 return;
             }
 
+            if (event) {
+                const trigger = event.currentTarget || event.target;
+                lastDishQuickTrigger = trigger instanceof HTMLElement ? trigger : null;
+            }
+
             const dish = findDishById(dishId);
             if (!dish) return;
 
@@ -1991,11 +2008,13 @@
         function closeDishQuickView() {
             const modal = document.getElementById('dish-quick-modal');
             if (!modal) return;
+            moveFocusOutsideContainer(modal, lastDishQuickTrigger);
             modal.classList.remove('show');
             modal.setAttribute('aria-hidden', 'true');
             document.body.style.overflow = '';
             activeDishQuickDish = null;
             activeDishQuickVariant = 'full';
+            lastDishQuickTrigger = null;
         }
 
         function setDishQuickViewVariant(variant, event) {
@@ -2127,6 +2146,7 @@
                     if (data.session_id) {
                         sessionId = data.session_id;
                         localStorage.setItem(sessionStorageKey, sessionId);
+                        clearPaymentDoneForCurrentTable();
                         startPaymentStatusPolling();
                     }
                     if (data.guest_name) {
@@ -2257,6 +2277,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.has_open_bill && data.bill) {
+                        clearPaymentDoneForCurrentTable();
                         // Only show View Bill button if bill is OPEN and not in view-only mode
                         if (!viewOnlyMode) {
                             document.getElementById('view-bill-btn').style.display = 'flex';
@@ -2338,6 +2359,7 @@
 
                     if (status === 'PAID' && method === 'CASH' && billKey !== lastSuccessModalBillKey) {
                         lastSuccessModalBillKey = billKey;
+                        markPaymentDoneForCurrentTable();
                         openPaymentSuccessModal({
                             method: 'Cash',
                             amount: bill.grand_total != null ? bill.grand_total : bill.total_amount,
@@ -2470,7 +2492,7 @@
 
         function loadDailySpecial() {
             if (hasFetchedDailySpecials) {
-                if (allDailySpecials.length > 0 && DAILY_SPECIAL_CONFIG.autoPopupEnabled) {
+                if (allDailySpecials.length > 0 && DAILY_SPECIAL_CONFIG.autoPopupEnabled && !isPaymentDoneForCurrentTable()) {
                     showDailySpecialPopup();
                 }
                 renderDailySpecialBanner();
@@ -2502,12 +2524,14 @@
                             if (!hasScheduledInitialDailySpecialShow) {
                                 hasScheduledInitialDailySpecialShow = true;
                                 setTimeout(() => {
-                                    if (DAILY_SPECIAL_CONFIG.autoPopupEnabled) {
+                                    if (DAILY_SPECIAL_CONFIG.autoPopupEnabled && !isPaymentDoneForCurrentTable()) {
                                         showDailySpecialPopup();
                                     }
                                 }, DAILY_SPECIAL_CONFIG.initialDelayMs);
                             } else {
-                                showDailySpecialPopup();
+                                if (!isPaymentDoneForCurrentTable()) {
+                                    showDailySpecialPopup();
+                                }
                             }
                         }
                     }
@@ -2795,7 +2819,7 @@
         }
 
         function scheduleDailySpecialReopen() {
-            if (!DAILY_SPECIAL_CONFIG.autoPopupEnabled) {
+            if (!DAILY_SPECIAL_CONFIG.autoPopupEnabled || isPaymentDoneForCurrentTable()) {
                 return;
             }
 
@@ -2819,6 +2843,7 @@
             if (!currentDailySpecial) return;
 
             if (!DAILY_SPECIAL_CONFIG.autoPopupEnabled) return;
+            if (isPaymentDoneForCurrentTable()) return;
 
             if (dailySpecialReopenTimer) {
                 clearTimeout(dailySpecialReopenTimer);
@@ -3080,6 +3105,7 @@
                     if (data.session_id) {
                         sessionId = data.session_id;
                         localStorage.setItem(sessionStorageKey, sessionId);
+                        clearPaymentDoneForCurrentTable();
                         startPaymentStatusPolling();
                     }
                     if (data.guest_name) {
@@ -3142,22 +3168,62 @@
         let billRequestInFlight = false;
         let billRequestSuccessToastShown = false;
 
+        function setBillButtonAppearance({ label, iconClass, stateClass, badgeText, action }) {
+            const billBtn = document.getElementById('bill-action-btn');
+            const iconEl = document.getElementById('bill-action-icon');
+            const labelEl = document.getElementById('bill-action-label');
+            const badgeEl = document.getElementById('bill-status-badge');
+            if (!billBtn || !iconEl || !labelEl || !badgeEl) {
+                return;
+            }
+
+            billBtn.classList.remove('bill-state-default', 'bill-state-pending', 'bill-state-approved');
+            billBtn.classList.add(stateClass);
+
+            iconEl.className = iconClass;
+            labelEl.textContent = label;
+
+            if (badgeText) {
+                badgeEl.style.display = 'inline-flex';
+                badgeEl.textContent = badgeText;
+            } else {
+                badgeEl.style.display = 'none';
+                badgeEl.textContent = '';
+            }
+
+            billBtn.onclick = action;
+        }
+
         function updateBillBtnState(status) {
             billRequestStatus = status;
-            document.getElementById('bill-btn-request').style.display = 'none';
-            document.getElementById('bill-btn-pending').style.display = 'none';
-            document.getElementById('bill-btn-approved').style.display = 'none';
-            document.getElementById('bill-btn-rejected').style.display = 'none';
-            if (!status) {
-                document.getElementById('bill-btn-request').style.display = 'flex';
-            } else if (status === 'PENDING') {
-                document.getElementById('bill-btn-pending').style.display = 'flex';
+            const normalizedStatus = status ? String(status).toUpperCase() : null;
+
+            if (normalizedStatus === 'PENDING') {
+                setBillButtonAppearance({
+                    label: 'Bill Requested',
+                    iconClass: 'fas fa-hourglass-half',
+                    stateClass: 'bill-state-pending',
+                    badgeText: 'Pending',
+                    action: requestBill
+                });
                 startBillRequestPolling();
-            } else if (status === 'APPROVED') {
-                document.getElementById('bill-btn-approved').style.display = 'flex';
+            } else if (normalizedStatus === 'APPROVED') {
+                setBillButtonAppearance({
+                    label: 'View Bill',
+                    iconClass: 'fas fa-receipt',
+                    stateClass: 'bill-state-approved',
+                    badgeText: 'Ready',
+                    action: viewSessionBill
+                });
                 stopBillRequestPolling();
-            } else if (status === 'REJECTED') {
-                document.getElementById('bill-btn-rejected').style.display = 'flex';
+            } else {
+                setBillButtonAppearance({
+                    label: 'Bill',
+                    iconClass: 'fas fa-file-invoice',
+                    stateClass: 'bill-state-default',
+                    badgeText: '',
+                    action: requestBill
+                });
                 stopBillRequestPolling();
             }
         }
@@ -3183,10 +3249,10 @@
             }
             
             // Show loading state
-            const requestBtn = document.getElementById('bill-btn-request');
-            const originalHTML = requestBtn.innerHTML;
-            requestBtn.style.opacity = '0.6';
-            requestBtn.style.pointerEvents = 'none';
+            const requestBtn = document.getElementById('bill-action-btn');
+            if (requestBtn) {
+                requestBtn.classList.add('is-loading');
+            }
             billRequestInFlight = true;
             
             fetch('/orders/api/bill-request', {
@@ -3201,6 +3267,9 @@
             .then(r => r.json())
             .then(data => {
                 billRequestInFlight = false;
+                if (requestBtn) {
+                    requestBtn.classList.remove('is-loading');
+                }
                 if (data.success) {
                     // Show success toast only for a newly created request
                     if (data.is_new_request && !billRequestSuccessToastShown) {
@@ -3219,18 +3288,15 @@
                     }
                 } else {
                     showToast(data.message || 'Failed to send request', 'error');
-                    requestBtn.innerHTML = originalHTML;
-                    requestBtn.style.opacity = '1';
-                    requestBtn.style.pointerEvents = 'auto';
                 }
             })
             .catch(err => {
                 billRequestInFlight = false;
                 console.error('Error:', err);
                 showToast('Network error. Please try again.', 'error');
-                requestBtn.innerHTML = originalHTML;
-                requestBtn.style.opacity = '1';
-                requestBtn.style.pointerEvents = 'auto';
+                if (requestBtn) {
+                    requestBtn.classList.remove('is-loading');
+                }
             });
         }
 
@@ -3413,6 +3479,7 @@
             const paymentUtrValue = document.getElementById('payment-utr-value');
             
             if (bill.payment_status === 'PAID') {
+                markPaymentDoneForCurrentTable();
                 paymentStatus.innerHTML = '<i class="fas fa-check-circle"></i><span>Paid</span>';
                 paymentStatus.classList.add('paid');
                 payNowBtn.style.display = 'none';
@@ -3886,6 +3953,8 @@
                     // Close all payment-related modals
                     closePaymentModal();
                     closeBillModal();
+
+                    markPaymentDoneForCurrentTable();
                     
                     // Show success message
                     openPaymentSuccessModal({
@@ -3923,6 +3992,7 @@
                 clearTimeout(paymentSuccessAutoCloseTimer);
                 paymentSuccessAutoCloseTimer = null;
             }
+            markPaymentDoneForCurrentTable();
             sessionId = null;
             guestName = null;
             localStorage.removeItem(sessionStorageKey);
@@ -3954,6 +4024,7 @@
 
         function showTableClosedScreen() {
             // Clear all session data
+            markPaymentDoneForCurrentTable();
             sessionId = null;
             guestName = null;
             localStorage.removeItem(sessionStorageKey);
