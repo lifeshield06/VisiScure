@@ -725,9 +725,9 @@
 
     <script>
         const tableId = parseInt("{{ table.id }}", 10);
-        const hotelId = {{ table.hotel_id | tojson }};
-        const visitAgainUrl = {{ visit_again_url | tojson }};
-        const shareRestaurantUrl = {{ share_restaurant_url | tojson }};
+        const hotelId = JSON.parse('{{ table.hotel_id | tojson }}');
+        const visitAgainUrl = JSON.parse('{{ visit_again_url | tojson }}');
+        const shareRestaurantUrl = JSON.parse('{{ share_restaurant_url | tojson }}');
         const sessionStorageKey = `table_session_${tableId}`;
         const guestNameStorageKey = `guest_name_${tableId}`;
         const paymentDoneStorageKey = `payment_done_${tableId}`;

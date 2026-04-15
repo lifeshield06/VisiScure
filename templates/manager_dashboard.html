@@ -8829,9 +8829,9 @@
             `;
         }
 
-        const managerActivitiesApiUrl = {{ url_for('hotel_manager.get_recent_activities') | tojson }};
-        const managerAllActivitiesApiUrl = {{ url_for('hotel_manager.get_all_activities') | tojson }};
-        const toggleDishStatusApiUrl = {{ url_for('menu.toggle_dish_status') | tojson }};
+        const managerActivitiesApiUrl = JSON.parse('{{ url_for("hotel_manager.get_recent_activities") | tojson }}');
+        const managerAllActivitiesApiUrl = JSON.parse('{{ url_for("hotel_manager.get_all_activities") | tojson }}');
+        const toggleDishStatusApiUrl = JSON.parse('{{ url_for("menu.toggle_dish_status") | tojson }}');
         let isFetchingManagerActivities = false;
 
         async function fetchJsonSafe(url) {
