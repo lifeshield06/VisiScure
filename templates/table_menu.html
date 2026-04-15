@@ -2392,6 +2392,8 @@
         let dailySpecialAutoSlideTimer = null;
         let dailySpecialBannerTimer = null;
         let dailySpecialBannerIndex = 0;
+        let dailySpecialBannerScrollTimer = null;
+        let dailySpecialBannerScrollBound = false;
         let dailySpecialReopenTimer = null;
         let hasFetchedDailySpecials = false;
         let hasScheduledInitialDailySpecialShow = false;
@@ -2559,57 +2561,141 @@
             }
 
             banner.style.display = 'block';
-            count.textContent = `${dailySpecialBannerIndex + 1} of ${allDailySpecials.length}`;
+            if (currentSpecialIndex >= allDailySpecials.length) {
+                currentSpecialIndex = 0;
+            }
 
-            syncDailySpecialBannerScroll();
+            track.innerHTML = buildDailySpecialBannerMarkup();
+            ensureDailySpecialBannerScrollBinding();
+            setDailySpecialBannerState(currentSpecialIndex, { scrollToCard: false });
+            requestAnimationFrame(() => scrollDailySpecialBannerToIndex(currentSpecialIndex, 'auto'));
             startDailySpecialBannerAutoSlide();
         }
 
         function syncDailySpecialBannerScroll() {
             const track = document.getElementById('today-special-banner-track');
             const count = document.getElementById('today-special-banner-count');
-            if (!track || !count) return;
+            if (!track || !count || !allDailySpecials.length) return;
 
-            dailySpecialBannerIndex = currentSpecialIndex;
+            if (track.children.length !== allDailySpecials.length) {
+                track.innerHTML = buildDailySpecialBannerMarkup();
+                ensureDailySpecialBannerScrollBinding();
+            }
 
-            const special = allDailySpecials[dailySpecialBannerIndex];
-            if (!special) return;
+            setDailySpecialBannerState(currentSpecialIndex, { scrollToCard: true, behavior: 'smooth' });
+        }
 
-            const title = special.dish_name || special.menu_name || "Today's Special";
-            const offerInfo = getDailySpecialOfferInfo(special);
-            const price = Number(offerInfo.displayPrice || 0).toFixed(2);
-            const chefBadge = special.chef_pick ? `<span class="today-special-banner-badge"><i class="fas fa-award"></i> Chef's Pick</span>` : '';
-            const offerBadge = offerInfo.isActive ? `<span class="today-special-banner-offer-badge">${offerInfo.badgeText}</span>` : '';
-            const imageMarkup = special.image_path
-                ? `<img src="${special.image_path}" alt="${title}">`
-                : `<div class="today-special-banner-thumb-placeholder"><i class="fas fa-utensils"></i></div>`;
+        function buildDailySpecialBannerMarkup() {
+            return allDailySpecials.map((special, index) => {
+                const title = special.dish_name || special.menu_name || "Today's Special";
+                const offerInfo = getDailySpecialOfferInfo(special);
+                const price = Number(offerInfo.displayPrice || 0).toFixed(2);
+                const chefBadge = special.chef_pick ? `<span class="today-special-banner-badge"><i class="fas fa-award"></i> Chef's Pick</span>` : '';
+                const offerBadge = offerInfo.isActive ? `<span class="today-special-banner-offer-badge">${offerInfo.badgeText}</span>` : '';
+                const imageMarkup = special.image_path
+                    ? `<img src="${special.image_path}" alt="${title}">`
+                    : `<div class="today-special-banner-thumb-placeholder"><i class="fas fa-utensils"></i></div>`;
 
-            track.innerHTML = `
-                <article class="today-special-banner-item active" data-index="${dailySpecialBannerIndex}">
-                    <div class="today-special-banner-thumb">
-                        ${imageMarkup}
-                        ${offerBadge}
-                    </div>
-                    <div class="today-special-banner-content">
-                        <div class="today-special-banner-topline">
-                            ${chefBadge}
+                return `
+                    <article class="today-special-banner-item${index === currentSpecialIndex ? ' active' : ''}" data-index="${index}">
+                        <div class="today-special-banner-thumb">
+                            ${imageMarkup}
+                            ${offerBadge}
                         </div>
-                        <h4 class="today-special-banner-name">${title}</h4>
-                        <div class="today-special-banner-price">
-                            <span class="today-special-banner-price-label">Special Price</span>
-                            <span class="today-special-banner-price-value">₹${price}</span>
-                            ${offerInfo.isActive ? `<span class="today-special-banner-price-label" style="text-decoration:line-through;opacity:0.75;">₹${Number(offerInfo.originalPrice || 0).toFixed(2)}</span>` : ''}
+                        <div class="today-special-banner-content">
+                            <div class="today-special-banner-topline">
+                                ${chefBadge}
+                            </div>
+                            <h4 class="today-special-banner-name">${title}</h4>
+                            <div class="today-special-banner-price">
+                                <span class="today-special-banner-price-label">Special Price</span>
+                                <span class="today-special-banner-price-value">₹${price}</span>
+                                ${offerInfo.isActive ? `<span class="today-special-banner-price-label" style="text-decoration:line-through;opacity:0.75;">₹${Number(offerInfo.originalPrice || 0).toFixed(2)}</span>` : ''}
+                            </div>
                         </div>
-                    </div>
-                    <button type="button" class="today-special-banner-action" onclick="addBannerSpecialToCart(${dailySpecialBannerIndex})">
-                        <i class="fas fa-cart-plus"></i>
-                        Add to Cart
-                    </button>
-                </article>
-            `;
+                        <button type="button" class="today-special-banner-action" onclick="addBannerSpecialToCart(${index})">
+                            <i class="fas fa-cart-plus"></i>
+                            Add to Cart
+                        </button>
+                    </article>
+                `;
+            }).join('');
+        }
 
-            count.textContent = `${dailySpecialBannerIndex + 1} of ${allDailySpecials.length}`;
+        function ensureDailySpecialBannerScrollBinding() {
+            const viewport = document.querySelector('.today-special-banner-viewport');
+            if (!viewport || dailySpecialBannerScrollBound) return;
+
+            viewport.addEventListener('scroll', handleDailySpecialBannerScroll, { passive: true });
+            window.addEventListener('resize', handleDailySpecialBannerResize);
+            dailySpecialBannerScrollBound = true;
+        }
+
+        function handleDailySpecialBannerScroll() {
+            if (dailySpecialBannerScrollTimer) {
+                clearTimeout(dailySpecialBannerScrollTimer);
+            }
+
+            dailySpecialBannerScrollTimer = setTimeout(() => {
+                const viewport = document.querySelector('.today-special-banner-viewport');
+                if (!viewport || !allDailySpecials.length) return;
+
+                const nextIndex = Math.max(0, Math.min(
+                    Math.round(viewport.scrollLeft / Math.max(viewport.clientWidth, 1)),
+                    allDailySpecials.length - 1
+                ));
+
+                setDailySpecialBannerState(nextIndex, { scrollToCard: false });
+            }, 80);
+        }
+
+        function handleDailySpecialBannerResize() {
+            if (!allDailySpecials.length) return;
+            scrollDailySpecialBannerToIndex(currentSpecialIndex, 'auto');
+        }
+
+        function setDailySpecialBannerState(index, options = {}) {
+            if (!allDailySpecials.length) return;
+
+            const normalizedIndex = Math.max(0, Math.min(index, allDailySpecials.length - 1));
+            const shouldScroll = options.scrollToCard === true;
+            const behavior = options.behavior || 'smooth';
+
+            currentSpecialIndex = normalizedIndex;
+            currentDailySpecial = allDailySpecials[normalizedIndex];
+            dailySpecialBannerIndex = normalizedIndex;
+
+            const count = document.getElementById('today-special-banner-count');
+            if (count) {
+                count.textContent = `${normalizedIndex + 1} of ${allDailySpecials.length}`;
+            }
+
+            const track = document.getElementById('today-special-banner-track');
+            if (track) {
+                const cards = track.querySelectorAll('.today-special-banner-item');
+                cards.forEach((card, cardIndex) => {
+                    card.classList.toggle('active', cardIndex === normalizedIndex);
+                });
+            }
+
             updateSpecialStickyOffset();
+
+            if (shouldScroll) {
+                scrollDailySpecialBannerToIndex(normalizedIndex, behavior);
+            }
+        }
+
+        function scrollDailySpecialBannerToIndex(index, behavior = 'smooth') {
+            const viewport = document.querySelector('.today-special-banner-viewport');
+            if (!viewport || !allDailySpecials.length) return;
+
+            const normalizedIndex = Math.max(0, Math.min(index, allDailySpecials.length - 1));
+            const targetLeft = viewport.clientWidth * normalizedIndex;
+
+            viewport.scrollTo({
+                left: targetLeft,
+                behavior: behavior === 'auto' ? 'auto' : behavior
+            });
         }
 
         function startDailySpecialBannerAutoSlide() {

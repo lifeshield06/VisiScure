@@ -5322,15 +5322,13 @@ body.view-only-mode .menu-item::before {
 
 
 /* ===========================================
-   TODAY'S SPECIAL - HORIZONTAL SLIDER
+   TODAY'S SPECIAL - HORIZONTAL CAROUSEL
    =========================================== */
 
-/* Allow cards to peek outside the shell */
 .today-special-banner-shell {
-    overflow: visible !important;
+    overflow: hidden !important;
 }
 
-/* The row just needs to be a block */
 .today-special-banner-row {
     position: relative !important;
     z-index: 1 !important;
@@ -5338,47 +5336,38 @@ body.view-only-mode .menu-item::before {
     grid-template-columns: unset !important;
 }
 
-/* Viewport = the actual scroll container
-   Break out of shell padding with negative margins,
-   then add padding-left to restore left edge,
-   padding-right is smaller so next card peeks */
 .today-special-banner-viewport {
-    overflow-x: scroll !important;
+    overflow-x: auto !important;
     overflow-y: hidden !important;
     -webkit-overflow-scrolling: touch !important;
     scrollbar-width: none !important;
     scroll-snap-type: x mandatory !important;
     scroll-behavior: smooth !important;
-    /* Break out of shell's 0.9rem padding */
-    margin-left: -0.9rem !important;
-    margin-right: -0.9rem !important;
-    /* Left padding = shell padding, right = smaller so next card shows */
-    padding: 4px 10% 6px 0.9rem !important;
+    scroll-padding-inline: 0 !important;
+    overscroll-behavior-x: contain !important;
+    touch-action: pan-x !important;
+    width: 100% !important;
 }
 
 .today-special-banner-viewport::-webkit-scrollbar {
     display: none !important;
 }
 
-/* Track: horizontal flex row */
 .today-special-banner-track {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    gap: 12px !important;
-    width: max-content !important;
-    padding: 2px 0 4px !important;
+    gap: 0 !important;
+    width: 100% !important;
 }
 
-/* Each card: fixed width with snap */
 .today-special-banner-item {
-    flex: 0 0 auto !important;
-    /* 88% of viewport minus the left padding */
-    width: calc(88vw - 1.8rem) !important;
-    max-width: 380px !important;
-    min-width: 220px !important;
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
     scroll-snap-align: start !important;
-    /* Card appearance */
+    scroll-snap-stop: always !important;
     display: flex !important;
     flex-direction: column !important;
     border-radius: 18px !important;
@@ -5388,23 +5377,21 @@ body.view-only-mode .menu-item::before {
     overflow: hidden !important;
     padding: 0 !important;
     transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-    /* Reset any grid/flex overrides from earlier rules */
-    grid-template-columns: unset !important;
-    grid-template-areas: unset !important;
     align-items: stretch !important;
-    min-width: unset !important;
-    max-width: unset !important;
-    width: calc(88vw - 1.8rem) !important;
+}
+
+.today-special-banner-item.active {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 12px 28px rgba(15,23,42,0.2) !important;
 }
 
 .today-special-banner-item:active {
-    transform: scale(0.98) !important;
+    transform: translateY(-1px) scale(0.99) !important;
 }
 
-/* Image: full width on top */
 .today-special-banner-item .today-special-banner-thumb {
     width: 100% !important;
-    height: 165px !important;
+    height: 190px !important;
     border-radius: 0 !important;
     flex-shrink: 0 !important;
     overflow: hidden !important;
@@ -5432,7 +5419,6 @@ body.view-only-mode .menu-item::before {
     font-size: 2.5rem !important;
 }
 
-/* Content area */
 .today-special-banner-item .today-special-banner-content {
     padding: 0.75rem 0.9rem 0.4rem !important;
     flex: 1 !important;
@@ -5453,12 +5439,12 @@ body.view-only-mode .menu-item::before {
     color: #0f172a !important;
     margin: 0 0 0.25rem !important;
     line-height: 1.25 !important;
-    white-space: nowrap !important;
+    white-space: normal !important;
     overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    display: block !important;
-    line-clamp: unset !important;
-    -webkit-line-clamp: unset !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
 }
 
 .today-special-banner-item .today-special-banner-price {
@@ -5482,12 +5468,6 @@ body.view-only-mode .menu-item::before {
     color: #22c55e !important;
 }
 
-/* Content area: tighter padding */
-.today-special-banner-item .today-special-banner-content {
-    padding: 0.65rem 0.85rem 0.75rem !important;
-}
-
-/* Footer row: name+price left, button right */
 .today-special-banner-footer {
     display: flex !important;
     align-items: center !important;
@@ -5501,7 +5481,6 @@ body.view-only-mode .menu-item::before {
     min-width: 0 !important;
 }
 
-/* Compact + Add button */
 .today-special-banner-item .today-special-banner-action {
     display: inline-flex !important;
     width: auto !important;
@@ -5530,7 +5509,6 @@ body.view-only-mode .menu-item::before {
     box-shadow: 0 2px 6px rgba(249,115,22,0.2) !important;
 }
 
-/* Dots indicator */
 .today-special-dots {
     display: flex !important;
     justify-content: center !important;
@@ -5557,33 +5535,17 @@ body.view-only-mode .menu-item::before {
     border-radius: 4px !important;
 }
 
-/* Responsive */
 @media (max-width: 767px) {
-    .today-special-banner-viewport {
-        margin-left: -0.7rem !important;
-        margin-right: -0.7rem !important;
-        padding-left: 0.7rem !important;
-    }
-    .today-special-banner-item {
-        width: calc(88vw - 1.4rem) !important;
-    }
     .today-special-banner-item .today-special-banner-thumb {
         height: 155px !important;
     }
 }
 
 @media (max-width: 480px) {
-    .today-special-banner-viewport {
-        margin-left: -0.55rem !important;
-        margin-right: -0.55rem !important;
-        padding-left: 0.55rem !important;
-    }
-    .today-special-banner-item {
-        width: calc(88vw - 1.1rem) !important;
-    }
     .today-special-banner-item .today-special-banner-thumb {
         height: 145px !important;
     }
+
     .today-special-banner-item .today-special-banner-action {
         min-height: 50px !important;
     }
@@ -5592,44 +5554,6 @@ body.view-only-mode .menu-item::before {
 @media (max-width: 360px) {
     .today-special-banner-item .today-special-banner-thumb {
         height: 130px !important;
-    }
-}
-
-
-/* Chef's Special card - image height boost & bottom radius fix */
-.today-special-banner-item .today-special-banner-thumb {
-    height: 190px !important;
-}
-
-.today-special-banner-item {
-    border-radius: 18px !important;
-    overflow: hidden !important;
-    padding-bottom: 0 !important;
-}
-
-/* Name: allow 2 lines, not truncated */
-.today-special-banner-item .today-special-banner-name {
-    white-space: normal !important;
-    display: -webkit-box !important;
-    line-clamp: 2 !important;
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-    font-size: 1rem !important;
-    font-weight: 800 !important;
-    color: #0f172a !important;
-    margin-bottom: 0.2rem !important;
-}
-
-@media (max-width: 480px) {
-    .today-special-banner-item .today-special-banner-thumb {
-        height: 165px !important;
-    }
-}
-
-@media (max-width: 360px) {
-    .today-special-banner-item .today-special-banner-thumb {
-        height: 145px !important;
     }
 }
 
@@ -5921,18 +5845,36 @@ body.view-only-mode .menu-item::before {
         padding-right: 0 !important;
         width: 100% !important;
         overflow-x: auto !important;
+        overflow-y: hidden !important;
+        scroll-snap-type: x mandatory !important;
+        scroll-behavior: smooth !important;
+        scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    .today-special-banner-viewport::-webkit-scrollbar {
+        display: none !important;
     }
 
     .today-special-banner-track {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
         width: 100% !important;
-        justify-content: center !important;
+        min-width: 100% !important;
+        justify-content: flex-start !important;
         box-sizing: border-box !important;
+        gap: 0 !important;
     }
 
     .today-special-banner-item {
+        flex: 0 0 100% !important;
+        min-width: 100% !important;
         width: 100% !important;
         max-width: 100% !important;
         margin: 0 auto !important;
+        scroll-snap-align: start !important;
+        scroll-snap-stop: always !important;
     }
 }
 
