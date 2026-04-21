@@ -118,7 +118,7 @@ def reprint_kot_ticket(ticket_id):
 def get_printer_status():
     """Get current printer connection status."""
     try:
-        hotel_id = session.get('hotel_id')
+        hotel_id = session.get('hotel_id') or session.get('kitchen_hotel_id')
         section = request.args.get('section', '').strip() or None
         
         if section:
@@ -136,7 +136,7 @@ def get_printer_status():
 def test_printer():
     """Test printer by sending a test print job."""
     try:
-        hotel_id = session.get('hotel_id')
+        hotel_id = session.get('hotel_id') or session.get('kitchen_hotel_id')
         if not hotel_id:
             return jsonify({"success": False, "message": "Hotel ID required"}), 401
         
@@ -176,7 +176,7 @@ def get_monitor_status():
     try:
         from .printer_monitor_service import printer_monitor
         
-        hotel_id = session.get('hotel_id')
+        hotel_id = session.get('hotel_id') or session.get('kitchen_hotel_id')
         if not hotel_id:
             return jsonify({"success": False, "message": "Hotel ID required"}), 401
         
@@ -193,7 +193,7 @@ def get_monitor_alerts():
     try:
         from .printer_monitor_service import printer_monitor
         
-        hotel_id = session.get('hotel_id')
+        hotel_id = session.get('hotel_id') or session.get('kitchen_hotel_id')
         if not hotel_id:
             return jsonify({"success": False, "message": "Hotel ID required"}), 401
         
@@ -611,7 +611,7 @@ def complete_order():
 
 @orders_bp.route('/api/update-order-status', methods=['POST'])
 def update_order_status():
-    """Update order status (ACTIVE/PREPARING/COMPLETED) - DEPRECATED, use update-item-status for kitchen"""
+    """Update order status (ACTIVE/READY/COMPLETED) - DEPRECATED, use update-item-status for kitchen"""
     try:
         data = request.get_json()
         order_id = data.get('order_id')
@@ -637,7 +637,7 @@ def update_item_status():
         if not item_id or not status:
             return jsonify({"success": False, "message": "Item ID and status required"})
         
-        if status not in ['ACTIVE', 'PREPARING', 'READY', 'COMPLETED']:
+        if status not in ['ACTIVE', 'READY', 'COMPLETED']:
             return jsonify({"success": False, "message": "Invalid status"})
         
         connection = get_db_connection()
@@ -1472,7 +1472,7 @@ def get_kitchen_orders():
         
         # Process orders and group by category
         orders_by_category = {}
-        stats = {'active': 0, 'preparing': 0, 'ready': 0}
+        stats = {'active': 0, 'ready': 0}
         
         for order in orders:
             # Parse items JSON
@@ -1482,8 +1482,6 @@ def get_kitchen_orders():
             # Count stats
             if order['order_status'] == 'ACTIVE':
                 stats['active'] += 1
-            elif order['order_status'] == 'PREPARING':
-                stats['preparing'] += 1
             elif order['order_status'] == 'READY':
                 stats['ready'] += 1
             
@@ -1616,6 +1614,12 @@ def create_kitchen_section():
         """, (hotel_id, section_name))
         
         section_id = cursor.lastrowid
+
+        cursor.execute("""
+            UPDATE kitchen_sections
+            SET kitchen_unique_id = %s
+            WHERE id = %s
+        """, (section_id, section_id))
         
         connection.commit()
         cursor.close()
@@ -1802,7 +1806,7 @@ def get_kitchen_section_orders(section_id):
             return jsonify({
                 "success": True,
                 "orders_by_category": {},
-                "stats": {"active": 0, "preparing": 0, "ready": 0}
+                "stats": {"active": 0, "ready": 0}
             })
         
         # Get category names
@@ -1843,7 +1847,7 @@ def get_kitchen_section_orders(section_id):
         
         # Process items and group by category
         orders_by_category = {}
-        stats = {'active': 0, 'preparing': 0, 'ready': 0}
+        stats = {'active': 0, 'ready': 0}
         
         for item in items:
             category_id = item['category_id']
@@ -1852,8 +1856,6 @@ def get_kitchen_section_orders(section_id):
             # Count stats
             if item['item_status'] == 'ACTIVE':
                 stats['active'] += 1
-            elif item['item_status'] == 'PREPARING':
-                stats['preparing'] += 1
             elif item['item_status'] == 'READY':
                 stats['ready'] += 1
             

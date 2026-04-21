@@ -315,12 +315,18 @@ class OrderService:
                 order_id = active_order['id']
                 order_id, error_message = TableOrder.add_items_to_order(order_id, cleaned_items)
                 if not order_id:
-                    if error_message:
-                        return {"success": False, "message": f"Failed to update active order: {error_message}"}
-                    return {"success": False, "message": "Failed to update active order"}
-                order_message = "Items added to existing active order"
-            else:
-                # Create new ACTIVE order only if no existing active order is found
+                    # If order became locked between read and write, create a new order row.
+                    if error_message and ("locked" in error_message.lower() or "served/ready" in error_message.lower()):
+                        active_order = None
+                    else:
+                        if error_message:
+                            return {"success": False, "message": f"Failed to update active order: {error_message}"}
+                        return {"success": False, "message": "Failed to update active order"}
+                else:
+                    order_message = "Items added to existing active order"
+
+            if not active_order:
+                # Create new ACTIVE order only if no mergeable active order is found.
                 order_id, error_message = TableOrder.add_order(table_id, session_id, cleaned_items, total_amount, hotel_id, guest_name, waiter_id)
                 if not order_id:
                     if error_message:
@@ -463,9 +469,9 @@ class OrderService:
 
     @staticmethod
     def update_order_status(order_id, status):
-        """Update order status (ACTIVE/PREPARING/COMPLETED)."""
+        """Update order status (ACTIVE/READY/COMPLETED)."""
         try:
-            if status not in {"ACTIVE", "PREPARING", "COMPLETED"}:
+            if status not in {"ACTIVE", "READY", "COMPLETED"}:
                 return {"success": False, "message": "Invalid status"}
 
             if TableOrder.update_order_status(order_id, status):

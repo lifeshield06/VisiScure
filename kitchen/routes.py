@@ -5,6 +5,7 @@ from flask import render_template, request, jsonify, session, redirect, url_for
 from . import kitchen_bp
 from .models import KitchenAuth
 from database.db import get_db_connection
+from waiter.notification_service import WaiterNotificationService
 
 @kitchen_bp.route('/login', methods=['GET'])
 def login_page():
@@ -15,12 +16,17 @@ def login_page():
 def login():
     """Authenticate kitchen user using ID and name"""
     try:
-        data = request.get_json()
-        kitchen_unique_id = data.get('kitchen_id')
-        kitchen_name = data.get('kitchen_name')
+        data = request.get_json() or {}
+        kitchen_id_raw = str(data.get('kitchen_id', '')).strip()
+        kitchen_name = str(data.get('kitchen_name', '')).strip()
         
-        if not kitchen_unique_id or not kitchen_name:
+        if not kitchen_id_raw or not kitchen_name:
             return jsonify({'success': False, 'message': 'Kitchen ID and Kitchen Name required'})
+
+        if not kitchen_id_raw.isdigit():
+            return jsonify({'success': False, 'message': 'Kitchen ID must contain numbers only'})
+
+        kitchen_unique_id = int(kitchen_id_raw)
         
         result = KitchenAuth.authenticate(kitchen_unique_id, kitchen_name)
         
@@ -125,7 +131,13 @@ def get_kitchen_orders():
               AND oi.item_status != 'COMPLETED'
                             AND (o.payment_status IS NULL OR o.payment_status != 'PAID')
                             AND o.order_status != 'COMPLETED'
-            ORDER BY oi.created_at ASC
+            ORDER BY
+                CASE
+                    WHEN oi.item_status = 'ACTIVE' THEN 1
+                    WHEN oi.item_status = 'READY' THEN 2
+                    ELSE 3
+                END,
+                oi.created_at DESC
         """, (kitchen_id,))
         
         items = cursor.fetchall()
@@ -135,7 +147,7 @@ def get_kitchen_orders():
         
         # Process items and group by category
         orders_by_category = {}
-        stats = {'active': 0, 'preparing': 0, 'ready': 0}
+        stats = {'active': 0, 'ready': 0}
         
         for item in items:
             category_name = item.get('category_name') or 'Uncategorized'
@@ -143,8 +155,6 @@ def get_kitchen_orders():
             # Count stats
             if item['item_status'] == 'ACTIVE':
                 stats['active'] += 1
-            elif item['item_status'] == 'PREPARING':
-                stats['preparing'] += 1
             elif item['item_status'] == 'READY':
                 stats['ready'] += 1
             
@@ -195,7 +205,7 @@ def update_item_status():
         if not item_id or not status:
             return jsonify({"success": False, "message": "Item ID and status required"})
         
-        if status not in ['ACTIVE', 'PREPARING', 'READY', 'COMPLETED']:
+        if status not in ['ACTIVE', 'READY', 'COMPLETED']:
             return jsonify({"success": False, "message": "Invalid status"})
         
         connection = get_db_connection()
@@ -229,6 +239,29 @@ def update_item_status():
         result = cursor.fetchone()
         if result:
             order_id = result[0]
+
+            # Create waiter notification when any kitchen item is marked READY.
+            if status == 'READY':
+                cursor.execute(
+                    """
+                    SELECT o.id, o.table_id
+                    FROM table_orders o
+                    WHERE o.id = %s
+                    LIMIT 1
+                    """,
+                    (order_id,)
+                )
+                order_row = cursor.fetchone()
+                if order_row:
+                    notification_result = WaiterNotificationService.create_order_ready_notification(
+                        order_id=order_row[0],
+                        table_id=order_row[1]
+                    )
+                    if not notification_result.get('success'):
+                        print(
+                            f"[KITCHEN_NOTIFICATION] Failed to create order-ready notification "
+                            f"for order {order_id}: {notification_result.get('message')}"
+                        )
             
             # Check if all items are COMPLETED
             cursor.execute("""

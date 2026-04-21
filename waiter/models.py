@@ -198,8 +198,14 @@ class WaiterAuth:
             params = [waiter_id]
             
             if status:
-                query += " AND o.order_status = %s"
-                params.append(status)
+                normalized_status = str(status).upper()
+                if normalized_status == 'ACTIVE':
+                    query += " AND o.order_status NOT IN ('COMPLETED', 'CANCELLED')"
+                elif normalized_status == 'COMPLETED':
+                    query += " AND o.order_status = 'COMPLETED'"
+                else:
+                    query += " AND o.order_status = %s"
+                    params.append(normalized_status)
             
             query += " ORDER BY o.created_at DESC"
             
@@ -220,7 +226,7 @@ class WaiterAuth:
     
     @staticmethod
     def update_order_status(order_id, new_status, waiter_id):
-        """Update order status (only if order belongs to waiter via waiter_table_assignments)"""
+        """Update order status for an order that belongs to the waiter."""
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)

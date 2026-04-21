@@ -6,6 +6,22 @@ import hashlib
 
 class KitchenAuth:
     """Kitchen authentication and management"""
+
+    @staticmethod
+    def normalize_kitchen_id(raw_id):
+        """Normalize kitchen ID to integer (supports legacy KITCHEN-* values)."""
+        if raw_id is None:
+            return None
+
+        raw_value = str(raw_id).strip()
+        if not raw_value:
+            return None
+
+        normalized = raw_value.upper().replace('KITCHEN-', '', 1).strip()
+        if normalized.isdigit():
+            return int(normalized)
+
+        return None
     
     @staticmethod
     def hash_password(password):
@@ -27,9 +43,9 @@ class KitchenAuth:
             """, (hotel_id, section_name))
             
             kitchen_id = cursor.lastrowid
-            
-            # Generate unique kitchen ID (format: KITCHEN-{id})
-            kitchen_unique_id = f"KITCHEN-{kitchen_id}"
+
+            # Use numeric kitchen login ID (same as kitchen id)
+            kitchen_unique_id = int(kitchen_id)
             
             # Update with unique ID
             cursor.execute("""
@@ -61,16 +77,28 @@ class KitchenAuth:
     def authenticate(kitchen_unique_id, kitchen_name):
         """Authenticate kitchen user using ID and name matching"""
         try:
+            normalized_kitchen_id = KitchenAuth.normalize_kitchen_id(kitchen_unique_id)
+            if normalized_kitchen_id is None:
+                return {'success': False, 'message': 'Kitchen ID must be numeric'}
+
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
             
             cursor.execute("""
                 SELECT id, hotel_id, section_name, kitchen_unique_id, is_active
                 FROM kitchen_sections
-                WHERE kitchen_unique_id = %s AND section_name = %s
-            """, (kitchen_unique_id, kitchen_name))
+                WHERE section_name = %s
+                  AND (
+                      kitchen_unique_id = %s
+                      OR REPLACE(UPPER(CAST(kitchen_unique_id AS CHAR)), 'KITCHEN-', '') = %s
+                  )
+            """, (kitchen_name, normalized_kitchen_id, str(normalized_kitchen_id)))
             
             kitchen = cursor.fetchone()
+
+            if kitchen:
+                kitchen_db_id = KitchenAuth.normalize_kitchen_id(kitchen.get('kitchen_unique_id'))
+                kitchen['kitchen_unique_id'] = kitchen_db_id if kitchen_db_id is not None else kitchen['id']
             
             cursor.close()
             connection.close()
@@ -79,13 +107,13 @@ class KitchenAuth:
                 if not kitchen['is_active']:
                     return {'success': False, 'message': 'Kitchen account is inactive'}
                 
-                print(f"[KITCHEN_AUTH] Login successful: {kitchen_unique_id}")
+                print(f"[KITCHEN_AUTH] Login successful: {normalized_kitchen_id}")
                 return {
                     'success': True,
                     'kitchen': kitchen
                 }
             else:
-                print(f"[KITCHEN_AUTH] Login failed: {kitchen_unique_id}")
+                print(f"[KITCHEN_AUTH] Login failed: {normalized_kitchen_id}")
                 return {'success': False, 'message': 'Invalid Kitchen ID or Kitchen Name'}
                 
         except Exception as e:
@@ -140,6 +168,10 @@ class KitchenAuth:
             """, (hotel_id,))
             
             kitchens = cursor.fetchall()
+
+            for kitchen in kitchens:
+                normalized_kitchen_id = KitchenAuth.normalize_kitchen_id(kitchen.get('kitchen_unique_id'))
+                kitchen['kitchen_unique_id'] = normalized_kitchen_id if normalized_kitchen_id is not None else kitchen['id']
             
             cursor.close()
             connection.close()

@@ -86,7 +86,7 @@ class Table:
                     guest_name VARCHAR(255),
                     items JSON NOT NULL,
                     total_amount DECIMAL(10,2) NOT NULL,
-                    order_status ENUM('ACTIVE', 'PREPARING', 'COMPLETED') DEFAULT 'ACTIVE',
+                    order_status ENUM('ACTIVE', 'COMPLETED') DEFAULT 'ACTIVE',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -103,7 +103,7 @@ class Table:
             # Ensure enums match expected values
             try:
                 cursor.execute(
-                    "ALTER TABLE table_orders MODIFY COLUMN order_status ENUM('ACTIVE', 'PREPARING', 'COMPLETED') DEFAULT 'ACTIVE'"
+                    "ALTER TABLE table_orders MODIFY COLUMN order_status ENUM('ACTIVE', 'COMPLETED') DEFAULT 'ACTIVE'"
                 )
             except Exception as e:
                 print(f"Error ensuring order_status enum: {e}")
@@ -471,11 +471,12 @@ class TableOrder:
 
     @staticmethod
     def get_active_order_for_guest(table_id, session_id=None, guest_name=None):
-        """Get existing ACTIVE/PREPARING order for same table + guest/session.
+        """Get existing active order for same table + guest/session.
 
         Active condition:
-        - order_status != COMPLETED
+        - order_status is ACTIVE
         - payment_status != PAID
+        - session is still open for adding items
         """
         try:
             connection = get_db_connection()
@@ -487,10 +488,10 @@ class TableOrder:
                     FROM table_orders
                     WHERE table_id = %s
                       AND session_id = %s
-                      AND order_status IN ('ACTIVE', 'PREPARING')
+                      AND order_status = 'ACTIVE'
                       AND COALESCE(payment_status, 'PENDING') != 'PAID'
-                                            AND COALESCE(total_amount, 0) > 0
-                                            AND COALESCE(JSON_LENGTH(items), 0) > 0
+                      AND COALESCE(total_amount, 0) > 0
+                      AND COALESCE(JSON_LENGTH(items), 0) > 0
                     ORDER BY created_at DESC
                     LIMIT 1
                 """, (table_id, session_id))
@@ -500,10 +501,10 @@ class TableOrder:
                     FROM table_orders
                     WHERE table_id = %s
                       AND guest_name = %s
-                      AND order_status IN ('ACTIVE', 'PREPARING')
+                      AND order_status = 'ACTIVE'
                       AND COALESCE(payment_status, 'PENDING') != 'PAID'
-                                            AND COALESCE(total_amount, 0) > 0
-                                            AND COALESCE(JSON_LENGTH(items), 0) > 0
+                      AND COALESCE(total_amount, 0) > 0
+                      AND COALESCE(JSON_LENGTH(items), 0) > 0
                     ORDER BY created_at DESC
                     LIMIT 1
                 """, (table_id, guest_name))
@@ -527,12 +528,25 @@ class TableOrder:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
 
-            cursor.execute("SELECT items FROM table_orders WHERE id = %s", (order_id,))
+            cursor.execute(
+                """
+                SELECT id, items, order_status
+                FROM table_orders
+                WHERE id = %s
+                LIMIT 1
+                """,
+                (order_id,)
+            )
             order = cursor.fetchone()
             if not order:
                 cursor.close()
                 connection.close()
                 return None, "Order not found"
+
+            if str(order.get('order_status') or '').upper() != 'ACTIVE':
+                cursor.close()
+                connection.close()
+                return None, "Order is already locked and cannot accept new items"
 
             import json
             existing_items = json.loads(order['items']) if isinstance(order['items'], str) else (order['items'] or [])
@@ -886,7 +900,7 @@ class TableOrder:
 
     @staticmethod
     def update_order_status(order_id, status):
-        """Update order status (ACTIVE/PREPARING/COMPLETED). Does NOT affect bill status."""
+        """Update order status (ACTIVE/COMPLETED). Does NOT affect bill status."""
         try:
             connection = get_db_connection()
             cursor = connection.cursor()

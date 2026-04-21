@@ -1,6 +1,7 @@
 from flask import request, jsonify, session, render_template, redirect, url_for
 from . import waiter_bp
 from .models import WaiterAuth, WaiterTableAssignment
+from .notification_service import WaiterNotificationService
 from orders.table_models import Table
 from waiter_calls.models import WaiterCallService
 from database.db import get_db_connection
@@ -76,15 +77,13 @@ def dashboard():
     tables_count = len(assigned_tables) if assigned_tables else 0
     
     # Get orders for waiter
-    all_orders = WaiterAuth.get_orders_for_waiter(waiter_id)
-    active_orders = [o for o in all_orders if o['order_status'] == 'ACTIVE']
-    preparing_orders = [o for o in all_orders if o['order_status'] == 'PREPARING']
-    completed_orders = [o for o in all_orders if o['order_status'] == 'COMPLETED']
+    active_orders = WaiterAuth.get_orders_for_waiter(waiter_id, 'ACTIVE')
+    completed_orders = WaiterAuth.get_orders_for_waiter(waiter_id, 'COMPLETED')
     
     # Debug logging
     print(f"[WAITER DASHBOARD] waiter_id={waiter_id}, hotel_id={hotel_id}")
     print(f"[WAITER DASHBOARD] Assigned tables: {[t.get('table_number') for t in assigned_tables]}")
-    print(f"[WAITER DASHBOARD] Active orders: {len(active_orders)}, Preparing: {len(preparing_orders)}, Completed: {len(completed_orders)}")
+    print(f"[WAITER DASHBOARD] Active orders: {len(active_orders)}, Completed: {len(completed_orders)}")
     
     # Use mobile template
     return render_template('waiter_dashboard_mobile.html',
@@ -95,12 +94,9 @@ def dashboard():
                          hotel_logo=hotel_logo,
                          tables=assigned_tables or [],
                          tables_count=tables_count,
-                         all_orders=all_orders,
                          active_orders=active_orders,
-                         preparing_orders=preparing_orders,
                          completed_orders=completed_orders,
                          active_count=len(active_orders),
-                         preparing_count=len(preparing_orders),
                          completed_count=len(completed_orders))
 
 @waiter_bp.route('/api/tables')
@@ -146,11 +142,38 @@ def update_order_status(order_id):
     data = request.json
     new_status = data.get('status')
     
-    if new_status not in ['ACTIVE', 'PREPARING', 'COMPLETED']:
+    if new_status != 'COMPLETED':
         return jsonify({'success': False, 'message': 'Invalid status'})
     
     result = WaiterAuth.update_order_status(order_id, new_status, waiter_id)
     return jsonify(result)
+
+
+@waiter_bp.route('/api/notifications/order-ready', methods=['GET'])
+def get_order_ready_notifications():
+    """Get pending order-ready notifications for logged-in waiter only."""
+    waiter_id = session.get('waiter_id')
+    if not waiter_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+
+    notifications = WaiterNotificationService.get_pending_order_ready_notifications(waiter_id)
+    return jsonify({
+        'success': True,
+        'notifications': notifications,
+        'count': len(notifications)
+    })
+
+
+@waiter_bp.route('/api/notifications/order-ready/<int:notification_id>/acknowledge', methods=['POST'])
+def acknowledge_order_ready_notification(notification_id):
+    """Mark an order-ready notification as completed by assigned waiter."""
+    waiter_id = session.get('waiter_id')
+    if not waiter_id:
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+
+    result = WaiterNotificationService.acknowledge_order_ready_notification(notification_id, waiter_id)
+    status_code = 200 if result.get('success') else 400
+    return jsonify(result), status_code
 
 @waiter_bp.route('/api/tip-statistics')
 def get_tip_statistics():

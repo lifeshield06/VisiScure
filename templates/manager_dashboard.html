@@ -13799,6 +13799,7 @@
                 const statusColor = kitchen.is_active ? '#10b981' : '#ef4444';
                 const statusText = kitchen.is_active ? 'Active' : 'Inactive';
                 const statusIcon = kitchen.is_active ? 'check-circle' : 'times-circle';
+                const displayKitchenId = String(kitchen.kitchen_unique_id ?? kitchen.id ?? '').replace(/^KITCHEN-/i, '');
                 
                 html += `
                     <div class="kitchen-card" style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid ${statusColor};">
@@ -13809,7 +13810,7 @@
                                 </h4>
                                 <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
                                     <span style="color: #64748b; font-size: 0.9rem;">
-                                        <i class="fas fa-id-badge"></i> <strong>Kitchen ID:</strong> <code style="background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace;">${kitchen.kitchen_unique_id}</code>
+                                        <i class="fas fa-id-badge"></i> <strong>Kitchen ID:</strong> <code style="background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace;">${displayKitchenId}</code>
                                     </span>
                                     <span style="background: ${statusColor}20; color: ${statusColor}; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
                                         <i class="fas fa-${statusIcon}"></i> ${statusText}
@@ -13864,7 +13865,7 @@
             .then(data => {
                 if (data.success) {
                     // Show success with Kitchen ID
-                    const kitchenId = data.kitchen_unique_id || 'N/A';
+                    const kitchenId = String(data.kitchen_unique_id || data.kitchen_id || 'N/A').replace(/^KITCHEN-/i, '');
                     showKitchenFormMessage(`Kitchen created successfully! Kitchen ID: ${kitchenId}`, 'success');
                     document.getElementById('add-kitchen-form').reset();
                     loadKitchens();

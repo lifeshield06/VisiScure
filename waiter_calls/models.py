@@ -40,8 +40,8 @@ class WaiterCallService:
     @staticmethod
     def create_request(table_id, session_id=None, guest_name=None):
         """
-        Create waiter assistance requests for waiters assigned to the table.
-        Falls back to notifying all hotel waiters if no waiter is assigned to table.
+        Create one waiter assistance request for the waiter assigned directly to the table.
+        If the direct column is empty, resolve the single assigned waiter from the mapping table.
         """
         try:
             connection = get_db_connection()
@@ -49,24 +49,42 @@ class WaiterCallService:
 
             WaiterCallService._ensure_waiter_calls_schema(cursor)
 
-            # LEFT JOIN so we always get the table row even with no waiter assigned
             cursor.execute(
-                """SELECT t.id, t.hotel_id, wta.waiter_id
+                """SELECT t.id, t.hotel_id, t.waiter_id
                    FROM tables t
-                   LEFT JOIN waiter_table_assignments wta ON t.id = wta.table_id
                    WHERE t.id = %s""",
                 (table_id,)
             )
-            rows = cursor.fetchall()
+            table_row = cursor.fetchone()
 
-            if not rows:
+            if not table_row:
                 cursor.close()
                 connection.close()
                 return {'success': False, 'message': 'Table not found'}
 
-            hotel_id = rows[0]['hotel_id']
-            # Only rows that actually have a waiter assigned
-            table_waiters = [r for r in rows if r['waiter_id'] is not None]
+            hotel_id = table_row['hotel_id']
+
+            assigned_waiter_id = table_row.get('waiter_id')
+            if assigned_waiter_id is None:
+                cursor.execute(
+                    """SELECT waiter_id
+                       FROM waiter_table_assignments
+                       WHERE table_id = %s
+                       ORDER BY waiter_id ASC
+                       LIMIT 1""",
+                    (table_id,)
+                )
+                assignment_row = cursor.fetchone()
+                if assignment_row and assignment_row.get('waiter_id') is not None:
+                    assigned_waiter_id = int(assignment_row['waiter_id'])
+
+            if assigned_waiter_id is None:
+                cursor.close()
+                connection.close()
+                return {
+                    'success': False,
+                    'message': 'No waiter assigned to this table. Please contact staff.'
+                }
 
             # 10-second cooldown — check only PENDING calls to avoid blocking after completion
             cursor.execute(
@@ -93,48 +111,15 @@ class WaiterCallService:
             request_ids = []
             notified_waiters = []
 
-            if table_waiters:
-                # One record per assigned waiter
-                for tw in table_waiters:
-                    waiter_id = tw['waiter_id']
-                    cursor.execute(
-                        """INSERT INTO waiter_calls
-                           (hotel_id, table_id, waiter_id, session_id, guest_name, status, created_at)
-                           VALUES (%s, %s, %s, %s, %s, 'PENDING', NOW())""",
-                        (hotel_id, table_id, waiter_id, session_id, guest_name)
-                    )
-                    request_ids.append(cursor.lastrowid)
-                    notified_waiters.append(waiter_id)
-                    print(f"[WAITER_CALL] Created request {cursor.lastrowid} for table {table_id}, waiter {waiter_id}")
-            else:
-                # No waiter assigned to table — notify all waiters in same hotel.
-                cursor.execute(
-                    """SELECT id
-                       FROM waiters
-                       WHERE hotel_id = %s""",
-                    (hotel_id,)
-                )
-                hotel_waiters = cursor.fetchall() or []
-
-                if not hotel_waiters:
-                    cursor.close()
-                    connection.close()
-                    return {
-                        'success': False,
-                        'message': 'No waiter is available for this hotel. Please contact staff.'
-                    }
-
-                for waiter in hotel_waiters:
-                    waiter_id = waiter['id']
-                    cursor.execute(
-                        """INSERT INTO waiter_calls
-                           (hotel_id, table_id, waiter_id, session_id, guest_name, status, created_at)
-                           VALUES (%s, %s, %s, %s, %s, 'PENDING', NOW())""",
-                        (hotel_id, table_id, waiter_id, session_id, guest_name)
-                    )
-                    request_ids.append(cursor.lastrowid)
-                    notified_waiters.append(waiter_id)
-                    print(f"[WAITER_CALL] Fallback request {cursor.lastrowid} for table {table_id}, waiter {waiter_id}")
+            cursor.execute(
+                """INSERT INTO waiter_calls
+                   (hotel_id, table_id, waiter_id, session_id, guest_name, status, created_at)
+                   VALUES (%s, %s, %s, %s, %s, 'PENDING', NOW())""",
+                (hotel_id, table_id, assigned_waiter_id, session_id, guest_name)
+            )
+            request_ids.append(cursor.lastrowid)
+            notified_waiters.append(assigned_waiter_id)
+            print(f"[WAITER_CALL] Created request {cursor.lastrowid} for table {table_id}, waiter {assigned_waiter_id}")
 
             connection.commit()
             cursor.close()
@@ -156,27 +141,30 @@ class WaiterCallService:
     @staticmethod
     def get_pending_requests(waiter_id):
         """
-        Get pending requests ONLY for tables assigned to this waiter.
-        Strictly filters by waiter_id AND waiter_table_assignments — no cross-waiter leakage.
+        Get pending requests visible to the logged-in waiter.
+        Strict rule:
+        - wc.waiter_id must match the logged-in waiter
+        - t.waiter_id must match the logged-in waiter
         """
         try:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
 
             cursor.execute(
-                """SELECT wc.*, t.table_number, COALESCE(w.name, '') as waiter_name
+                                """SELECT wc.*, t.table_number,
+                                                    COALESCE(t.waiter_id, wta.waiter_id) AS table_waiter_id,
+                                                    COALESCE(w.name, '') as waiter_name
                    FROM waiter_calls wc
                    JOIN tables t ON wc.table_id = t.id
                    LEFT JOIN waiters w ON wc.waiter_id = w.id
-                   WHERE wc.waiter_id = %s
-                     AND wc.status = 'PENDING'
-                     AND wc.table_id IN (
-                         SELECT table_id
-                         FROM waiter_table_assignments
-                         WHERE waiter_id = %s
-                     )
+                                     LEFT JOIN waiter_table_assignments wta
+                                                    ON wta.table_id = t.id
+                                                 AND wta.waiter_id = %s
+                   WHERE wc.status = 'PENDING'
+                     AND wc.waiter_id = %s
+                                         AND (t.waiter_id = %s OR wta.waiter_id IS NOT NULL)
                    ORDER BY wc.created_at ASC""",
-                (waiter_id, waiter_id)
+                                (waiter_id, waiter_id, waiter_id)
             )
 
             requests = cursor.fetchall()
@@ -217,7 +205,22 @@ class WaiterCallService:
                 connection.close()
                 return {'success': False, 'message': 'Request not found'}
 
-            if request['waiter_id'] is not None and request['waiter_id'] != waiter_id:
+            cursor.execute(
+                """SELECT wc.id
+                   FROM waiter_calls wc
+                   JOIN tables t ON wc.table_id = t.id
+                                     LEFT JOIN waiter_table_assignments wta
+                                                    ON wta.table_id = t.id
+                                                 AND wta.waiter_id = %s
+                   WHERE wc.id = %s
+                                         AND wc.waiter_id = %s
+                                         AND (t.waiter_id = %s OR wta.waiter_id IS NOT NULL)
+                   LIMIT 1""",
+                                (waiter_id, request_id, waiter_id, waiter_id)
+            )
+            is_authorized = cursor.fetchone() is not None
+
+            if not is_authorized:
                 cursor.close()
                 connection.close()
                 return {'success': False, 'message': 'Unauthorized: Request belongs to another waiter'}
@@ -265,7 +268,22 @@ class WaiterCallService:
                 connection.close()
                 return {'success': False, 'message': 'Request not found'}
 
-            if request['waiter_id'] is not None and request['waiter_id'] != waiter_id:
+            cursor.execute(
+                """SELECT wc.id
+                   FROM waiter_calls wc
+                   JOIN tables t ON wc.table_id = t.id
+                                     LEFT JOIN waiter_table_assignments wta
+                                                    ON wta.table_id = t.id
+                                                 AND wta.waiter_id = %s
+                   WHERE wc.id = %s
+                                         AND wc.waiter_id = %s
+                                         AND (t.waiter_id = %s OR wta.waiter_id IS NOT NULL)
+                   LIMIT 1""",
+                                (waiter_id, request_id, waiter_id, waiter_id)
+            )
+            is_authorized = cursor.fetchone() is not None
+
+            if not is_authorized:
                 cursor.close()
                 connection.close()
                 return {'success': False, 'message': 'Unauthorized: Request belongs to another waiter'}
@@ -359,6 +377,7 @@ class WaiterCallService:
                 params.append(status_filter)
             if waiter_filter:
                 query += " AND wc.waiter_id = %s"
+
                 params.append(waiter_filter)
 
             query += " ORDER BY wc.created_at DESC"

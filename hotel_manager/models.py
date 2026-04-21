@@ -747,13 +747,13 @@ class DashboardStats:
             """, (hotel_id,))
             total_tables = cursor.fetchone()['total']
             
-            # Get busy tables (tables with ACTIVE or PREPARING orders TODAY that are not PAID)
+            # Get busy tables (tables with ACTIVE orders TODAY that are not PAID)
             cursor.execute("""
                 SELECT COUNT(DISTINCT t.id) as busy 
                 FROM tables t
                 JOIN table_orders o ON t.id = o.table_id
                 WHERE t.hotel_id = %s 
-                AND o.order_status IN ('ACTIVE', 'PREPARING')
+                AND o.order_status IN ('ACTIVE')
                 AND (o.payment_status IS NULL OR o.payment_status = 'PENDING')
                 AND DATE(o.created_at) = CURDATE()
             """, (hotel_id,))
@@ -787,10 +787,10 @@ class DashboardStats:
             """, (hotel_id,))
             today_orders = cursor.fetchone()['total']
             
-            # Get active orders (ACTIVE + PREPARING) - today only
+            # Get active orders (ACTIVE only) - today only
             cursor.execute("""
                 SELECT COUNT(*) as active FROM table_orders 
-                WHERE hotel_id = %s AND order_status IN ('ACTIVE', 'PREPARING')
+                WHERE hotel_id = %s AND order_status IN ('ACTIVE')
                 AND DATE(created_at) = CURDATE()
             """, (hotel_id,))
             active_orders = cursor.fetchone()['active']

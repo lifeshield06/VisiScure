@@ -60,7 +60,7 @@ def get_live_orders():
                 FROM table_orders
                 WHERE table_id = %s 
                   AND hotel_id = %s
-                  AND order_status IN ('ACTIVE', 'PREPARING')
+                  AND order_status IN ('ACTIVE')
                                     AND COALESCE(total_amount, 0) > 0
                                     AND COALESCE(JSON_LENGTH(items), 0) > 0
                 ORDER BY created_at DESC
@@ -138,7 +138,7 @@ def get_table_orders(table_id):
             FROM table_orders
             WHERE table_id = %s 
               AND hotel_id = %s
-                            AND order_status IN ('ACTIVE', 'PREPARING')
+                            AND order_status IN ('ACTIVE', 'COMPLETED')
                             AND COALESCE(total_amount, 0) > 0
                             AND COALESCE(JSON_LENGTH(items), 0) > 0
             ORDER BY created_at DESC
@@ -226,7 +226,7 @@ def get_table_orders(table_id):
 @orders_bp.route('/api/order-summary', methods=['GET'])
 def get_order_summary():
     """
-    Get dashboard summary: total pending, preparing, completed orders
+    Get dashboard summary: total pending, completed orders
     Groups by order_status and returns counts and totals
     """
     try:
@@ -245,7 +245,7 @@ def get_order_summary():
                 SUM(total_amount) as total_amount
             FROM table_orders
             WHERE hotel_id = %s
-              AND order_status IN ('ACTIVE', 'PREPARING', 'COMPLETED')
+              AND order_status IN ('ACTIVE', 'COMPLETED')
               AND COALESCE(total_amount, 0) > 0
               AND COALESCE(JSON_LENGTH(items), 0) > 0
             GROUP BY order_status
@@ -256,7 +256,7 @@ def get_order_summary():
         # Format response
         summary = {
             'ACTIVE': {'count': 0, 'total_amount': 0},
-            'PREPARING': {'count': 0, 'total_amount': 0},
+
             'COMPLETED': {'count': 0, 'total_amount': 0}
         }
         
@@ -274,7 +274,7 @@ def get_order_summary():
             "success": True,
             "summary": summary,
             "total_pending": summary['ACTIVE']['count'],
-            "total_preparing": summary['PREPARING']['count'],
+
             "total_completed": summary['COMPLETED']['count']
         })
     

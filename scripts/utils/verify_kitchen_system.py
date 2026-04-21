@@ -92,12 +92,12 @@ def verify_kitchen_system():
             for mapping in mappings:
                 print(f"   - {mapping['section_name']}: {mapping['category_count']} categories assigned")
         
-        # Check for kitchens without kitchen_unique_id
+        # Check for kitchens without valid numeric kitchen_unique_id
         print("\n4. Checking for kitchens without Kitchen ID...")
         cursor.execute("""
             SELECT id, section_name
             FROM kitchen_sections
-            WHERE kitchen_unique_id IS NULL OR kitchen_unique_id = ''
+            WHERE kitchen_unique_id IS NULL OR kitchen_unique_id <= 0
         """)
         
         missing_ids = cursor.fetchall()
@@ -106,7 +106,7 @@ def verify_kitchen_system():
             print(f"   ⚠️  Found {len(missing_ids)} kitchen(s) without Kitchen ID:")
             for kitchen in missing_ids:
                 print(f"   - ID {kitchen['id']}: {kitchen['section_name']}")
-            print("   Run migration script: py Hotel/scripts/migrations/add_kitchen_unique_id.py")
+            print("   Run migration script: py scripts/migrations/add_kitchen_unique_id.py")
         else:
             print("   ✅ All kitchens have Kitchen IDs")
         

@@ -152,6 +152,22 @@ def _get_active_menu_offer_map(hotel_id, names):
             conn.close()
     return result
 
+
+def _resolve_public_table(TableModel, incoming_id):
+    """Resolve a public menu identifier to a table record.
+
+    Supports both direct table IDs and revisit links where the ID is a hotel_id.
+    """
+    table = TableModel.get_table_by_id(incoming_id)
+    if table:
+        return table
+
+    hotel_tables = TableModel.get_all_tables(incoming_id)
+    if hotel_tables:
+        return hotel_tables[0]
+
+    return None
+
 def _parse_dish_price_payload(form_data):
     price_type = (form_data.get("price_type") or "single").strip().lower()
     if price_type == "half_full":
@@ -988,8 +1004,8 @@ def get_public_menu(table_id):
     try:
         from orders.table_models import Table
         
-        # Get the table to find its hotel_id
-        table = Table.get_table_by_id(table_id)
+        # Resolve table directly or via visit-again hotel_id fallback
+        table = _resolve_public_table(Table, table_id)
         if not table:
             return jsonify({"success": False, "message": "Table not found"}), 404
         
@@ -1042,8 +1058,8 @@ def get_public_daily_special(table_id):
         from orders.table_models import Table
         from hotel_manager.models import DailySpecialMenu, DailySpecialSettings
         
-        # Get the table to find its hotel_id
-        table = Table.get_table_by_id(table_id)
+        # Resolve table directly or via visit-again hotel_id fallback
+        table = _resolve_public_table(Table, table_id)
         if not table:
             return jsonify({"success": False, "message": "Table not found"}), 404
         

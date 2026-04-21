@@ -428,7 +428,6 @@
         }
         
         .kitchen-card-active { background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%); }
-        .kitchen-card-preparing { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%); }
         .kitchen-card-ready { background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%); }
         
         .kitchen-card-content {
@@ -555,14 +554,15 @@
         }
         
         .order-card {
-            background: #f9fafb;
+            background: #ffffff;
             border-radius: 12px;
-            padding: 1.25rem;
-            border-left: 4px solid;
+            padding: 0.95rem;
+            border: 1px solid #e5e7eb;
             width: 100%;
             max-width: 100%;
             min-width: 0;
             overflow: hidden;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
         }
 
         .order-card.new-incoming {
@@ -579,14 +579,13 @@
             100% { transform: translateY(0); }
         }
         
-        .order-card.active { border-color: var(--warning); background: #fffbeb; }
-        .order-card.preparing { border-color: var(--info); background: #eff6ff; }
-        .order-card.ready { border-color: var(--success); background: #f0fdf4; }
+        .order-card.active { border-color: #e5e7eb; background: #ffffff; }
+        .order-card.ready { border-color: #d1fae5; background: #f8fffb; }
         
         .order-header {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 1rem;
+            margin-bottom: 0.65rem;
             gap: 0.75rem;
         }
 
@@ -596,61 +595,59 @@
         }
         
         .dish-name {
-            font-size: 1.125rem;
-            font-weight: 700;
-            margin-bottom: 0.375rem;
+            font-size: 1.02rem;
+            font-weight: 800;
+            margin-bottom: 0.2rem;
             word-break: break-word;
             overflow-wrap: anywhere;
         }
         
         .table-info {
-            color: #6b7280;
-            font-size: 0.875rem;
+            color: #4b5563;
+            font-size: 0.82rem;
             word-break: break-word;
             overflow-wrap: anywhere;
         }
-        
-        .status-badge {
-            padding: 0.375rem 0.75rem;
-            border-radius: 8px;
-            font-size: 0.8125rem;
+
+        .order-meta-minimal {
+            font-size: 0.82rem;
+            color: #6b7280;
             font-weight: 700;
-            text-transform: uppercase;
-            display: flex;
-            align-items: center;
-            gap: 0.375rem;
-            flex-shrink: 0;
+            margin-bottom: 0.65rem;
         }
-        
-        .status-badge.active { background: var(--warning); color: white; }
-        .status-badge.preparing { background: var(--info); color: white; }
-        .status-badge.ready { background: var(--success); color: white; }
-        
-        .order-meta {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-            padding: 0.875rem;
-            background: white;
-            border-radius: 8px;
-        }
-        
-        .meta-item {
-            text-align: center;
-        }
-        
-        .meta-label {
-            font-size: 0.75rem;
-            color: #9ca3af;
-            font-weight: 500;
-            margin-bottom: 0.25rem;
-        }
-        
-        .meta-value {
-            font-size: 1.125rem;
-            font-weight: 700;
+
+        .menu-line {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #111827;
+            line-height: 1.3;
+            margin-bottom: 0.65rem;
             word-break: break-word;
+        }
+
+        .freshness-badge {
+            margin-top: 0.45rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            border-radius: 999px;
+            padding: 0.22rem 0.5rem;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .freshness-badge.new {
+            background: #ffedd5;
+            color: #c2410c;
+            border: 1px solid #fdba74;
+        }
+
+        .freshness-badge.now {
+            background: #dbeafe;
+            color: #1d4ed8;
+            border: 1px solid #93c5fd;
         }
         
         .order-actions {
@@ -660,15 +657,16 @@
         
         .btn-action {
             flex: 1;
-            padding: 0.875rem;
+            padding: 0.7rem;
             border-radius: 10px;
-            font-weight: 600;
+            font-weight: 700;
             border: none;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0.35rem;
+            font-size: 0.88rem;
         }
         
         .btn-start {
@@ -684,11 +682,12 @@
         .ready-indicator {
             flex: 1;
             text-align: center;
-            padding: 0.875rem;
+            padding: 0.7rem;
             background: var(--success);
             color: white;
             border-radius: 10px;
             font-weight: 700;
+            font-size: 0.88rem;
         }
         
         .empty-state {
@@ -1173,6 +1172,268 @@
                 -webkit-tap-highlight-color: rgba(0, 0, 0, 0.05);
             }
         }
+
+        /* ===== COMPACT MOBILE OVERRIDE (390px-first) ===== */
+        @media (max-width: 767px) {
+            .header-content {
+                padding: 0.75rem !important;
+            }
+
+            .header-top {
+                margin-bottom: 0.75rem !important;
+                gap: 0.6rem !important;
+            }
+
+            .branding {
+                justify-content: flex-start !important;
+                width: 100% !important;
+            }
+
+            .logo {
+                width: 40px !important;
+                height: 40px !important;
+                border-radius: 10px !important;
+            }
+
+            .kitchen-name {
+                font-size: 1.05rem !important;
+                line-height: 1.2 !important;
+                font-weight: 800 !important;
+            }
+
+            .actions {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 0.5rem !important;
+                width: 100% !important;
+            }
+
+            .btn {
+                min-height: 42px !important;
+                padding: 0.55rem 0.7rem !important;
+                font-size: 0.88rem !important;
+                border-radius: 10px !important;
+                gap: 0.35rem !important;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+            }
+
+            .btn i {
+                font-size: 0.85rem !important;
+            }
+
+            .printer-status-card {
+                padding: 0.8rem !important;
+                border-radius: 14px !important;
+                margin-bottom: 0.35rem !important;
+                display: grid !important;
+                grid-template-columns: 1fr auto !important;
+                gap: 0.55rem !important;
+                align-items: center !important;
+                box-shadow: 0 6px 18px rgba(76, 29, 149, 0.22) !important;
+            }
+
+            .printer-status-content {
+                gap: 0.6rem !important;
+                min-width: 0 !important;
+            }
+
+            .printer-icon {
+                width: 36px !important;
+                height: 36px !important;
+                border-radius: 10px !important;
+                font-size: 1rem !important;
+            }
+
+            .printer-label {
+                font-size: 0.67rem !important;
+                letter-spacing: 0.35px !important;
+            }
+
+            .printer-name {
+                font-size: 0.8rem !important;
+                line-height: 1.2 !important;
+                word-break: normal !important;
+                overflow-wrap: anywhere !important;
+                max-height: 2.4em !important;
+                overflow: hidden !important;
+            }
+
+            .printer-status-text {
+                font-size: 0.86rem !important;
+                white-space: nowrap !important;
+                justify-self: end !important;
+                gap: 0.32rem !important;
+            }
+
+            .printer-status-dot {
+                width: 8px !important;
+                height: 8px !important;
+            }
+
+            .printer-actions {
+                grid-column: 1 / -1 !important;
+                justify-content: flex-end !important;
+                margin-top: 0.2rem !important;
+            }
+
+            .btn-test-printer {
+                min-height: 34px !important;
+                padding: 0.4rem 0.65rem !important;
+                font-size: 0.8rem !important;
+                border-radius: 9px !important;
+            }
+
+            .kitchen-cards-container {
+                grid-template-columns: 1fr !important;
+                gap: 0.5rem !important;
+            }
+
+            .kitchen-card {
+                min-height: 78px !important;
+                padding: 0.8rem !important;
+                border-radius: 14px !important;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+            }
+
+            .kitchen-card-content {
+                align-items: center !important;
+            }
+
+            .kitchen-card-label {
+                font-size: 0.72rem !important;
+                letter-spacing: 0.6px !important;
+                font-weight: 700 !important;
+                opacity: 0.92 !important;
+            }
+
+            .kitchen-card-value {
+                font-size: 2rem !important;
+                line-height: 1 !important;
+                margin-top: 0.1rem !important;
+            }
+
+            .kitchen-card-icon {
+                width: 38px !important;
+                height: 38px !important;
+                border-radius: 10px !important;
+                font-size: 1rem !important;
+            }
+
+            .main {
+                padding: 0.75rem !important;
+                padding-bottom: 1rem !important;
+            }
+
+            .category-section {
+                border-radius: 12px !important;
+                padding: 0.85rem !important;
+                margin-bottom: 0.75rem !important;
+                box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06) !important;
+            }
+
+            .category-header {
+                margin-bottom: 0.8rem !important;
+                padding-bottom: 0.7rem !important;
+                gap: 0.45rem !important;
+            }
+
+            .category-icon {
+                width: 32px !important;
+                height: 32px !important;
+                font-size: 0.92rem !important;
+                border-radius: 8px !important;
+            }
+
+            .category-name {
+                font-size: 0.96rem !important;
+            }
+
+            .category-count {
+                font-size: 0.72rem !important;
+                padding: 0.26rem 0.58rem !important;
+            }
+
+            .orders-grid {
+                gap: 0.7rem !important;
+            }
+
+            .order-card {
+                padding: 0.8rem !important;
+                border-radius: 10px !important;
+                border-left-width: 3px !important;
+            }
+
+            .dish-name {
+                font-size: 0.98rem !important;
+                margin-bottom: 0.22rem !important;
+            }
+
+            .table-info {
+                font-size: 0.78rem !important;
+            }
+
+            .status-badge {
+                font-size: 0.68rem !important;
+                padding: 0.3rem 0.55rem !important;
+                border-radius: 8px !important;
+            }
+
+            .order-meta {
+                padding: 0.62rem !important;
+                gap: 0.4rem !important;
+                margin-bottom: 0.65rem !important;
+                border-radius: 8px !important;
+            }
+
+            .meta-label {
+                font-size: 0.66rem !important;
+                margin-bottom: 0.16rem !important;
+            }
+
+            .meta-value {
+                font-size: 0.92rem !important;
+            }
+
+            .order-actions {
+                gap: 0.42rem !important;
+            }
+
+            .btn-action,
+            .ready-indicator {
+                min-height: 38px !important;
+                padding: 0.5rem 0.7rem !important;
+                font-size: 0.82rem !important;
+                border-radius: 8px !important;
+            }
+
+            .empty-state {
+                padding: 2rem 0.85rem !important;
+            }
+
+            .empty-state i {
+                font-size: 2.4rem !important;
+                margin-bottom: 0.6rem !important;
+            }
+
+            .empty-state p {
+                font-size: 0.9rem !important;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .printer-status-card {
+                grid-template-columns: 1fr !important;
+            }
+
+            .printer-status-text {
+                justify-self: start !important;
+            }
+
+            .btn-test-printer {
+                width: 100% !important;
+                justify-content: center !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1257,22 +1518,6 @@
                         </div>
                         <div class="kitchen-card-icon">
                             <i class="fas fa-clock"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="kitchen-card kitchen-card-preparing">
-                    <div class="kitchen-card-bg">
-                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="50" cy="150" r="70" fill="rgba(255,255,255,0.1)"/>
-                        </svg>
-                    </div>
-                    <div class="kitchen-card-content">
-                        <div class="kitchen-card-info">
-                            <div class="kitchen-card-label">Preparing</div>
-                            <div class="kitchen-card-value" id="stat-preparing">0</div>
-                        </div>
-                        <div class="kitchen-card-icon">
-                            <i class="fas fa-fire"></i>
                         </div>
                     </div>
                 </div>
@@ -1363,14 +1608,36 @@
                         displayOrders(data.orders_by_category, data.stats, incomingItemIds);
                         if (incomingItemIds.size > 0) {
                             playIncomingOrderBeep(2);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
                         }
                     }
                 });
         }
+
+        function parseOrderTimestamp(timestamp) {
+            const date = timestamp ? new Date(timestamp) : null;
+            return Number.isFinite(date?.getTime()) ? date.getTime() : 0;
+        }
+
+        function getFreshnessBadge(timestamp, status) {
+            if (String(status || '').toUpperCase() !== 'ACTIVE') {
+                return '';
+            }
+            const nowMs = Date.now();
+            const ts = parseOrderTimestamp(timestamp);
+            if (!ts) return '';
+            const diffMins = Math.floor((nowMs - ts) / 60000);
+            if (diffMins < 1) {
+                return '<span class="freshness-badge now"><i class="fas fa-bolt"></i> Just now</span>';
+            }
+            if (diffMins <= 3) {
+                return '<span class="freshness-badge new"><i class="fas fa-star"></i> New</span>';
+            }
+            return '';
+        }
         
         function displayOrders(ordersByCategory, stats, incomingItemIds = new Set()) {
             document.getElementById('stat-active').textContent = stats.active || 0;
-            document.getElementById('stat-preparing').textContent = stats.preparing || 0;
             document.getElementById('stat-ready').textContent = stats.ready || 0;
             
             const container = document.getElementById('orders-container');
@@ -1383,6 +1650,17 @@
             let html = '';
             
             for (const [categoryName, orders] of Object.entries(ordersByCategory)) {
+                const sortedOrders = [...(orders || [])].sort((a, b) => {
+                    const aStatus = String(a.order_status || '').toUpperCase();
+                    const bStatus = String(b.order_status || '').toUpperCase();
+
+                    const aRank = aStatus === 'ACTIVE' ? 1 : (aStatus === 'READY' ? 2 : 3);
+                    const bRank = bStatus === 'ACTIVE' ? 1 : (bStatus === 'READY' ? 2 : 3);
+
+                    if (aRank !== bRank) return aRank - bRank;
+                    return parseOrderTimestamp(b.created_at) - parseOrderTimestamp(a.created_at);
+                });
+
                 html += `
                     <div class="category-section">
                         <div class="category-header">
@@ -1392,94 +1670,34 @@
                                 </div>
                                 <div class="category-name">${categoryName}</div>
                             </div>
-                            <div class="category-count">${orders.length} item${orders.length > 1 ? 's' : ''}</div>
+                            <div class="category-count">${sortedOrders.length} item${sortedOrders.length > 1 ? 's' : ''}</div>
                         </div>
                         <div class="orders-grid">
                 `;
                 
-                orders.forEach(order => {
+                sortedOrders.forEach(order => {
                     const statusClass = order.order_status.toLowerCase();
                     const itemId = Number(order.item_id || 0);
                     const isIncoming = incomingItemIds.has(itemId);
-                    const statusIcon = {
-                        'ACTIVE': 'clock',
-                        'PREPARING': 'fire',
-                        'READY': 'check-circle'
-                    }[order.order_status] || 'circle';
                     
                     html += `
                         <div class="order-card ${statusClass} ${isIncoming ? 'new-incoming' : ''}">
                             <div class="order-header">
                                 <div>
-                                    <div class="dish-name">${order.item_name}</div>
-                                    <div class="table-info">
-                                        <i class="fas fa-table"></i> Table ${order.table_number}
-                                        ${order.guest_name ? ` • ${order.guest_name}` : ''}
-                                    </div>
-                                </div>
-                                <div class="status-badge ${statusClass}">
-                                    <i class="fas fa-${statusIcon}"></i>
-                                    ${order.order_status}
+                                    <div class="order-meta-minimal">T${order.table_number} • #${order.order_id}</div>
+                                    <div class="menu-line">${order.quantity}x ${order.item_name}</div>
                                 </div>
                             </div>
-                            
-                            <div class="order-meta">
-                                <div class="meta-item">
-                                    <div class="meta-label">Quantity</div>
-                                    <div class="meta-value">${order.quantity}</div>
-                                </div>
-                                <div class="meta-item">
-                                    <div class="meta-label">Time</div>
-                                    <div class="meta-value" style="font-size: 0.9rem;">${formatTime(order.created_at)}</div>
-                                </div>
-                            </div>
-                            
-                            <!-- KOT Status Row -->
-                            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                                ${order.kot_status ? `
-                                    <div style="flex: 1; display: flex; align-items: center; gap: 0.35rem; padding: 0.375rem 0.75rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;" 
-                                         class="${order.kot_status.toLowerCase() === 'printed' ? 'badge-printed' : order.kot_status.toLowerCase() === 'failed' ? 'badge-failed' : 'badge-pending'}">
-                                        ${order.kot_status === 'PRINTED' ? '<i class="fas fa-check-circle" style="color: #10b981;"></i> Printed' : 
-                                          order.kot_status === 'FAILED' ? '<i class="fas fa-times-circle" style="color: #ef4444;"></i> Failed' : 
-                                          '<i class="fas fa-hourglass-half" style="color: #f59e0b;"></i> Pending'}
-                                    </div>
-                                    ${order.kot_status === 'FAILED' && order.ticket_id ? `
-                                        <button onclick="reprintKOT(${order.ticket_id})" style="flex: 1; padding: 0.375rem 0.75rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; background: #dc2626; color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
-                                            <i class="fas fa-sync-alt"></i> Retry Print
-                                        </button>
-                                    ` : ''}
-                                ` : ''}
-                            </div>
-                            
-                            <style>
-                                .badge-printed {
-                                    background: #d1fae5;
-                                    color: #065f46;
-                                }
-                                .badge-failed {
-                                    background: #fee2e2;
-                                    color: #991b1b;
-                                }
-                                .badge-pending {
-                                    background: #fef3c7;
-                                    color: #92400e;
-                                }
-                            </style>
                             
                             <div class="order-actions">
                                 ${order.order_status === 'ACTIVE' ? `
-                                    <button class="btn-action btn-start" onclick="updateStatus(${order.item_id}, 'PREPARING')">
-                                        <i class="fas fa-fire"></i> Start Preparing
-                                    </button>
-                                ` : ''}
-                                ${order.order_status === 'PREPARING' ? `
                                     <button class="btn-action btn-ready" onclick="updateStatus(${order.item_id}, 'READY')">
-                                        <i class="fas fa-check"></i> Mark Ready
+                                        Mark Ready
                                     </button>
-                                ` : ''}
+                                ` : ''}  
                                 ${order.order_status === 'READY' ? `
                                     <div class="ready-indicator">
-                                        <i class="fas fa-check-circle"></i> Ready for Waiter
+                                        Ready for Waiter
                                     </div>
                                 ` : ''}
                             </div>

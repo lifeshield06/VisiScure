@@ -20,25 +20,56 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
+            padding: 1.5rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(2px);
+        }
+
+        body::before {
+            width: 260px;
+            height: 260px;
+            top: -70px;
+            left: -60px;
+            background: rgba(255, 255, 255, 0.26);
+        }
+
+        body::after {
+            width: 320px;
+            height: 320px;
+            right: -110px;
+            bottom: -90px;
+            background: rgba(255, 255, 255, 0.18);
         }
         
         .login-container {
-            background: white;
+            position: relative;
+            z-index: 1;
+            background: #ffffff;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 45px rgba(9, 33, 82, 0.16);
             width: 100%;
             max-width: 420px;
             overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.55);
         }
         
         .login-header {
-            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            background: linear-gradient(135deg, #ff7e00 0%, #ff5500 100%);
             padding: 2.5rem 2rem;
             text-align: center;
             color: white;
@@ -65,7 +96,7 @@
         }
         
         .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
         }
         
         .form-group label {
@@ -79,16 +110,23 @@
         .form-group input {
             width: 100%;
             padding: 0.875rem 1rem;
-            border: 2px solid #e5e7eb;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
             border-radius: 10px;
             font-size: 1rem;
             transition: all 0.3s ease;
+            color: #1f2937;
+        }
+
+        .form-group input::placeholder {
+            color: #9ca3af;
         }
         
         .form-group input:focus {
             outline: none;
-            border-color: #f59e0b;
-            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+            border-color: #ff7e00;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(255, 126, 0, 0.12);
         }
         
         .alert {
@@ -114,10 +152,10 @@
         .login-btn {
             width: 100%;
             padding: 1rem;
-            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            background: linear-gradient(135deg, #ff7e00 0%, #ff5500 100%);
             color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             font-size: 1.05rem;
             font-weight: 600;
             cursor: pointer;
@@ -126,12 +164,13 @@
             justify-content: center;
             gap: 0.5rem;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+            box-shadow: 0 10px 20px rgba(255, 85, 0, 0.25);
         }
         
         .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+            background: linear-gradient(135deg, #f66e00 0%, #e64b00 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(255, 85, 0, 0.32);
         }
         
         .login-btn:disabled {
@@ -166,13 +205,26 @@
             body {
                 padding: 1rem;
             }
+
+            .login-container {
+                max-width: 100%;
+                border-radius: 18px;
+            }
             
             .login-header {
                 padding: 2rem 1.5rem;
             }
+
+            .login-header h1 {
+                font-size: 1.55rem;
+            }
             
             .login-body {
                 padding: 2rem 1.5rem;
+            }
+
+            .login-btn {
+                font-size: 1rem;
             }
         }
     </style>
@@ -194,10 +246,14 @@
                         <i class="fas fa-id-card"></i> Kitchen ID
                     </label>
                     <input 
-                        type="text" 
+                        type="number" 
                         id="kitchen-id" 
                         name="kitchen_id" 
-                        placeholder="e.g., KITCHEN-101" 
+                        placeholder="e.g., 101" 
+                        min="1"
+                        step="1"
+                        inputmode="numeric"
+                        pattern="[0-9]+"
                         required
                         autocomplete="off"
                     >
@@ -226,7 +282,7 @@
             <div class="info-box">
                 <p>
                     <i class="fas fa-info-circle"></i>
-                    <span>Your Kitchen ID and Kitchen Name are provided by the manager. Both must match exactly to login.</span>
+                    <span>Your numeric Kitchen ID and Kitchen Name are provided by the manager. Both must match exactly to login.</span>
                 </p>
             </div>
         </div>
@@ -236,10 +292,19 @@
         function handleLogin(event) {
             event.preventDefault();
             
-            const kitchenId = document.getElementById('kitchen-id').value.trim();
+            const kitchenIdRaw = document.getElementById('kitchen-id').value.trim();
             const kitchenName = document.getElementById('kitchen-name').value.trim();
             const loginBtn = document.getElementById('login-btn');
             const alert = document.getElementById('alert');
+
+            if (!/^\d+$/.test(kitchenIdRaw)) {
+                alert.className = 'alert error';
+                alert.textContent = 'Kitchen ID must contain numbers only.';
+                alert.style.display = 'block';
+                return;
+            }
+
+            const kitchenId = Number(kitchenIdRaw);
             
             // Disable button
             loginBtn.disabled = true;

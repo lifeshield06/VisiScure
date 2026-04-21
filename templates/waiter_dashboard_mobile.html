@@ -54,15 +54,10 @@
                     <span id="activeCount">{{ active_count }}</span>
                     <label>Active</label>
                 </div>
-                <div class="stat-pill preparing-stat" onclick="scrollToSection('preparing-orders')">
-                    <i class="fas fa-clock"></i>
-                    <span id="preparingCount">{{ preparing_count }}</span>
-                    <label>Preparing</label>
-                </div>
                 <div class="stat-pill completed-stat" onclick="scrollToSection('completed-orders')">
                     <i class="fas fa-check"></i>
                     <span id="completedCount">{{ completed_count }}</span>
-                    <label>Done</label>
+                    <label>Completed</label>
                 </div>
                 <div class="stat-pill tables-stat" onclick="scrollToSection('my-tables')">
                     <i class="fas fa-chair"></i>
@@ -75,6 +70,14 @@
                     <label>Today's Tips</label>
                 </div>
             </div>
+
+            <section class="card-section" id="order-ready-section" style="display: none;">
+                <div class="section-header">
+                    <h2><i class="fas fa-bell"></i> Kitchen Ready Alerts</h2>
+                    <span class="badge badge-warning" id="orderReadyBadge">0</span>
+                </div>
+                <div class="orders-list" id="orderReadyList"></div>
+            </section>
 
             <!-- My Tables Section -->
             <section class="card-section" id="my-tables">
@@ -117,25 +120,10 @@
                 </div>
             </section>
 
-            <!-- Preparing Orders Section -->
-            <section class="card-section" id="preparing-orders">
-                <div class="section-header">
-                    <h2><i class="fas fa-clock"></i> Preparing</h2>
-                    <span class="badge badge-warning" id="preparingBadge">{{ preparing_count }}</span>
-                </div>
-                <div class="orders-list" id="preparingOrdersList">
-                    <!-- Orders will be loaded dynamically -->
-                    <div class="loading-state">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <p>Loading orders...</p>
-                    </div>
-                </div>
-            </section>
-
             <!-- Completed Orders Section -->
             <section class="card-section collapsed" id="completed-orders">
                 <div class="section-header" onclick="toggleSection('completed-orders')">
-                    <h2><i class="fas fa-check-circle"></i> Completed Today</h2>
+                    <h2><i class="fas fa-check-circle"></i> Completed Orders</h2>
                     <div class="section-toggle">
                         <span class="badge badge-success" id="completedBadge">{{ completed_count }}</span>
                         <i class="fas fa-chevron-down toggle-icon"></i>
@@ -192,12 +180,12 @@
                 <span>Active</span>
                 <div class="action-badge" id="activeActionBadge">{{ active_count }}</div>
             </button>
-            <button class="action-card" onclick="scrollToSection('preparing-orders')">
-                <div class="action-icon preparing-icon">
-                    <i class="fas fa-utensils"></i>
+            <button class="action-card" onclick="scrollToSection('completed-orders')">
+                <div class="action-icon completed-icon">
+                    <i class="fas fa-check-circle"></i>
                 </div>
-                <span>Preparing</span>
-                <div class="action-badge warning" id="preparingActionBadge">{{ preparing_count }}</div>
+                <span>Completed</span>
+                <div class="action-badge success" id="completedActionBadge">{{ completed_count }}</div>
             </button>
             <button class="action-card" onclick="refreshAll()">
                 <div class="action-icon refresh-icon">
@@ -265,6 +253,11 @@
         // ============================================
         let autoRefreshInterval;
         const REFRESH_INTERVAL = 30000; // 30 seconds
+        const CURRENT_WAITER_ID = Number({{ waiter_id|tojson }});
+        let hasInitializedOrderReadyPolling = false;
+        let previousOrderReadyNotificationIds = new Set();
+        let currentOrderReadyTableIds = new Set();
+        let currentOrderReadyOrderIds = new Set();
 
         // ============================================
         // INITIALIZATION
@@ -307,9 +300,9 @@
         async function loadAllOrders() {
             await Promise.all([
                 loadActiveOrders(),
-                loadPreparingOrders(),
                 loadCompletedOrders(),
-                loadTipStatistics()
+                loadTipStatistics(),
+                loadOrderReadyNotifications(false)
             ]);
         }
 
@@ -330,23 +323,6 @@
             }
         }
 
-        async function loadPreparingOrders() {
-            try {
-                const response = await fetch('/waiter/api/orders?status=PREPARING');
-                const data = await response.json();
-                
-                if (data.success) {
-                    renderOrders('preparingOrdersList', data.orders, 'preparing');
-                    updateCount('preparingCount', data.orders.length);
-                    updateCount('preparingBadge', data.orders.length);
-                    updateCount('preparingActionBadge', data.orders.length);
-                }
-            } catch (error) {
-                console.error('Error loading preparing orders:', error);
-                showToast('Failed to load preparing orders', 'error');
-            }
-        }
-
         async function loadCompletedOrders() {
             try {
                 const response = await fetch('/waiter/api/orders?status=COMPLETED');
@@ -356,6 +332,7 @@
                     renderOrders('completedOrdersList', data.orders, 'completed');
                     updateCount('completedCount', data.orders.length);
                     updateCount('completedBadge', data.orders.length);
+                    updateCount('completedActionBadge', data.orders.length);
                 }
             } catch (error) {
                 console.error('Error loading completed orders:', error);
@@ -423,6 +400,152 @@
             }
         }
 
+        async function loadOrderReadyNotifications(announceNew = true) {
+            try {
+                const response = await fetch('/waiter/api/notifications/order-ready');
+                const data = await response.json();
+
+                if (!data.success) {
+                    return;
+                }
+
+                const notifications = Array.isArray(data.notifications) ? data.notifications : [];
+                renderOrderReadyNotifications(notifications);
+
+                const currentIds = new Set(notifications.map(n => Number(n.id)).filter(Boolean));
+                currentOrderReadyTableIds = new Set(notifications.map(n => Number(n.table_id)).filter(Boolean));
+                currentOrderReadyOrderIds = new Set(notifications.map(n => Number(n.order_id)).filter(Boolean));
+
+                if (!hasInitializedOrderReadyPolling) {
+                    previousOrderReadyNotificationIds = currentIds;
+                    hasInitializedOrderReadyPolling = true;
+                    syncOrderReadyHighlights();
+                    return;
+                }
+
+                const newNotifications = announceNew
+                    ? notifications.filter(n => !previousOrderReadyNotificationIds.has(Number(n.id)))
+                    : [];
+
+                if (newNotifications.length > 0) {
+                    newNotifications.forEach(notification => {
+                        const tableNumber = notification.table_number || '?';
+                        showToast(`Table ${tableNumber} order is ready from kitchen`, 'success');
+                        speakOrderReadyAlert(tableNumber);
+                    });
+
+                    const firstNew = newNotifications[0];
+                    if (firstNew && Number(firstNew.order_id)) {
+                        scrollToOrderCard(Number(firstNew.order_id));
+                    }
+                }
+
+                previousOrderReadyNotificationIds = currentIds;
+                syncOrderReadyHighlights();
+            } catch (error) {
+                console.error('Error loading order-ready notifications:', error);
+            }
+        }
+
+        function renderOrderReadyNotifications(notifications) {
+            const section = document.getElementById('order-ready-section');
+            const list = document.getElementById('orderReadyList');
+            const badge = document.getElementById('orderReadyBadge');
+
+            if (!section || !list || !badge) {
+                return;
+            }
+
+            badge.textContent = notifications.length;
+
+            if (notifications.length === 0) {
+                section.style.display = 'none';
+                list.innerHTML = '';
+                return;
+            }
+
+            section.style.display = 'block';
+            list.innerHTML = notifications.map(notification => {
+                const tableNumber = notification.table_number || '?';
+                return `
+                    <div class="order-ready-alert-card">
+                        <div class="order-ready-alert-content">
+                            <div class="order-ready-alert-title">Table ${tableNumber} order is ready from kitchen</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function speakOrderReadyAlert(tableNumber) {
+            if (!speechSynthesisAvailable) {
+                return;
+            }
+
+            if (!audioEnabled && navigator.userActivation && navigator.userActivation.hasBeenActive) {
+                enableAudioOnInteraction();
+            }
+
+            if (!audioEnabled) {
+                showToast('Tap anywhere to enable voice alerts', 'error');
+                return;
+            }
+
+            const message = `Table ${tableNumber} order is ready`;
+            try {
+                const utterance = new SpeechSynthesisUtterance(message);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.95;
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+                speechSynthesis.speak(utterance);
+            } catch (error) {
+                console.warn('Order-ready voice alert failed:', error);
+            }
+        }
+
+        function syncOrderReadyHighlights() {
+            document.querySelectorAll('.table-chip.order-ready-highlight').forEach(chip => {
+                const tableId = Number(chip.getAttribute('data-table-id'));
+                if (!currentOrderReadyTableIds.has(tableId)) {
+                    chip.classList.remove('order-ready-highlight');
+                }
+            });
+
+            currentOrderReadyTableIds.forEach(tableId => {
+                const chip = document.querySelector(`.table-chip[data-table-id="${tableId}"]`);
+                if (chip) {
+                    chip.classList.add('order-ready-highlight');
+                }
+            });
+
+            document.querySelectorAll('.order-card.order-ready-highlight').forEach(card => {
+                const orderId = Number(card.getAttribute('data-order-id'));
+                if (!currentOrderReadyOrderIds.has(orderId)) {
+                    card.classList.remove('order-ready-highlight');
+                }
+            });
+
+            currentOrderReadyOrderIds.forEach(orderId => {
+                const card = document.querySelector(`.order-card[data-order-id="${orderId}"]`);
+                if (card) {
+                    card.classList.add('order-ready-highlight');
+                }
+            });
+        }
+
+        function scrollToOrderCard(orderId) {
+            const card = document.querySelector(`.order-card[data-order-id="${orderId}"]`);
+            if (!card) {
+                return;
+            }
+
+            scrollToSection('active-orders');
+            setTimeout(() => {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 280);
+        }
+
         // ============================================
         // ORDER RENDERING
         // ============================================
@@ -433,7 +556,7 @@
             if (orders.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <i class="fas fa-${type === 'active' ? 'fire-alt' : type === 'preparing' ? 'utensils' : 'clipboard-check'}"></i>
+                        <i class="fas fa-${type === 'active' ? 'fire-alt' : 'clipboard-check'}"></i>
                         <p>No ${type} orders</p>
                     </div>
                 `;
@@ -441,55 +564,38 @@
             }
 
             container.innerHTML = orders.map(order => createOrderCard(order, type)).join('');
+            syncOrderReadyHighlights();
         }
 
         function createOrderCard(order, type) {
-            const status = order.status || order.order_status || 'pending';
+            const status = normalizeOrderStatus(order.status || order.order_status);
             const statusClass = getStatusClass(status);
-            const timeAgo = getTimeAgo(order.created_at);
-            const paymentStatus = order.payment_status || 'pending';
             const orderId = order.id || order.order_id;
             const items = order.items || [];
-            const totalAmount = order.total_amount || order.total || 0;
             
             let actionButtons = '';
-            const upperStatus = status.toUpperCase();
-            if (type === 'active' || upperStatus === 'ACTIVE') {
+            if (status === 'ACTIVE') {
                 actionButtons = `
-                    <button class="order-action-btn preparing" onclick="updateStatus(${orderId}, 'PREPARING')">
-                        <i class="fas fa-clock"></i> Start Preparing
-                    </button>
-                `;
-            } else if (type === 'preparing' || upperStatus === 'PREPARING') {
-                actionButtons = `
-                    <button class="order-action-btn complete" onclick="updateStatus(${orderId}, 'COMPLETED')">
-                        <i class="fas fa-check"></i> Mark Complete
+                    <button class="order-action-btn complete" onclick="markOrderCompleted(${orderId})">
+                        Mark as Completed
                     </button>
                 `;
             }
 
             return `
-                <div class="order-card ${statusClass}" onclick="showOrderDetails(${orderId})">
+                <div class="order-card ${statusClass}" data-order-id="${orderId}" data-table-id="${order.table_id || ''}" onclick="showOrderDetails(${orderId})">
                     <div class="order-card-header">
                         <div class="order-info">
                             <span class="table-badge">T${order.table_number}</span>
                             <span class="order-id">#${orderId}</span>
                         </div>
-                        <div class="order-badges">
-                            <span class="status-badge ${statusClass}">${status}</span>
-                            <span class="payment-badge ${paymentStatus}">${paymentStatus}</span>
-                        </div>
                     </div>
                     <div class="order-card-body">
-                        <div class="order-items">
+                        <div class="order-items-list">
                             ${items.length > 0 ? items.slice(0, 3).map(item => 
-                                `<span class="item-tag">${item.quantity}× ${item.name || item.item_name}</span>`
-                            ).join('') : '<span class="item-tag">No items</span>'}
-                            ${items.length > 3 ? `<span class="item-tag more">+${items.length - 3} more</span>` : ''}
-                        </div>
-                        <div class="order-meta">
-                            <span class="order-time"><i class="fas fa-clock"></i> ${timeAgo}</span>
-                            <span class="order-total">₹${totalAmount}</span>
+                                `<div class="order-item-line"><span class="item-qty">${item.quantity}x</span> <span class="item-name">${item.name || item.item_name}</span></div>`
+                            ).join('') : '<div class="order-item-line empty">No items</div>'}
+                            ${items.length > 3 ? `<div class="order-item-line more">+${items.length - 3} more</div>` : ''}
                         </div>
                     </div>
                     ${actionButtons ? `<div class="order-card-actions" onclick="event.stopPropagation()">${actionButtons}</div>` : ''}
@@ -497,12 +603,16 @@
             `;
         }
 
+        function normalizeOrderStatus(status) {
+            const upperStatus = String(status || 'ACTIVE').toUpperCase();
+            if (upperStatus === 'COMPLETED') return 'COMPLETED';
+            if (upperStatus === 'CANCELLED') return 'CANCELLED';
+            return 'ACTIVE';
+        }
+
         function getStatusClass(status) {
             switch(status?.toUpperCase()) {
-                case 'PENDING': return 'status-pending';
-                case 'CONFIRMED': return 'status-confirmed';
-                case 'ACTIVE': return 'status-pending';
-                case 'PREPARING': return 'status-preparing';
+                case 'ACTIVE': return 'status-active';
                 case 'COMPLETED': return 'status-completed';
                 case 'CANCELLED': return 'status-cancelled';
                 default: return 'status-pending';
@@ -526,6 +636,10 @@
         // ============================================
         // ORDER ACTIONS
         // ============================================
+        async function markOrderCompleted(orderId) {
+            await updateStatus(orderId, 'COMPLETED');
+        }
+
         async function updateStatus(orderId, newStatus) {
             try {
                 const response = await fetch(`/waiter/api/orders/${orderId}/status`, {
@@ -536,7 +650,7 @@
                 
                 const data = await response.json();
                 if (data.success) {
-                    showToast(`Order #${orderId} marked as ${newStatus}`, 'success');
+                    showToast(`Order #${orderId} marked as completed`, 'success');
                     await loadAllOrders();
                 } else {
                     showToast(data.message || 'Failed to update order', 'error');
@@ -565,9 +679,8 @@
                         Order #${order.id || order.order_id}
                     `;
                     
-                    const status = order.status || order.order_status || 'pending';
+                    const status = normalizeOrderStatus(order.status || order.order_status);
                     const items = order.items || [];
-                    const totalAmount = order.total_amount || order.total || 0;
                     
                     document.getElementById('modalBody').innerHTML = `
                         <div class="order-detail-section">
@@ -591,26 +704,16 @@
                                     <div class="item-row">
                                         <span class="qty">${item.quantity}×</span>
                                         <span class="name">${item.name || item.item_name}</span>
-                                        <span class="price">₹${(item.price || 0) * item.quantity}</span>
                                     </div>
                                 `).join('') : '<p>No items</p>'}
                             </div>
                         </div>
-                        <div class="total-section">
-                            <div class="total-row grand">
-                                <span>Total</span>
-                                <span>₹${totalAmount}</span>
-                            </div>
-                        </div>
                     `;
                     
-                    let actions = `<button class="action-btn secondary" onclick="viewBill(${order.table_id || 0})"><i class="fas fa-receipt"></i> View Bill</button>`;
+                    let actions = '';
                     
-                    const orderStatus = (status || '').toUpperCase();
-                    if (orderStatus === 'ACTIVE' || orderStatus === 'PENDING' || orderStatus === 'CONFIRMED') {
-                        actions += `<button class="action-btn warning" onclick="updateStatus(${order.id || order.order_id}, 'PREPARING'); closeModal();"><i class="fas fa-clock"></i> Preparing</button>`;
-                    } else if (orderStatus === 'PREPARING') {
-                        actions += `<button class="action-btn success" onclick="updateStatus(${order.id || order.order_id}, 'COMPLETED'); closeModal();"><i class="fas fa-check"></i> Complete</button>`;
+                    if (status === 'ACTIVE') {
+                        actions += `<button class="action-btn success" onclick="markOrderCompleted(${order.id || order.order_id}); closeModal();"><i class="fas fa-check"></i> Mark as Completed</button>`;
                     }
                     
                     document.getElementById('modalActions').innerHTML = actions;
@@ -620,17 +723,6 @@
                 console.error('Error fetching order details:', error);
                 showToast('Failed to load order details', 'error');
             }
-        }
-
-        async function viewBill(tableId) {
-            // For now, show a message since bill viewing needs table-specific implementation
-            // The waiter can see bills through order details
-            showToast('Bill feature coming soon', 'info');
-            closeModal();
-        }
-
-        function printBill(billId) {
-            showToast('Print feature coming soon', 'info');
         }
 
         // ============================================
@@ -730,30 +822,50 @@
         // ============================================
         
         let pollingInterval = null;
+        let hasInitializedWaiterPolling = false;
         let previousRequestIds = new Set();
+        let spokenRequestIds = new Set();
+        let queuedSpeechRequestIds = new Set();
+        let pendingSpeechRequests = [];
         let voiceMessage = 'Table {table} is calling waiter'; // Default message
         let speechSynthesisAvailable = false;
+        let audioEnabled = false;
+        let voicesLoaded = false;
+        let speechRequestSeq = 0;
         let userInteracted = false;
 
         // Enable audio on user interaction (to bypass autoplay restrictions)
-        function enableAudioOnInteraction() {
-            if (!userInteracted) {
-                userInteracted = true;
-                console.log('[WAITER_CALL] User interaction detected - audio enabled');
-                
-                // Test speech synthesis
-                if (speechSynthesisAvailable) {
+        function enableAudioOnInteraction(event) {
+            // Only trust real gesture-driven activation for speech unlock.
+            const hasActivation = !navigator.userActivation ||
+                navigator.userActivation.isActive ||
+                navigator.userActivation.hasBeenActive;
+
+            if (!hasActivation) {
+                return;
+            }
+
+            userInteracted = true;
+            audioEnabled = true;
+            console.log('[WAITER_CALL] User interaction detected - audio enabled');
+            
+            // Unlock speech/audio after user gesture
+            if (speechSynthesisAvailable) {
+                try {
                     speechSynthesis.cancel();
-                    const testUtterance = new SpeechSynthesisUtterance('');
-                    speechSynthesis.speak(testUtterance);
+                    speechSynthesis.resume();
+                } catch (e) {
+                    console.warn('[WAITER_CALL] Speech unlock warning:', e);
                 }
+                flushPendingSpeechRequests();
             }
         }
 
         // Add event listeners for user interaction
-        document.addEventListener('click', enableAudioOnInteraction, { once: true });
-        document.addEventListener('touchstart', enableAudioOnInteraction, { once: true });
-        document.addEventListener('keydown', enableAudioOnInteraction, { once: true });
+        document.addEventListener('click', enableAudioOnInteraction);
+        document.addEventListener('pointerdown', enableAudioOnInteraction);
+        document.addEventListener('touchstart', enableAudioOnInteraction);
+        document.addEventListener('keydown', enableAudioOnInteraction);
 
         // Check if speech synthesis is available
         function checkSpeechSynthesis() {
@@ -761,14 +873,18 @@
                 speechSynthesisAvailable = true;
                 console.log('[WAITER_CALL] Speech synthesis is available');
                 
-                // Load voices (some browsers need this)
-                if (speechSynthesis.getVoices().length === 0) {
-                    speechSynthesis.addEventListener('voiceschanged', function() {
-                        console.log('[WAITER_CALL] Voices loaded:', speechSynthesis.getVoices().length);
-                    });
-                } else {
-                    console.log('[WAITER_CALL] Voices already loaded:', speechSynthesis.getVoices().length);
+                const initialVoices = speechSynthesis.getVoices();
+                voicesLoaded = initialVoices.length > 0;
+                if (voicesLoaded) {
+                    console.log('[WAITER_CALL] Voices already loaded:', initialVoices.length);
                 }
+
+                speechSynthesis.onvoiceschanged = () => {
+                    const voices = speechSynthesis.getVoices();
+                    voicesLoaded = voices.length > 0;
+                    console.log('[WAITER_CALL] Voices loaded:', voices.length);
+                    flushPendingSpeechRequests();
+                };
             } else {
                 console.warn('[WAITER_CALL] Speech synthesis not available in this browser');
             }
@@ -790,7 +906,7 @@
         }
 
         // Speak voice message using Web Speech API
-        function speakVoiceMessage(tableNumber) {
+        function speakVoiceMessage(tableNumber, requestId = null) {
             if (!speechSynthesisAvailable) {
                 console.log('[WAITER_CALL] Speech synthesis not available - skipping voice alert');
                 return;
@@ -798,12 +914,26 @@
             
             // Replace {table} with actual table number
             const message = voiceMessage.replace(/{table}/g, tableNumber);
+            const requestSeq = ++speechRequestSeq;
             
+            // If browser already has user activation, unlock audio immediately.
+            if (!audioEnabled && navigator.userActivation && navigator.userActivation.hasBeenActive) {
+                enableAudioOnInteraction();
+            }
+
+            console.log('[WAITER_CALL] About to speak:', message);
+
             // Cancel any ongoing speech first
-            speechSynthesis.cancel();
+            if (speechSynthesis.speaking || speechSynthesis.pending) {
+                speechSynthesis.cancel();
+            }
             
             // Small delay to ensure cancel completes
             setTimeout(() => {
+                if (requestSeq !== speechRequestSeq) {
+                    return;
+                }
+
                 try {
                     // Create speech utterance
                     const utterance = new SpeechSynthesisUtterance(message);
@@ -814,7 +944,7 @@
                     
                     // Try to use a clear voice if available
                     const voices = speechSynthesis.getVoices();
-                    if (voices.length > 0) {
+                    if (voicesLoaded && voices.length > 0) {
                         const preferredVoice = voices.find(voice => 
                             voice.name.toLowerCase().includes('female') || 
                             voice.name.toLowerCase().includes('samantha') ||
@@ -832,6 +962,10 @@
                     }
                     
                     utterance.onstart = function() {
+                        if (requestId !== null) {
+                            spokenRequestIds.add(requestId);
+                            queuedSpeechRequestIds.delete(requestId);
+                        }
                         console.log('[WAITER_CALL] Speaking:', message);
                     };
                     
@@ -840,20 +974,84 @@
                     };
                     
                     utterance.onerror = function(event) {
-                        console.error('[WAITER_CALL] Speech error:', event.error);
-                        // Retry once if it fails
-                        if (event.error === 'interrupted' || event.error === 'canceled') {
-                            console.log('[WAITER_CALL] Retrying speech...');
-                            setTimeout(() => speechSynthesis.speak(utterance), 500);
+                        const errorType = String(event?.error || '').toLowerCase();
+                        if (requestId !== null) {
+                            spokenRequestIds.delete(requestId);
                         }
+
+                        if (errorType === 'not-allowed' || errorType === 'notallowed') {
+                            audioEnabled = false;
+                            if (requestId !== null && !queuedSpeechRequestIds.has(requestId)) {
+                                queuedSpeechRequestIds.add(requestId);
+                                pendingSpeechRequests.push({ requestId, tableNumber, requestSeq });
+                            }
+                            console.warn('[WAITER_CALL] Speech blocked by browser policy; waiting for interaction');
+                            showToast('Tap anywhere to enable voice alerts', 'error');
+                            return;
+                        }
+
+                        // Interrupted/canceled is expected when a newer request replaces current speech.
+                        if (errorType === 'interrupted' || errorType === 'canceled' || errorType === 'cancelled') {
+                            console.info('[WAITER_CALL] Speech interrupted by a newer request');
+                            return;
+                        }
+
+                        console.error('[WAITER_CALL] Speech error:', event.error);
                     };
                     
                     // Speak the message
-                    speechSynthesis.speak(utterance);
+                    if (requestSeq === speechRequestSeq) {
+                        try {
+                            speechSynthesis.speak(utterance);
+                        } catch (speakError) {
+                            const errText = String(speakError || '').toLowerCase();
+                            if (errText.includes('notallowed') || errText.includes('user activation')) {
+                                audioEnabled = false;
+                                if (requestId !== null && !queuedSpeechRequestIds.has(requestId)) {
+                                    queuedSpeechRequestIds.add(requestId);
+                                    pendingSpeechRequests.push({ requestId, tableNumber, requestSeq });
+                                }
+                                console.log('[WAITER_CALL] Speech blocked; queued until user interaction');
+                                showToast('Tap anywhere to enable voice alerts', 'error');
+                                return;
+                            }
+                            throw speakError;
+                        }
+                    }
                 } catch (error) {
                     console.error('[WAITER_CALL] Error creating speech:', error);
+                    // Fallback queue for blocked autoplay paths where errors bubble up.
+                    const errText = String(error || '').toLowerCase();
+                    if (errText.includes('notallowed') || errText.includes('user activation')) {
+                        audioEnabled = false;
+                        if (requestId !== null && !queuedSpeechRequestIds.has(requestId)) {
+                            queuedSpeechRequestIds.add(requestId);
+                            pendingSpeechRequests.push({ requestId, tableNumber, requestSeq });
+                        }
+                        console.log('[WAITER_CALL] Speech queued until audio is ready');
+                    }
                 }
             }, 100);
+        }
+
+        function flushPendingSpeechRequests() {
+            if (!speechSynthesisAvailable || !audioEnabled || pendingSpeechRequests.length === 0) {
+                return;
+            }
+
+            const queuedRequests = pendingSpeechRequests.splice(0, pendingSpeechRequests.length);
+            queuedRequests.forEach((request, index) => {
+                setTimeout(() => {
+                    if (!audioEnabled) {
+                        pendingSpeechRequests.push(request);
+                        return;
+                    }
+                    if (request.requestSeq > speechRequestSeq) {
+                        speechRequestSeq = request.requestSeq;
+                    }
+                    speakVoiceMessage(request.tableNumber, request.requestId || null);
+                }, index * 350);
+            });
         }
 
         // Play a beep alert using Web Audio API (no file needed)
@@ -905,7 +1103,11 @@
             checkSpeechSynthesis();
             fetchVoiceMessage();
             pollWaiterCalls(); // Poll immediately
-            pollingInterval = setInterval(pollWaiterCalls, 5000); // Then every 5 seconds
+            loadOrderReadyNotifications(true);
+            pollingInterval = setInterval(() => {
+                pollWaiterCalls();
+                loadOrderReadyNotifications(true);
+            }, 5000); // Then every 5 seconds
         }
 
         // Stop polling
@@ -927,26 +1129,48 @@
                 
                 if (data.success && data.requests) {
                     console.log(`[WAITER_CALL] Found ${data.requests.length} pending request(s)`);
-                    const currentRequestIds = new Set(data.requests.map(r => r.id));
-                    const activeTableIds = new Set(data.requests.map(r => r.table_id));
+                    const visibleRequests = data.requests.filter(request => 
+                        Number(request.waiter_id) === CURRENT_WAITER_ID &&
+                        Number(request.table_waiter_id || request.waiter_id) === CURRENT_WAITER_ID
+                    );
+                    const currentRequestIds = new Set(visibleRequests.map(r => r.id));
+                    const activeTableIds = new Set(visibleRequests.map(r => r.table_id));
+
+                    // Baseline on first successful poll: don't alert for already-existing requests.
+                    if (!hasInitializedWaiterPolling) {
+                        previousRequestIds = currentRequestIds;
+                        hasInitializedWaiterPolling = true;
+                        syncCallingHighlights(activeTableIds);
+                        updateAssistanceRequestsUI(visibleRequests);
+                        updateBanner(visibleRequests);
+                        return;
+                    }
                     
                     // Check for new requests
-                    const newRequests = data.requests.filter(r => !previousRequestIds.has(r.id));
+                    const newRequests = visibleRequests.filter(r => !previousRequestIds.has(r.id));
                     
                     if (newRequests.length > 0) {
                         console.log(`[WAITER_CALL] ${newRequests.length} NEW request(s) detected!`);
                         playBeepAlert();
                         newRequests.forEach(request => {
+                            const requestWaiterId = Number(request.waiter_id);
+                            const tableWaiterId = Number(request.table_waiter_id || request.waiter_id);
+                            if (requestWaiterId !== CURRENT_WAITER_ID || tableWaiterId !== CURRENT_WAITER_ID) {
+                                return;
+                            }
+                            if (spokenRequestIds.has(request.id) || queuedSpeechRequestIds.has(request.id)) {
+                                return;
+                            }
                             console.log('[WAITER_CALL] New request:', request);
                             showPopupNotification(request);
-                            speakVoiceMessage(request.table_number);
+                            speakVoiceMessage(request.table_number, request.id);
                         });
                     }
                     
                     previousRequestIds = currentRequestIds;
                     syncCallingHighlights(activeTableIds);
-                    updateAssistanceRequestsUI(data.requests);
-                    updateBanner(data.requests);
+                    updateAssistanceRequestsUI(visibleRequests);
+                    updateBanner(visibleRequests);
                 } else if (!data.success && data.message && data.message.includes('Unauthorized')) {
                     console.error('[WAITER_CALL] Unauthorized - waiter not logged in');
                     stopWaiterCallPolling();
