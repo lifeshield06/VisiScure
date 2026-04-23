@@ -342,6 +342,7 @@ def format_dish(dish_row):
     return {
         "id": dish_row['id'],
         "name": dish_row['name'],
+        "is_active": int(dish_row.get('is_active', 1) if dish_row.get('is_active') is not None else 1),
         "price": float(dish_row['price']) if dish_row.get('price') is not None else 0.00,
         "price_type": (dish_row.get('price_type') or 'single').strip().lower(),
         "half_price": float(dish_row['half_price']) if dish_row.get('half_price') is not None else None,
@@ -1028,6 +1029,10 @@ def get_public_menu(table_id):
             category_food_type = str(category.get('food_type') or 'veg').strip().lower()
             dishes = []
             for dish in dishes_list:
+                # Double-check: skip any dish that is explicitly inactive
+                if int(dish.get('is_active', 1) or 1) == 0:
+                    print(f"[PUBLIC MENU] Skipping inactive dish id={dish.get('id')} name={dish.get('name')}")
+                    continue
                 formatted = {
                     **format_dish(dish),
                     "food_type": category_food_type
