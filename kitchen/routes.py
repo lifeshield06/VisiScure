@@ -94,6 +94,7 @@ def dashboard():
                          hotel_logo=hotel_logo)
 
 @kitchen_bp.route('/api/orders', methods=['GET'])
+@kitchen_bp.route('/orders', methods=['GET'])
 def get_kitchen_orders():
     """Get orders for authenticated kitchen"""
     kitchen_id = session.get('kitchen_id')

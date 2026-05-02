@@ -1,4 +1,7 @@
+import hashlib
 import os
+import tempfile
+import threading
 from datetime import datetime
 from typing import Dict, List, Tuple
 
@@ -54,23 +57,37 @@ class KOTService:
         section_printer = os.getenv(f'KOT_PRINTER_{section_key}', '').strip()
         if section_printer:
             return section_printer
-        return os.getenv('KOT_PRINTER_DEFAULT', '').strip()
+        default_printer = os.getenv('KOT_PRINTER_DEFAULT', '').strip()
+        if default_printer:
+            return default_printer
+
+        try:
+            import win32print  # type: ignore
+            return win32print.GetDefaultPrinter()
+        except Exception:
+            return ''
 
     @staticmethod
     def _build_kot_text(hotel_name: str, section_name: str, kot_number: str, table_number: str,
                         order_time: datetime, items: List[Dict], note: str = None) -> str:
         width = 32
         lines = []
-        lines.append(KOTService._safe_text(hotel_name, 'TIP TOP HOTEL'))
-        lines.append(f"SECTION: {KOTService._safe_text(section_name, 'GENERAL')}")
-        lines.append(f"KOT: {kot_number}")
-        lines.append(KOTService._fit_line(f"TABLE: {table_number}", order_time.strftime('%I:%M %p'), width))
+        lines.append('KITCHEN ORDER')
+        restaurant_name = KOTService._safe_text(hotel_name, '')
+        if restaurant_name:
+            lines.append(restaurant_name)
+        section_label = KOTService._safe_text(section_name, 'GENERAL')
+        if section_label:
+            lines.append(f"SECTION: {section_label}")
+        lines.append(f"ORDER: {kot_number}")
+        lines.append(f"TABLE: {KOTService._safe_text(table_number, 'Unknown')}")
+        lines.append(f"TIME: {order_time.strftime('%I:%M %p')}")
         lines.append('-' * width)
 
         for item in items:
             item_name = KOTService._safe_text(item.get('dish_name') or item.get('item_name'), 'Item')
             qty = int(item.get('quantity') or 0)
-            item_line = f"{item_name} x {qty}"
+            item_line = f"{qty}x {item_name}"
             for line in KOTService._chunks(item_line, width):
                 lines.append(line)
 
@@ -85,18 +102,39 @@ class KOTService:
         return '\n'.join(lines)
 
     @staticmethod
-    def _print_escpos(printer_name: str, text: str) -> Tuple[bool, str]:
+    def _safe_remove_file(path: str) -> None:
+        try:
+            if path and os.path.exists(path):
+                os.remove(path)
+        except Exception:
+            pass
+
+    @staticmethod
+    def _print_via_shell(printer_name: str, file_path: str) -> Tuple[bool, str]:
         if not printer_name:
-            return False, 'Printer not configured. Set KOT_PRINTER_DEFAULT or section-specific printer env.'
+            return False, 'Printer not configured. Set KOT_PRINTER_DEFAULT or use the Windows default printer.'
+
+        try:
+            import win32api  # type: ignore
+            win32api.ShellExecute(0, 'printto', file_path, f'"{printer_name}"', '.', 0)
+            return True, 'Print command sent to the system printer'
+        except ImportError:
+            return False, 'pywin32 not installed for Windows print command support'
+        except Exception as e:
+            return False, str(e)
+
+    @staticmethod
+    def _print_raw_to_printer(printer_name: str, text: str) -> Tuple[bool, str]:
+        if not printer_name:
+            return False, 'Printer not configured'
 
         try:
             import win32print  # type: ignore
 
-            # ESC/POS: Initialize, feed, cut
             payload = b'\x1b@' + text.encode('ascii', errors='replace') + b'\n\n\n\x1dV\x00'
             hprinter = win32print.OpenPrinter(printer_name)
             try:
-                job = win32print.StartDocPrinter(hprinter, 1, ('KOT Print', None, 'RAW'))
+                win32print.StartDocPrinter(hprinter, 1, ('KOT Print', None, 'RAW'))
                 try:
                     win32print.StartPagePrinter(hprinter)
                     win32print.WritePrinter(hprinter, payload)
@@ -111,6 +149,70 @@ class KOTService:
             return False, 'pywin32 not installed for RAW printer communication'
         except Exception as e:
             return False, str(e)
+
+    @staticmethod
+    def print_kot(kot_data: Dict) -> Dict:
+        """Print a single KOT ticket using the Windows default printer."""
+        try:
+            section_name = kot_data.get('section_name') or 'GENERAL'
+            printer_name = kot_data.get('printer_name') or KOTService._get_printer_name(section_name)
+            if not printer_name:
+                return {'success': False, 'message': 'No printer available'}
+
+            order_time = kot_data.get('order_time') or datetime.now()
+            if isinstance(order_time, str):
+                try:
+                    order_time = datetime.fromisoformat(order_time)
+                except Exception:
+                    order_time = datetime.now()
+
+            ticket_text = KOTService._build_kot_text(
+                hotel_name=kot_data.get('hotel_name') or 'Tip Top Hotel',
+                section_name=section_name,
+                kot_number=kot_data.get('kot_number') or 'KOT-UNKNOWN',
+                table_number=KOTService._safe_text(kot_data.get('table_number'), 'Table Deleted'),
+                order_time=order_time,
+                items=kot_data.get('items') or [],
+                note=kot_data.get('note')
+            )
+
+            temp_path = None
+            try:
+                with tempfile.NamedTemporaryFile('w', delete=False, suffix='.txt', encoding='utf-8') as temp_file:
+                    temp_file.write(ticket_text)
+                    temp_path = temp_file.name
+
+                ok, message = KOTService._print_via_shell(printer_name, temp_path)
+                if not ok:
+                    ok, message = KOTService._print_raw_to_printer(printer_name, ticket_text)
+
+                return {
+                    'success': ok,
+                    'message': message,
+                    'printer': printer_name,
+                    'temp_file': temp_path,
+                }
+            finally:
+                if temp_path:
+                    cleanup = threading.Timer(30.0, KOTService._safe_remove_file, args=(temp_path,))
+                    cleanup.daemon = True
+                    cleanup.start()
+        except Exception as e:
+            return {'success': False, 'message': f'KOT print failed: {e}'}
+
+    @staticmethod
+    def queue_print_for_new_items(order_id: int, note: str = None) -> Dict:
+        """Queue KOT printing in the background so order APIs return immediately."""
+        try:
+            worker = threading.Thread(
+                target=KOTService.print_for_new_items,
+                args=(order_id, note),
+                daemon=True,
+            )
+            worker.start()
+            return {'success': True, 'queued': True, 'message': 'KOT print queued'}
+        except Exception as e:
+            return {'success': False, 'queued': False, 'message': f'Failed to queue KOT print: {e}'}
 
     @staticmethod
     def ensure_schema():
@@ -131,8 +233,9 @@ class KOTService:
                     session_id VARCHAR(100),
                     section_id INT,
                     section_name VARCHAR(100),
+                    items_signature VARCHAR(64),
                     note TEXT,
-                    print_status ENUM('PENDING', 'PRINTED', 'FAILED') DEFAULT 'PENDING',
+                    print_status ENUM('PENDING', 'PROCESSING', 'PRINTED', 'FAILED') DEFAULT 'PENDING',
                     error_message TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     printed_at TIMESTAMP NULL,
@@ -142,6 +245,19 @@ class KOTService:
                 )
                 """
             )
+
+            cursor.execute("SHOW COLUMNS FROM kitchen_kot_tickets LIKE 'items_signature'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE kitchen_kot_tickets ADD COLUMN items_signature VARCHAR(64) NULL")
+
+            try:
+                cursor.execute("SHOW INDEX FROM kitchen_kot_tickets WHERE Key_name = 'uniq_kot_signature'")
+                if not cursor.fetchone():
+                    cursor.execute(
+                        "ALTER TABLE kitchen_kot_tickets ADD UNIQUE KEY uniq_kot_signature (order_id, section_id, items_signature)"
+                    )
+            except Exception:
+                pass
 
             cursor.execute(
                 """
@@ -231,42 +347,88 @@ class KOTService:
 
             for (section_id, section_name), items in groups.items():
                 base = items[0]
+                order_item_ids = [item['order_item_id'] for item in items]
+                signature_source = ','.join(str(item_id) for item_id in sorted(order_item_ids))
+                items_signature = hashlib.sha1(signature_source.encode('utf-8')).hexdigest()
 
-                # Create ticket row first to get numeric sequence.
                 cursor.execute(
                     """
-                    INSERT INTO kitchen_kot_tickets
-                    (kot_number, hotel_id, order_id, table_id, session_id, section_id, section_name, note, print_status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'PENDING')
+                    SELECT id, kot_number, print_status
+                    FROM kitchen_kot_tickets
+                    WHERE order_id = %s
+                      AND COALESCE(section_id, 0) = %s
+                      AND items_signature = %s
+                    LIMIT 1
                     """,
-                    ('PENDING', base.get('hotel_id'), base.get('order_id'), base.get('table_id'),
-                     base.get('session_id'), section_id if section_id != 0 else None, section_name, note)
+                    (base.get('order_id'), section_id or 0, items_signature)
                 )
-                ticket_id = cursor.lastrowid
-                kot_number = f"KOT-{ticket_id:06d}"
-                cursor.execute("UPDATE kitchen_kot_tickets SET kot_number = %s WHERE id = %s", (kot_number, ticket_id))
+                existing_ticket = cursor.fetchone()
+
+                if existing_ticket:
+                    existing_status = str(existing_ticket.get('print_status') or '').upper()
+                    if existing_status in ('PROCESSING', 'PRINTED'):
+                        details.append({
+                            'ticket_id': existing_ticket.get('id'),
+                            'kot_number': existing_ticket.get('kot_number'),
+                            'section': section_name,
+                            'printer': KOTService._get_printer_name(section_name),
+                            'success': True,
+                            'message': f'Skipped duplicate KOT job ({existing_status.lower()})',
+                            'items': len(items),
+                        })
+                        continue
+
+                    ticket_id = existing_ticket.get('id')
+                    kot_number = existing_ticket.get('kot_number') or f"KOT-{ticket_id:06d}"
+                    cursor.execute(
+                        """
+                        UPDATE kitchen_kot_tickets
+                        SET print_status = 'PROCESSING', error_message = NULL, printed_at = NULL,
+                            note = %s, section_name = %s, items_signature = %s
+                        WHERE id = %s
+                        """,
+                        (note, section_name, items_signature, ticket_id)
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        INSERT INTO kitchen_kot_tickets
+                        (kot_number, hotel_id, order_id, table_id, session_id, section_id, section_name, items_signature, note, print_status)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'PROCESSING')
+                        """,
+                        ('PENDING', base.get('hotel_id'), base.get('order_id'), base.get('table_id'),
+                         base.get('session_id'), section_id if section_id != 0 else None, section_name,
+                         items_signature, note)
+                    )
+                    ticket_id = cursor.lastrowid
+                    kot_number = f"KOT-{ticket_id:06d}"
+                    cursor.execute("UPDATE kitchen_kot_tickets SET kot_number = %s WHERE id = %s", (kot_number, ticket_id))
+
+                connection.commit()
 
                 for item in items:
                     cursor.execute(
                         """
-                        INSERT INTO kitchen_kot_items (kot_ticket_id, order_item_id, item_name, quantity)
+                        INSERT IGNORE INTO kitchen_kot_items (kot_ticket_id, order_item_id, item_name, quantity)
                         VALUES (%s, %s, %s, %s)
                         """,
                         (ticket_id, item['order_item_id'], item.get('dish_name'), item.get('quantity') or 1)
                     )
 
-                ticket_text = KOTService._build_kot_text(
-                    hotel_name=base.get('hotel_name') or 'Tip Top Hotel',
-                    section_name=section_name,
-                    kot_number=kot_number,
-                    table_number=KOTService._safe_text(base.get('table_number'), 'Table Deleted'),
-                    order_time=base.get('created_at') or datetime.now(),
-                    items=items,
-                    note=note,
-                )
-
                 printer_name = KOTService._get_printer_name(section_name)
-                ok, message = KOTService._print_escpos(printer_name, ticket_text)
+                print_result = KOTService.print_kot({
+                    'hotel_name': base.get('hotel_name') or 'Tip Top Hotel',
+                    'section_name': section_name,
+                    'kot_number': kot_number,
+                    'table_number': KOTService._safe_text(base.get('table_number'), 'Table Deleted'),
+                    'order_time': base.get('created_at') or datetime.now(),
+                    'items': items,
+                    'note': note,
+                    'printer_name': printer_name,
+                })
+
+                ok = bool(print_result.get('success'))
+                message = print_result.get('message') or ''
 
                 if ok:
                     printed_count += 1
@@ -500,7 +662,7 @@ class KOTService:
             )
 
             printer_name = KOTService._get_printer_name(ticket.get('section_name') or 'GENERAL')
-            ok, message = KOTService._print_escpos(printer_name, ticket_text)
+            ok, message = KOTService._print_raw_to_printer(printer_name, ticket_text)
 
             if ok:
                 cursor.execute(

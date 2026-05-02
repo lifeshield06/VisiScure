@@ -16,6 +16,7 @@ from guest_verification import guest_verification_bp
 from menu import menu_bp
 from orders import orders_bp
 from flask import redirect, url_for
+from orders.daily_cleanup_service import start_daily_order_cleanup_scheduler
 
 
 class CustomJSONProvider(DefaultJSONProvider):
@@ -546,6 +547,9 @@ def create_hotel_redirect():
 
 if os.getenv("ENABLE_DB_INIT", "1") != "0":
     init_db()  # Initialize database tables on startup
+
+# Start the midnight order cleanup scheduler once per process.
+start_daily_order_cleanup_scheduler()
 
 if __name__ == "__main__":
     app.run(debug=True)

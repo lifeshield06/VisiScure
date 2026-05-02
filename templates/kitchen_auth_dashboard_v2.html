@@ -1468,40 +1468,26 @@
                     </div>
                     <div class="kitchen-name">{{ kitchen_name }}</div>
                 </div>
-                <div class="actions">
+                <div class="actions" style="position:relative;">
                     <button class="btn btn-primary" onclick="loadOrders()">
                         <i class="fas fa-sync-alt"></i> Refresh
                     </button>
                     <a href="/kitchen/logout" class="btn btn-danger">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
+                    <!-- Compact Printer Status Badge -->
+                    <div id="printer-status-badge" title="Printer Status"
+                         style="position:absolute; top:100%; right:0; margin-top:6px; display:flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; white-space:nowrap; background:rgba(0,0,0,0.15); color:#fff; cursor:default; transition:background 0.3s;">
+                        <i class="fas fa-print" style="font-size:0.75rem;"></i>
+                        <span id="printer-status-label">Checking...</span>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Printer Status Card -->
-            <div class="printer-status-card" id="printer-status-card">
-                <div class="printer-status-content">
-                    <div class="printer-icon">
-                        <i class="fas fa-print"></i>
-                    </div>
-                    <div class="printer-info">
-                        <div class="printer-label">Printer Status</div>
-                        <div class="printer-name" id="printer-name">Loading...</div>
-                    </div>
-                </div>
-                <div class="printer-status-text" id="printer-status-text">
-                    <span class="printer-status-dot"></span>
-                    <span id="printer-status-label">Checking...</span>
-                </div>
-                <div class="failed-kot-badge" id="failed-kot-count" style="display:none;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span id="failed-count">0</span> Failed
-                </div>
-                <div class="printer-actions">
-                    <button class="btn-test-printer" onclick="testPrinter()" title="Send test print">
-                        <i class="fas fa-vial"></i> Test
-                    </button>
-                </div>
+            <!-- Hidden elements kept for JS compatibility -->
+            <div id="printer-status-card" style="display:none;">
+                <div id="printer-name"></div>
+                <div id="printer-status-text"><span class="printer-status-dot"></span></div>
+                <div id="failed-kot-count" style="display:none;"><span id="failed-count">0</span></div>
             </div>
             
             <div class="kitchen-cards-container">
@@ -1777,6 +1763,7 @@
         }
         
         function checkPrinterStatus() {
+            const badge = document.getElementById('printer-status-badge');
             fetch('/orders/api/printer/monitor/status')
                 .then(r => r.json())
                 .then(response => {
@@ -1805,12 +1792,15 @@
                     if (printer.status === 'CONNECTED') {
                         card.classList.add('connected');
                         statusLabel.innerHTML = '<span class="printer-status-dot"></span> Ready to Print';
+                        if (badge) { badge.style.background = 'rgba(22,163,74,0.85)'; statusLabel.textContent = 'Connected'; }
                     } else if (printer.status === 'CHECKING') {
                         card.classList.add('checking');
                         statusLabel.innerHTML = '<span class="printer-status-dot"></span> Checking...';
+                        if (badge) { badge.style.background = 'rgba(202,138,4,0.85)'; statusLabel.textContent = 'Checking...'; }
                     } else {
                         card.classList.add('offline');
                         statusLabel.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + (printer.status || 'Offline');
+                        if (badge) { badge.style.background = 'rgba(220,38,38,0.85)'; statusLabel.textContent = printer.status || 'Offline'; }
                     }
                     
                     printerName.textContent = printer.printer_name || 'Not Configured';
@@ -1838,6 +1828,9 @@
                         card.classList.add('offline');
                         document.getElementById('printer-status-label').textContent = 'Error checking status';
                     }
+                    if (badge) { badge.style.background = 'rgba(220,38,38,0.85)'; }
+                    const lbl = document.getElementById('printer-status-label');
+                    if (lbl) lbl.textContent = 'Error';
                 });
         }
         

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from flask import request, jsonify, render_template, send_file, session, render_template_string
 from . import orders_bp
 from .table_services import TableService, OrderService
@@ -148,17 +149,22 @@ def test_printer():
             return jsonify({"success": False, "message": "Printer not configured"}), 400
         
         # Send a simple test print
-        test_text = """
-╔════════════════════════════════╗
-║       PRINTER TEST PAGE        ║
-║     Kitchen Order Ticket       ║
-║                                ║
-║   Printer Connected & Ready    ║
-║   Status: OK                   ║
-╚════════════════════════════════╝
-        """.strip()
-        
-        ok, message = KOTService._print_escpos(printer_name, test_text)
+        print_result = KOTService.print_kot({
+            'hotel_name': 'PRINTER TEST PAGE',
+            'section_name': section,
+            'kot_number': 'TEST-PRINT',
+            'table_number': 'N/A',
+            'order_time': datetime.now(),
+            'items': [
+                {'dish_name': 'Printer Connected & Ready', 'quantity': 1},
+                {'dish_name': 'Status: OK', 'quantity': 1},
+            ],
+            'note': 'Test print job',
+            'printer_name': printer_name,
+        })
+
+        ok = bool(print_result.get('success'))
+        message = print_result.get('message')
         
         return jsonify({
             "success": ok,

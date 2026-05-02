@@ -347,11 +347,11 @@ class OrderService:
 
             # Auto-print KOT for newly inserted order_items only.
             try:
-                kot_result = KOTService.print_for_new_items(order_id, note=kot_note)
-                if not kot_result.get('success'):
-                    print(f"[KOT] Processing failed for order {order_id}: {kot_result.get('message')}")
+                kot_result = KOTService.queue_print_for_new_items(order_id, note=kot_note)
+                if kot_result.get('queued'):
+                    print(f"[KOT] Queue started for order {order_id}")
                 else:
-                    print(f"[KOT] Order {order_id}: printed={kot_result.get('printed')} failed={kot_result.get('failed')}")
+                    print(f"[KOT] Queue failed for order {order_id}: {kot_result.get('message')}")
             except Exception as kot_error:
                 # Never block order placement due to printer/runtime issues.
                 print(f"[KOT] Error while auto-printing order {order_id}: {kot_error}")

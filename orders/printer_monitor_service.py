@@ -44,13 +44,22 @@ class PrinterMonitor:
         if self._initialized:
             return
         self._initialized = True
-        self._ensure_schema()
-        self._load_last_states()
+        try:
+            self._ensure_schema()
+            self._load_last_states()
+        except Exception as e:
+            print(f"[PrinterMonitor] Initialization error (non-critical): {e}")
+            # Continue even if initialization fails - will retry on first use
     
     @staticmethod
     def _ensure_schema():
         """Create required database tables"""
-        connection = get_db_connection()
+        try:
+            connection = get_db_connection()
+        except Exception as e:
+            print(f"[PrinterMonitor] Could not connect to database for schema: {e}")
+            return
+        
         cursor = connection.cursor()
         try:
             # Printer status history table
@@ -114,10 +123,16 @@ class PrinterMonitor:
             print("[PrinterMonitor] Schema initialized successfully")
         except Exception as e:
             print(f"[PrinterMonitor Schema Error] {e}")
-            connection.rollback()
+            try:
+                connection.rollback()
+            except:
+                pass
         finally:
-            cursor.close()
-            connection.close()
+            try:
+                cursor.close()
+                connection.close()
+            except:
+                pass
     
     def _load_last_states(self):
         """Load last known printer states from database"""
@@ -143,7 +158,7 @@ class PrinterMonitor:
             cursor.close()
             connection.close()
         except Exception as e:
-            print(f"[PrinterMonitor Load States Error] {e}")
+            print(f"[PrinterMonitor] Load States Error (non-critical): {e}")
     
     @staticmethod
     def check_single_printer(printer_name: str) -> Dict:
@@ -491,8 +506,35 @@ class PrinterMonitor:
             print(f"[PrinterMonitor Full Check Error] {e}")
 
 
-# Global monitor instance
-printer_monitor = PrinterMonitor()
+# Global monitor instance - lazy initialized
+_printer_monitor = None
+_printer_monitor_lock = threading.Lock()
+
+
+def get_printer_monitor() -> PrinterMonitor:
+    """Get or create the printer monitor instance (lazy initialization)"""
+    global _printer_monitor
+    if _printer_monitor is None:
+        with _printer_monitor_lock:
+            if _printer_monitor is None:
+                try:
+                    _printer_monitor = PrinterMonitor()
+                except Exception as e:
+                    print(f"[PrinterMonitor] Deferred initialization: {e}")
+                    # Return a mock instance that won't crash on access
+                    _printer_monitor = PrinterMonitor.__new__(PrinterMonitor)
+                    _printer_monitor._initialized = False
+    return _printer_monitor
+
+
+# Lazy proxy for backward compatibility
+class PrinterMonitorProxy:
+    """Proxy that lazily initializes PrinterMonitor"""
+    def __getattr__(self, name):
+        return getattr(get_printer_monitor(), name)
+
+
+printer_monitor = PrinterMonitorProxy()
 
 
 def register_printer(hotel_id: int, printer_name: str, section_name: str = None, 
